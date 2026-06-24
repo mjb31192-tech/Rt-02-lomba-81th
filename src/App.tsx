@@ -9,7 +9,13 @@ import {
   User, 
   Clock,
   Menu,
-  X
+  X,
+  Trash2,
+  Lock,
+  Unlock,
+  LogIn,
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import {
   Lomba,
@@ -42,6 +48,7 @@ import ModalCatatKas from './components/ModalCatatKas';
 import ModalAddLomba from './components/ModalAddLomba';
 import ModalBayarIuran from './components/ModalBayarIuran';
 import ModalPermintaanLomba from './components/ModalPermintaanLomba';
+import ModalAuth from './components/ModalAuth';
 
 export default function App() {
   // 1. States with LocalStorage Hydration
@@ -75,6 +82,26 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_PERMINTAAN_LOMBA;
   });
 
+  // --- Auth State ---
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ username: string; nama: string; jabatan: string } | null>(() => {
+    const saved = localStorage.getItem('hut81_current_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string }[]>(() => {
+    const saved = localStorage.getItem('hut81_accounts');
+    if (saved) return JSON.parse(saved);
+    const initial = [
+      { username: 'admin', password: 'password', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris' },
+      { username: 'sunardi', password: 'password', nama: 'Sunardi', jabatan: 'Ketua RT.002' },
+      { username: 'anto', password: 'password', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia' },
+      { username: 'ayeh', password: 'password', nama: 'Ayeh Patoni', jabatan: 'Bendahara' }
+    ];
+    localStorage.setItem('hut81_accounts', JSON.stringify(initial));
+    return initial;
+  });
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'lomba' | 'keuangan' | 'warga' | 'log'>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
@@ -89,6 +116,17 @@ export default function App() {
   const [selectedKKIdForModal, setSelectedKKIdForModal] = useState<number | ''>('');
 
   // 2. Persist states
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('hut81_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('hut81_current_user');
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    localStorage.setItem('hut81_accounts', JSON.stringify(accounts));
+  }, [accounts]);
   useEffect(() => {
     localStorage.setItem('hut81_lombas', JSON.stringify(lombas));
   }, [lombas]);
@@ -141,8 +179,18 @@ export default function App() {
     setAktivitas(prev => [newLog, ...prev]);
   };
 
+  const checkAuth = (): boolean => {
+    if (!currentUser) {
+      alert("Akses Terbatas: Silakan login/daftar sebagai pengurus panitia terlebih dahulu untuk mengubah data!");
+      setIsAuthModalOpen(true);
+      return false;
+    }
+    return true;
+  };
+
   // 4. Core MySQL Operations Simulation
   const handleStatusChange = (id: number, newStatus: Lomba['status']) => {
+    if (!checkAuth()) return;
     setLombas(prev =>
       prev.map(l => (l.id === id ? { ...l, status: newStatus } : l))
     );
@@ -153,6 +201,7 @@ export default function App() {
   };
 
   const handleAddPeserta = (nama: string, telp: string, rt: string, lombaId: number) => {
+    if (!checkAuth()) return;
     const newPeserta: Peserta = {
       id: Date.now(),
       nama_peserta: nama,
@@ -169,6 +218,7 @@ export default function App() {
   };
 
   const handleInputSkor = (lombaId: number, j1: string, j2: string, j3: string) => {
+    if (!checkAuth()) return;
     setLombas(prev =>
       prev.map(l =>
         l.id === lombaId
@@ -187,6 +237,7 @@ export default function App() {
   };
 
   const handleAddKas = (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number) => {
+    // If called via UI direct action or internally
     const newKas: Kas = {
       id: Date.now(),
       tipe,
@@ -202,6 +253,7 @@ export default function App() {
   };
 
   const handleToggleAbsensi = (pesertaId: number) => {
+    if (!checkAuth()) return;
     let updatedStatus = false;
     let namaWarga = '';
     setPesertas(prev =>
@@ -218,6 +270,7 @@ export default function App() {
   };
 
   const handleAddLomba = (nama: string, pj: string, anggaran: number, kategori: string, dariPermintaanId?: number) => {
+    if (!checkAuth()) return;
     const newLomba: Lomba = {
       id: Date.now(),
       nama_lomba: nama,
@@ -238,6 +291,7 @@ export default function App() {
   };
 
   const handlePayIuran = (kkId: number, amount: number) => {
+    if (!checkAuth()) return;
     setIuranKK(prev =>
       prev.map(item => {
         if (item.id === kkId) {
@@ -272,6 +326,7 @@ export default function App() {
   };
 
   const handleAddNewKK = (namaKK: string, rt: string) => {
+    if (!checkAuth()) return;
     const newKK: IuranKK = {
       id: Date.now(),
       nama_kk: namaKK,
@@ -316,10 +371,95 @@ export default function App() {
   };
 
   const handleApproveRequestDirectly = (id: number) => {
+    if (!checkAuth()) return;
     const req = permintaanLomba.find(u => u.id === id);
     if (req) {
       handleAddLomba(req.nama_lomba, req.pengusul, req.estimasi_biaya, req.kategori, id);
       alert(`Aspirasi Lomba "${req.nama_lomba}" disetujui! Lomba otomatis terdaftar di Kelola Lomba.`);
+    }
+  };
+
+  const handleDeleteLomba = (id: number) => {
+    if (!checkAuth()) return;
+    const lomba = lombas.find(l => l.id === id);
+    if (lomba) {
+      if (confirm(`Apakah Anda yakin ingin menghapus lomba "${lomba.nama_lomba}"? Semua peserta terkait juga akan terpengaruh.`)) {
+        setLombas(prev => prev.filter(l => l.id !== id));
+        setPesertas(prev => prev.filter(p => p.lomba_id !== id));
+        logAktivitas('sistem', `Hapus Lomba: Lomba "${lomba.nama_lomba}" telah dihapus oleh Panitia.`);
+      }
+    }
+  };
+
+  const handleDeletePeserta = (id: number) => {
+    if (!checkAuth()) return;
+    const peserta = pesertas.find(p => p.id === id);
+    if (peserta) {
+      if (confirm(`Apakah Anda yakin ingin menghapus kepesertaan "${peserta.nama_peserta}"?`)) {
+        setPesertas(prev => prev.filter(p => p.id !== id));
+        logAktivitas('pendaftaran', `Batal Daftar: Kepesertaan "${peserta.nama_peserta}" pada lomba dibatalkan.`);
+      }
+    }
+  };
+
+  const handleDeleteKas = (id: number) => {
+    if (!checkAuth()) return;
+    const k = kas.find(item => item.id === id);
+    if (k) {
+      if (confirm(`Apakah Anda yakin ingin menghapus transaksi "${k.keterangan}" senilai Rp ${k.jumlah.toLocaleString('id-ID')}?`)) {
+        setKas(prev => prev.filter(item => item.id !== id));
+        logAktivitas('kas', `Hapus Kas: Transaksi "${k.keterangan}" (${k.tipe}) telah dihapus.`);
+      }
+    }
+  };
+
+  const handleDeleteKK = (id: number) => {
+    if (!checkAuth()) return;
+    const kk = iuranKK.find(item => item.id === id);
+    if (kk) {
+      if (confirm(`Apakah Anda yakin ingin menghapus data KK "${kk.nama_kk}"?`)) {
+        setIuranKK(prev => prev.filter(item => item.id !== id));
+        logAktivitas('iuran', `Hapus KK: Data keluarga/KK "${kk.nama_kk}" dihapus.`);
+      }
+    }
+  };
+
+  const handleDeletePermintaan = (id: number) => {
+    if (!checkAuth()) return;
+    const req = permintaanLomba.find(item => item.id === id);
+    if (req) {
+      if (confirm(`Apakah Anda yakin ingin menolak/menghapus usulan lomba "${req.nama_lomba}"?`)) {
+        setPermintaanLomba(prev => prev.filter(item => item.id !== id));
+        logAktivitas('permintaan', `Usulan Ditolak: Aspirasi lomba "${req.nama_lomba}" ditolak/dihapus.`);
+      }
+    }
+  };
+
+  const handleResetToDefault = () => {
+    if (!checkAuth()) return;
+    if (confirm("Apakah Anda yakin ingin me-reset seluruh database ke data awal bawaan lapangan?")) {
+      localStorage.clear();
+      window.location.reload();
+    }
+  };
+
+  const handleResetToEmpty = () => {
+    if (!checkAuth()) return;
+    if (confirm("Peringatan: Apakah Anda yakin ingin mengosongkan seluruh database? Semua lomba, peserta, kas, dan log aktivitas akan dibersihkan.")) {
+      setLombas([]);
+      setPesertas([]);
+      setKas([]);
+      setAktivitas([
+        {
+          id: Date.now(),
+          tipe: 'sistem',
+          keterangan: 'Seluruh database lama berhasil dikosongkan secara total oleh admin.',
+          waktu: 'Baru saja'
+        }
+      ]);
+      setIuranKK([]);
+      setPermintaanLomba([]);
+      alert("Database dikosongkan!");
     }
   };
 
@@ -368,15 +508,44 @@ export default function App() {
               <span>{currentTime} WIB</span>
             </div>
 
-            {/* Pak RT Profile Dropdown */}
+            {/* Authentic & Dynamic Auth Profile Widget */}
             <div className="flex items-center gap-3 border-l border-gray-200 pl-5">
-              <div className="w-9 h-9 rounded-full bg-red-50 border-2 border-white shadow-sm flex items-center justify-center font-bold text-xs text-red-600 font-display">
-                PJ
-              </div>
-              <div className="text-left hidden md:block">
-                <p className="text-sm font-semibold text-gray-800">Pak RT Ahmad</p>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-none">Ketua Panitia</p>
-              </div>
+              {currentUser ? (
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 shadow-3xs flex items-center justify-center font-bold text-xs text-emerald-600 font-display">
+                    {currentUser.nama.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div className="text-left hidden md:block">
+                    <p className="text-sm font-semibold text-gray-800 leading-tight">{currentUser.nama}</p>
+                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider leading-none">{currentUser.jabatan}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm("Apakah Anda yakin ingin keluar dari Mode Pengurus?")) {
+                        logAktivitas('sistem', `Pengurus "${currentUser.nama}" (${currentUser.jabatan}) telah keluar dari sistem.`);
+                        setCurrentUser(null);
+                      }
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer active:scale-95"
+                    title="Log Out Panitia"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="hidden lg:inline-flex items-center gap-1 text-[9px] bg-amber-50 text-amber-600 font-bold border border-amber-200/50 px-2 py-1 rounded-full uppercase tracking-wider">
+                    Mode Tamu / Penonton
+                  </span>
+                  <button
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs"
+                  >
+                    <Lock size={12} />
+                    <span>Masuk Panitia</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -458,9 +627,39 @@ export default function App() {
                 </nav>
               </div>
 
-              <div className="pt-5 border-t border-gray-100 text-center">
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                  HUT RI ke-81 Tahun 2026
+              <div className="pt-4 border-t border-gray-100 flex flex-col gap-2">
+                {currentUser ? (
+                  <div className="text-left bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <p className="text-xs font-bold text-gray-800">{currentUser.nama}</p>
+                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">{currentUser.jabatan}</p>
+                    <button
+                      onClick={() => {
+                        if (confirm("Apakah Anda yakin ingin keluar dari Mode Pengurus?")) {
+                          logAktivitas('sistem', `Pengurus "${currentUser.nama}" (${currentUser.jabatan}) telah keluar.`);
+                          setCurrentUser(null);
+                          setIsMobileMenuOpen(false);
+                        }
+                      }}
+                      className="mt-2 w-full flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold py-1.5 rounded-lg transition-all"
+                    >
+                      <LogOut size={12} />
+                      <span>Log Out Panitia</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all"
+                  >
+                    <Lock size={12} />
+                    <span>Masuk Panitia</span>
+                  </button>
+                )}
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider text-center mt-1">
+                  HUT RI ke-81 &bull; Tangerang
                 </p>
               </div>
             </div>
@@ -521,6 +720,8 @@ export default function App() {
                     onVotePermintaan={handleVotePermintaan}
                     onApproveRequestDirectly={handleApproveRequestDirectly}
                     onOpenAddPermintaan={() => setIsPermintaanOpen(true)}
+                    onDeleteLomba={handleDeleteLomba}
+                    onDeleteUsulan={handleDeletePermintaan}
                   />
                   <button 
                     onClick={() => setActiveTab('lomba')}
@@ -544,6 +745,37 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* Maintenance & Reset Center */}
+              <div className="bg-white border border-red-100 rounded-2xl p-6 shadow-xs mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+                    <Trash2 size={22} />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-extrabold text-sm text-gray-800 uppercase tracking-wide">
+                      Pusat Manajemen &amp; Reset Data Panitia
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Bersihkan data lama / hapus seluruh aktivitas untuk memulai lembaran baru kepanitiaan RT.002/RW.003.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <button
+                    onClick={handleResetToDefault}
+                    className="px-3.5 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs"
+                  >
+                    Reset ke Template Awal
+                  </button>
+                  <button
+                    onClick={handleResetToEmpty}
+                    className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-xs"
+                  >
+                    Kosongkan Semua Data Lama
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -558,6 +790,8 @@ export default function App() {
                 onVotePermintaan={handleVotePermintaan}
                 onApproveRequestDirectly={handleApproveRequestDirectly}
                 onOpenAddPermintaan={() => setIsPermintaanOpen(true)}
+                onDeleteLomba={handleDeleteLomba}
+                onDeleteUsulan={handleDeletePermintaan}
               />
             </div>
           )}
@@ -574,6 +808,8 @@ export default function App() {
                   setIsBayarIuranOpen(true);
                 }}
                 lombasList={lombas}
+                onDeleteKas={handleDeleteKas}
+                onDeleteKK={handleDeleteKK}
               />
             </div>
           )}
@@ -585,6 +821,7 @@ export default function App() {
                 lombas={lombas}
                 onToggleAbsensi={handleToggleAbsensi}
                 onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
+                onDeletePeserta={handleDeletePeserta}
               />
             </div>
           )}
@@ -665,6 +902,21 @@ export default function App() {
         isOpen={isPermintaanOpen}
         onClose={() => setIsPermintaanOpen(false)}
         onCreatePermintaan={handleCreatePermintaan}
+      />
+
+      <ModalAuth
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          logAktivitas('sistem', `Pengurus "${user.nama}" (${user.jabatan}) berhasil login ke sistem.`);
+          alert(`Selamat Datang, ${user.nama}! Anda masuk sebagai ${user.jabatan}.`);
+        }}
+        accounts={accounts}
+        onSignUpSuccess={(newAcc) => {
+          setAccounts((prev) => [...prev, newAcc]);
+          logAktivitas('sistem', `Akun baru terdaftar: "${newAcc.nama}" (${newAcc.jabatan}).`);
+        }}
       />
     </div>
   );

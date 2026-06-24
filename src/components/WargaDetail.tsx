@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Peserta, Lomba } from '../types';
-import { Search, UserPlus, Phone, MapPin, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Search, UserPlus, Phone, MapPin, Calendar, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 
 interface WargaDetailProps {
   pesertas: Peserta[];
   lombas: Lomba[];
   onToggleAbsensi: (id: number) => void;
   onOpenPendaftaran: () => void;
+  onDeletePeserta?: (id: number) => void;
 }
 
 export default function WargaDetail({
@@ -14,6 +15,7 @@ export default function WargaDetail({
   lombas,
   onToggleAbsensi,
   onOpenPendaftaran,
+  onDeletePeserta,
 }: WargaDetailProps) {
   const [search, setSearch] = useState('');
   const [rtFilter, setRtFilter] = useState<string>('all');
@@ -139,22 +141,34 @@ export default function WargaDetail({
                 {/* Field Check-In Absensi Button */}
                 <div className="flex items-center gap-2 justify-between border-t sm:border-0 pt-3 sm:pt-0 border-gray-100">
                   <span className="text-xs text-gray-500 sm:hidden">Kehadiran Lapangan:</span>
-                  <button
-                    onClick={() => onToggleAbsensi(peserta.id)}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border ${peserta.absensi ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`}
-                  >
-                    {peserta.absensi ? (
-                      <>
-                        <CheckCircle size={14} className="text-emerald-600" />
-                        Hadir di Lapangan
-                      </>
-                    ) : (
-                      <>
-                        <XCircle size={14} className="text-gray-400" />
-                        Absen Lapangan
-                      </>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => onToggleAbsensi(peserta.id)}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border ${peserta.absensi ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+                    >
+                      {peserta.absensi ? (
+                        <>
+                          <CheckCircle size={14} className="text-emerald-600" />
+                          Hadir di Lapangan
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={14} className="text-gray-400" />
+                          Absen Lapangan
+                        </>
+                      )}
+                    </button>
+
+                    {onDeletePeserta && (
+                      <button
+                        onClick={() => onDeletePeserta(peserta.id)}
+                        className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all cursor-pointer active:scale-95 border border-red-100/30"
+                        title="Hapus Peserta"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
             ))

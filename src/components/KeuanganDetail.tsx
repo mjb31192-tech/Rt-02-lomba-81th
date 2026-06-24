@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba } from '../types';
-import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2 } from 'lucide-react';
 
 interface KeuanganDetailProps {
   kasList: Kas[];
@@ -9,6 +9,8 @@ interface KeuanganDetailProps {
   onOpenBayarIuran: () => void;
   onSelectKKAndPay: (kkId: number) => void;
   lombasList: Lomba[];
+  onDeleteKas?: (id: number) => void;
+  onDeleteKK?: (id: number) => void;
 }
 
 export default function KeuanganDetail({
@@ -18,6 +20,8 @@ export default function KeuanganDetail({
   onOpenBayarIuran,
   onSelectKKAndPay,
   lombasList,
+  onDeleteKas,
+  onDeleteKK,
 }: KeuanganDetailProps) {
   const [search, setSearch] = useState('');
   const [tipeFilter, setTipeFilter] = useState<string>('all');
@@ -293,13 +297,25 @@ export default function KeuanganDetail({
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className={`font-bold font-mono text-xs sm:text-sm ${k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {k.tipe === 'pemasukan' ? '+' : '-'}&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}
-                      </span>
-                      <span className="block text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                        {k.tipe}
-                      </span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <span className={`font-bold font-mono text-xs sm:text-sm ${k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {k.tipe === 'pemasukan' ? '+' : '-'}&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}
+                        </span>
+                        <span className="block text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                          {k.tipe}
+                        </span>
+                      </div>
+
+                      {onDeleteKas && (
+                        <button
+                          onClick={() => onDeleteKas(k.id)}
+                          className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                          title="Hapus Transaksi"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -412,13 +428,25 @@ export default function KeuanganDetail({
                         {kk.status === 'Lunas' ? 'Lunas Sepenuhnya' : `Sisa: ${formatRupiah(deficit)}`}
                       </span>
 
-                      <button
-                        onClick={() => onSelectKKAndPay(kk.id)}
-                        className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer border ${kk.status === 'Lunas' ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-100/80 border-red-100'}`}
-                        disabled={kk.status === 'Lunas'}
-                      >
-                        {kk.status === 'Belum Bayar' ? 'Mulai Bayar' : kk.status === 'Mencicil' ? 'Cicil Lagi' : 'Selesai'}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => onSelectKKAndPay(kk.id)}
+                          className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer border ${kk.status === 'Lunas' ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-100/80 border-red-100'}`}
+                          disabled={kk.status === 'Lunas'}
+                        >
+                          {kk.status === 'Belum Bayar' ? 'Mulai Bayar' : kk.status === 'Mencicil' ? 'Cicil Lagi' : 'Selesai'}
+                        </button>
+
+                        {onDeleteKK && (
+                          <button
+                            onClick={() => onDeleteKK(kk.id)}
+                            className="p-1 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-all cursor-pointer"
+                            title="Hapus KK"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -510,10 +538,10 @@ export default function KeuanganDetail({
                     PANITIA PELAKSANA PERINGATAN HUT RI KE-81
                   </h1>
                   <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wide text-gray-800 mt-0.5">
-                    WILAYAH RT 02 RW 03 KELURAHAN KEMERDEKAAN
+                    WILAYAH RT 02 RW 03 KELURAHAN KEDAUNG BARU
                   </h2>
                   <p className="text-[10px] text-gray-500 italic mt-1 font-sans">
-                    Sekretariat: Gedung Serbaguna RT 02, Kelurahan Kemerdekaan, Jakarta Utara, 14110
+                    Sekretariat: Gedung Serbaguna RT 02, Kelurahan Kedaung Baru, Tangerang, 15124
                   </p>
                 </div>
 
@@ -657,22 +685,27 @@ export default function KeuanganDetail({
                 </div>
 
                 {/* 6. Signatures Section / Pengesahan */}
-                <div className="mt-12">
-                  <div className="flex justify-between text-center text-gray-800 font-sans text-xs">
+                <div className="mt-12 border-t pt-8 border-gray-200">
+                  <div className="grid grid-cols-2 gap-y-12 gap-x-12 text-center text-gray-800 font-sans text-xs">
                     <div>
-                      <p className="mb-14">Dibuat Oleh,<br /><span className="font-bold">Bendahara Pelaksana</span></p>
-                      <p className="font-bold underline">Mega Pertiwi, S.E.</p>
-                      <p className="text-[10px] text-gray-500">NIP. PAN-8102-03-02</p>
+                      <p className="mb-16">Dibuat Oleh,<br /><span className="font-bold">Bendahara Pelaksana</span></p>
+                      <p className="font-bold underline text-gray-950">Ayeh Patoni</p>
+                      <p className="text-[10px] text-gray-500 font-mono">PAN-HUT81-BENDAHARA</p>
                     </div>
                     <div>
-                      <p className="mb-14">Mengetahui,<br /><span className="font-bold">Ketua Panitia Lapangan</span></p>
-                      <p className="font-bold underline">H. Agus Prasetyo</p>
-                      <p className="text-[10px] text-gray-500">NIP. PAN-8102-03-01</p>
+                      <p className="mb-16">Dibuat Oleh,<br /><span className="font-bold">Sekretaris Pelaksana</span></p>
+                      <p className="font-bold underline text-gray-950">Ahmad Mujibur Rahman</p>
+                      <p className="text-[10px] text-gray-500 font-mono">PAN-HUT81-SEKRETARIS</p>
                     </div>
                     <div>
-                      <p className="mb-14">Menyetujui,<br /><span className="font-bold">Ketua RT 02 RW 03</span></p>
-                      <p className="font-bold underline">Bpk. H. M. Bambang S.</p>
-                      <p className="text-[10px] text-gray-500">Ketua Lingkungan</p>
+                      <p className="mb-16">Mengetahui,<br /><span className="font-bold">Ketua Panitia Lapangan</span></p>
+                      <p className="font-bold underline text-gray-950">Anto / Zhipo</p>
+                      <p className="text-[10px] text-gray-500 font-mono">PAN-HUT81-KETUA</p>
+                    </div>
+                    <div>
+                      <p className="mb-16">Menyetujui,<br /><span className="font-bold">Ketua RT.002 / RW.003</span></p>
+                      <p className="font-bold underline text-gray-950">Sunardi</p>
+                      <p className="text-[10px] text-gray-500 font-sans">Ketua RT.002</p>
                     </div>
                   </div>
                 </div>

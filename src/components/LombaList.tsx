@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lomba, PermintaanLomba } from '../types';
-import { Search, Plus, User, Award, CheckCircle, RefreshCw, HelpCircle, MessageSquare, ThumbsUp, Sparkles, Check } from 'lucide-react';
+import { Search, Plus, User, Award, CheckCircle, RefreshCw, HelpCircle, MessageSquare, ThumbsUp, Sparkles, Check, Trash2 } from 'lucide-react';
 
 interface LombaListProps {
   lombas: Lomba[];
@@ -11,6 +11,8 @@ interface LombaListProps {
   onVotePermintaan?: (id: number) => void;
   onApproveRequestDirectly?: (id: number) => void;
   onOpenAddPermintaan?: () => void;
+  onDeleteLomba?: (id: number) => void;
+  onDeleteUsulan?: (id: number) => void;
 }
 
 export default function LombaList({
@@ -22,6 +24,8 @@ export default function LombaList({
   onVotePermintaan,
   onApproveRequestDirectly,
   onOpenAddPermintaan,
+  onDeleteLomba,
+  onDeleteUsulan,
 }: LombaListProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -262,6 +266,15 @@ export default function LombaList({
                         Hasil Final
                       </span>
                     )}
+                    {onDeleteLomba && !isCompact && (
+                      <button
+                        onClick={() => onDeleteLomba(lomba.id)}
+                        className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95"
+                        title="Hapus Lomba"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -328,6 +341,16 @@ export default function LombaList({
                         <Check size={12} />
                         Loloskan Lomba
                       </button>
+
+                      {onDeleteUsulan && (
+                        <button
+                          onClick={() => onDeleteUsulan(usulan.id)}
+                          className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95"
+                          title="Hapus Usulan"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </>
                   ) : (
                     <div className="flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-full font-bold uppercase tracking-wider">
