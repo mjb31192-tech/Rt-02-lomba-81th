@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Manajemen Lomba HUT RI 81",
+  "description": "Dashboard Panitia HUT RI ke-81 untuk mengelola lomba agustusan, anggaran kas RT, partisipasi warga, dan input pemenang.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
