@@ -4,29 +4,48 @@ import { Play, Square, Music, Volume2, VolumeX } from 'lucide-react';
 export default function PatrioticSoundtrack() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(0.3);
+  const playingRef = useRef(false);
+  const volumeRef = useRef(0.3);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const schedulerTimerRef = useRef<number | null>(null);
 
-  // Simplified notes for "Hari Merdeka" (17 Agustus)
+  // Simplified notes for "Indonesia Raya" (National Anthem of Indonesia)
   // [note, duration_multiplier]
   // 1 = Quarter note, 0.5 = Eighth note, 2 = Half note, etc.
   const melody = [
-    { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-    { note: 'G4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'C4', dur: 1.0 },
-    { note: 'E4', dur: 0.5 }, { note: 'E4', dur: 0.5 },
-    { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'B3', dur: 1.0 },
-    { note: 'D4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
-    { note: 'D4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'F4', dur: 1.0 },
-    { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 },
-    { note: 'C4', dur: 2.0 },
+    // Verse 1: "Indonesia tanah airku, tanah tumpah darahku..."
+    { note: 'G4', dur: 0.75 }, { note: 'A4', dur: 0.25 }, 
+    { note: 'B4', dur: 1.0 }, { note: 'B4', dur: 0.5 }, { note: 'B4', dur: 0.5 }, 
+    { note: 'C5', dur: 0.5 }, { note: 'B4', dur: 0.5 }, { note: 'A4', dur: 1.0 }, { note: 'A4', dur: 0.5 },
+    { note: 'A4', dur: 0.5 }, { note: 'B4', dur: 0.5 }, { note: 'A4', dur: 0.5 }, { note: 'G4', dur: 1.5 },
     
-    // Chorus part: "Merdeka!"
-    { note: 'G4', dur: 1.0 }, { note: 'E4', dur: 1.0 }, { note: 'C5', dur: 2.0 },
-    { note: 'A4', dur: 1.0 }, { note: 'F4', dur: 1.0 }, { note: 'D5', dur: 2.0 },
-    { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 }, { note: 'G4', dur: 0.5 },
-    { note: 'A4', dur: 1.0 }, { note: 'G4', dur: 1.0 },
-    { note: 'F4', dur: 0.5 }, { note: 'E4', dur: 0.5 }, { note: 'D4', dur: 0.5 }, { note: 'C4', dur: 0.5 },
-    { note: 'G3', dur: 2.0 }
+    // Verse 2: "Di sanalah aku berdiri, jadi pandu ibuku..."
+    { note: 'G4', dur: 0.75 }, { note: 'B4', dur: 0.25 }, 
+    { note: 'D5', dur: 1.0 }, { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, 
+    { note: 'E5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C5', dur: 1.0 }, { note: 'C5', dur: 0.5 },
+    { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C5', dur: 0.5 }, { note: 'B4', dur: 1.5 },
+
+    // Chorus: "Indonesia Raya, Merdeka, Merdeka!"
+    { note: 'G4', dur: 1.5 }, { note: 'G4', dur: 0.5 }, 
+    { note: 'C5', dur: 1.0 }, { note: 'C5', dur: 0.5 }, { note: 'C5', dur: 0.5 }, 
+    { note: 'E5', dur: 1.0 }, { note: 'E5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, 
+    { note: 'D5', dur: 1.5 }, { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 2.0 },
+    
+    // "Tanahku, negeriku yang kucinta..."
+    { note: 'D5', dur: 1.5 }, { note: 'D5', dur: 0.5 }, 
+    { note: 'D5', dur: 0.5 }, { note: 'D5', dur: 0.5 }, { note: 'C5', dur: 0.5 }, { note: 'B4', dur: 0.5 }, 
+    { note: 'C5', dur: 1.5 }, { note: 'D5', dur: 0.5 }, { note: 'E5', dur: 2.0 },
+
+    // "Indonesia Raya, Merdeka, Merdeka!"
+    { note: 'G4', dur: 1.5 }, { note: 'G4', dur: 0.5 }, 
+    { note: 'C5', dur: 1.0 }, { note: 'C5', dur: 0.5 }, { note: 'C5', dur: 0.5 }, 
+    { note: 'E5', dur: 1.0 }, { note: 'E5', dur: 0.5 }, { note: 'E5', dur: 0.5 }, 
+    { note: 'D5', dur: 1.5 }, { note: 'C5', dur: 0.5 }, { note: 'D5', dur: 2.0 },
+
+    // "Hiduplah Indonesia Raya!"
+    { note: 'D5', dur: 1.5 }, { note: 'D5', dur: 0.5 }, 
+    { note: 'F#5', dur: 1.0 }, { note: 'F#5', dur: 0.5 }, { note: 'F#5', dur: 0.5 }, 
+    { note: 'G5', dur: 3.0 }
   ];
 
   const noteFreqs: { [key: string]: number } = {
@@ -38,8 +57,13 @@ export default function PatrioticSoundtrack() {
     'F4': 349.23,
     'G4': 392.00,
     'A4': 440.00,
+    'B4': 493.88,
     'C5': 523.25,
-    'D5': 587.33
+    'D5': 587.33,
+    'E5': 659.25,
+    'F5': 698.46,
+    'F#5': 739.99,
+    'G5': 783.99
   };
 
   const playNote = (ctx: AudioContext, freq: number, start: number, duration: number) => {
@@ -50,9 +74,10 @@ export default function PatrioticSoundtrack() {
     osc.frequency.setValueAtTime(freq, start);
 
     // ADSR Envelope
+    const currentVol = volumeRef.current;
     gainNode.gain.setValueAtTime(0, start);
-    gainNode.gain.linearRampToValueAtTime(volume, start + 0.05); // Attack
-    gainNode.gain.setValueAtTime(volume, start + duration - 0.05); // Sustain
+    gainNode.gain.linearRampToValueAtTime(currentVol, start + 0.05); // Attack
+    gainNode.gain.setValueAtTime(currentVol, start + duration - 0.05); // Sustain
     gainNode.gain.exponentialRampToValueAtTime(0.0001, start + duration); // Release
 
     osc.connect(gainNode);
@@ -63,7 +88,7 @@ export default function PatrioticSoundtrack() {
   };
 
   const startPlaying = () => {
-    if (isPlaying) return;
+    if (playingRef.current) return;
 
     // Initialize audio context
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -74,6 +99,7 @@ export default function PatrioticSoundtrack() {
 
     const ctx = new AudioContextClass();
     audioCtxRef.current = ctx;
+    playingRef.current = true;
     setIsPlaying(true);
 
     const tempo = 125; // Beats per minute
@@ -83,8 +109,10 @@ export default function PatrioticSoundtrack() {
     let noteIndex = 0;
 
     const scheduleNextNotes = () => {
+      if (!playingRef.current || !audioCtxRef.current) return;
+
       // Schedule notes 1.5 seconds in advance
-      while (time < ctx.currentTime + 1.5 && isPlaying) {
+      while (time < ctx.currentTime + 1.5 && playingRef.current) {
         const item = melody[noteIndex];
         const freq = noteFreqs[item.note] || 440;
         const noteDur = item.dur * beatDuration;
@@ -95,7 +123,7 @@ export default function PatrioticSoundtrack() {
         noteIndex = (noteIndex + 1) % melody.length; // Loop infinitely
       }
 
-      if (isPlaying) {
+      if (playingRef.current) {
         schedulerTimerRef.current = window.setTimeout(scheduleNextNotes, 500);
       }
     };
@@ -104,7 +132,10 @@ export default function PatrioticSoundtrack() {
   };
 
   const stopPlaying = () => {
-    if (!isPlaying) return;
+    if (!playingRef.current) return;
+
+    playingRef.current = false;
+    setIsPlaying(false);
 
     if (schedulerTimerRef.current) {
       clearTimeout(schedulerTimerRef.current);
@@ -115,13 +146,36 @@ export default function PatrioticSoundtrack() {
       audioCtxRef.current.close();
       audioCtxRef.current = null;
     }
-
-    setIsPlaying(false);
   };
 
-  // Safe release on unmount
+  // Safe release on unmount and autoplay setup
   useEffect(() => {
+    const handleFirstInteraction = () => {
+      if (!playingRef.current) {
+        startPlaying();
+      }
+      cleanupListeners();
+    };
+
+    const cleanupListeners = () => {
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('mousedown', handleFirstInteraction);
+    };
+
+    // 1. Try to play immediately
+    startPlaying();
+
+    // 2. Add event listeners in case the browser blocked immediate autoplay
+    document.addEventListener('click', handleFirstInteraction);
+    document.addEventListener('keydown', handleFirstInteraction);
+    document.addEventListener('touchstart', handleFirstInteraction);
+    document.addEventListener('mousedown', handleFirstInteraction);
+
     return () => {
+      cleanupListeners();
+      playingRef.current = false;
       if (schedulerTimerRef.current) {
         clearTimeout(schedulerTimerRef.current);
       }
@@ -133,7 +187,9 @@ export default function PatrioticSoundtrack() {
 
   // Update volume in real-time if context exists
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVolume(Number(e.target.value));
+    const val = Number(e.target.value);
+    setVolume(val);
+    volumeRef.current = val;
   };
 
   return (
@@ -141,7 +197,7 @@ export default function PatrioticSoundtrack() {
       <div className="flex items-center gap-2">
         <Music size={14} className={`text-red-600 ${isPlaying ? 'animate-bounce' : ''}`} />
         <span className="text-[10px] font-bold text-red-700 uppercase tracking-wider">
-          {isPlaying ? 'Soundtrack: Merdeka 🇮🇩' : 'Soundtrack Kemerdekaan'}
+          {isPlaying ? 'Lagu: Indonesia Raya 🇮🇩' : 'Lagu Indonesia Raya'}
         </span>
       </div>
 
