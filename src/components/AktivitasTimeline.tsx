@@ -7,9 +7,8 @@ interface AktivitasTimelineProps {
 }
 
 export default function AktivitasTimeline({ aktivitases, isCompact = false }: AktivitasTimelineProps) {
-  const displayAktivitases = isCompact 
-    ? aktivitases.filter(act => ['kas', 'iuran', 'skor', 'sistem'].includes(act.tipe)).slice(0, 5)
-    : aktivitases;
+  const filtered = aktivitases.filter(act => ['kas', 'iuran', 'skor', 'sistem'].includes(act.tipe));
+  const displayAktivitases = isCompact ? filtered.slice(0, 5) : filtered;
 
   const getIcon = (tipe: Aktivitas['tipe']) => {
     switch (tipe) {
