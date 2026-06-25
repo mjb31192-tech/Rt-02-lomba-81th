@@ -11,6 +11,7 @@ interface KeuanganDetailProps {
   lombasList: Lomba[];
   onDeleteKas?: (id: number) => void;
   onDeleteKK?: (id: number) => void;
+  isPengurus?: boolean;
 }
 
 export default function KeuanganDetail({
@@ -22,6 +23,7 @@ export default function KeuanganDetail({
   lombasList,
   onDeleteKas,
   onDeleteKK,
+  isPengurus = false,
 }: KeuanganDetailProps) {
   const [search, setSearch] = useState('');
   const [tipeFilter, setTipeFilter] = useState<string>('all');
@@ -217,7 +219,7 @@ export default function KeuanganDetail({
           </div>
 
           <div className="flex items-center gap-2">
-            {subTab === 'jurnal' && (
+            {subTab === 'jurnal' && isPengurus && (
               <button
                 onClick={onOpenCatatKas}
                 className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
@@ -226,7 +228,7 @@ export default function KeuanganDetail({
                 Catat Keuangan
               </button>
             )}
-            {subTab === 'iuran' && (
+            {subTab === 'iuran' && isPengurus && (
               <button
                 onClick={onOpenBayarIuran}
                 className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
@@ -307,7 +309,7 @@ export default function KeuanganDetail({
                         </span>
                       </div>
 
-                      {onDeleteKas && (
+                      {isPengurus && onDeleteKas && (
                         <button
                           onClick={() => onDeleteKas(k.id)}
                           className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
@@ -429,15 +431,17 @@ export default function KeuanganDetail({
                       </span>
 
                       <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onSelectKKAndPay(kk.id)}
-                          className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer border ${kk.status === 'Lunas' ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-100/80 border-red-100'}`}
-                          disabled={kk.status === 'Lunas'}
-                        >
-                          {kk.status === 'Belum Bayar' ? 'Mulai Bayar' : kk.status === 'Mencicil' ? 'Cicil Lagi' : 'Selesai'}
-                        </button>
+                        {isPengurus && (
+                          <button
+                            onClick={() => onSelectKKAndPay(kk.id)}
+                            className={`text-[9px] font-bold px-2 py-1 rounded-md transition-all cursor-pointer border ${kk.status === 'Lunas' ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-100/80 border-red-100'}`}
+                            disabled={kk.status === 'Lunas'}
+                          >
+                            {kk.status === 'Belum Bayar' ? 'Mulai Bayar' : kk.status === 'Mencicil' ? 'Cicil Lagi' : 'Selesai'}
+                          </button>
+                        )}
 
-                        {onDeleteKK && (
+                        {isPengurus && onDeleteKK && (
                           <button
                             onClick={() => onDeleteKK(kk.id)}
                             className="p-1 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-all cursor-pointer"

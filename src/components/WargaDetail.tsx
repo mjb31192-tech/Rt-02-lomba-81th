@@ -8,6 +8,7 @@ interface WargaDetailProps {
   onToggleAbsensi: (id: number) => void;
   onOpenPendaftaran: () => void;
   onDeletePeserta?: (id: number) => void;
+  isPengurus?: boolean;
 }
 
 export default function WargaDetail({
@@ -16,6 +17,7 @@ export default function WargaDetail({
   onToggleAbsensi,
   onOpenPendaftaran,
   onDeletePeserta,
+  isPengurus = false,
 }: WargaDetailProps) {
   const [search, setSearch] = useState('');
   const [rtFilter, setRtFilter] = useState<string>('all');
@@ -47,13 +49,15 @@ export default function WargaDetail({
             </p>
           </div>
 
-          <button
-            onClick={onOpenPendaftaran}
-            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
-          >
-            <UserPlus size={16} />
-            Daftar Peserta Baru
-          </button>
+          {isPengurus && (
+            <button
+              onClick={onOpenPendaftaran}
+              className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+            >
+              <UserPlus size={16} />
+              Daftar Peserta Baru
+            </button>
+          )}
         </div>
 
         {/* Filters grid */}
@@ -143,8 +147,13 @@ export default function WargaDetail({
                   <span className="text-xs text-gray-500 sm:hidden">Kehadiran Lapangan:</span>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => onToggleAbsensi(peserta.id)}
-                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer border ${peserta.absensi ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'}`}
+                      onClick={() => isPengurus && onToggleAbsensi(peserta.id)}
+                      disabled={!isPengurus}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        !isPengurus 
+                          ? (peserta.absensi ? 'bg-emerald-50/60 text-emerald-600 border-emerald-100' : 'bg-gray-50/60 text-gray-400 border-gray-100')
+                          : (peserta.absensi ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/70 cursor-pointer active:scale-95' : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 cursor-pointer active:scale-95')
+                      }`}
                     >
                       {peserta.absensi ? (
                         <>
@@ -159,7 +168,7 @@ export default function WargaDetail({
                       )}
                     </button>
 
-                    {onDeletePeserta && (
+                    {isPengurus && onDeletePeserta && (
                       <button
                         onClick={() => onDeletePeserta(peserta.id)}
                         className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all cursor-pointer active:scale-95 border border-red-100/30"

@@ -41,6 +41,8 @@ import LombaList from './components/LombaList';
 import AktivitasTimeline from './components/AktivitasTimeline';
 import KeuanganDetail from './components/KeuanganDetail';
 import WargaDetail from './components/WargaDetail';
+import MerahPutihHero from './components/MerahPutihHero';
+import JajaranPanitia from './components/JajaranPanitia';
 
 import ModalPendaftaran from './components/ModalPendaftaran';
 import ModalInputSkor from './components/ModalInputSkor';
@@ -693,19 +695,24 @@ export default function App() {
           {/* B. TAB CONDITIONAL RENDERING */}
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-in">
+              {/* Glorious Merah Putih Banner & Soundtrack */}
+              <MerahPutihHero kasList={kas} lombasList={lombas} />
+
               {/* Countdown Kemerdekaan */}
               <Countdown />
 
               {/* Quick Stats Grid */}
               <QuickStats lombas={lombas} pesertas={pesertas} kas={kas} />
 
-              {/* Quick Actions Grid */}
-              <QuickActions
-                onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
-                onOpenInputSkor={() => setIsInputSkorOpen(true)}
-                onOpenCatatKas={() => setIsCatatKasOpen(true)}
-                onOpenAbsensi={() => setActiveTab('warga')}
-              />
+              {/* Quick Actions Grid (Pengurus Only) */}
+              {!!currentUser && (
+                <QuickActions
+                  onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
+                  onOpenInputSkor={() => setIsInputSkorOpen(true)}
+                  onOpenCatatKas={() => setIsCatatKasOpen(true)}
+                  onOpenAbsensi={() => setActiveTab('warga')}
+                />
+              )}
 
               {/* 2 Columns Bento Grid Layout (Desktop) / Single Column (Mobile) */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -722,6 +729,7 @@ export default function App() {
                     onOpenAddPermintaan={() => setIsPermintaanOpen(true)}
                     onDeleteLomba={handleDeleteLomba}
                     onDeleteUsulan={handleDeletePermintaan}
+                    isPengurus={!!currentUser}
                   />
                   <button 
                     onClick={() => setActiveTab('lomba')}
@@ -745,6 +753,9 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* Sub Landing Page: Jajaran Panitia */}
+              <JajaranPanitia />
 
               {/* Maintenance & Reset Center */}
               <div className="bg-white border border-red-100 rounded-2xl p-6 shadow-xs mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -792,6 +803,7 @@ export default function App() {
                 onOpenAddPermintaan={() => setIsPermintaanOpen(true)}
                 onDeleteLomba={handleDeleteLomba}
                 onDeleteUsulan={handleDeletePermintaan}
+                isPengurus={!!currentUser}
               />
             </div>
           )}
@@ -810,6 +822,7 @@ export default function App() {
                 lombasList={lombas}
                 onDeleteKas={handleDeleteKas}
                 onDeleteKK={handleDeleteKK}
+                isPengurus={!!currentUser}
               />
             </div>
           )}
@@ -822,6 +835,7 @@ export default function App() {
                 onToggleAbsensi={handleToggleAbsensi}
                 onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
                 onDeletePeserta={handleDeletePeserta}
+                isPengurus={!!currentUser}
               />
             </div>
           )}

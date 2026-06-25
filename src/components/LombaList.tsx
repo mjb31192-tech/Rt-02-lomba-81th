@@ -13,6 +13,7 @@ interface LombaListProps {
   onOpenAddPermintaan?: () => void;
   onDeleteLomba?: (id: number) => void;
   onDeleteUsulan?: (id: number) => void;
+  isPengurus?: boolean;
 }
 
 export default function LombaList({
@@ -26,6 +27,7 @@ export default function LombaList({
   onOpenAddPermintaan,
   onDeleteLomba,
   onDeleteUsulan,
+  isPengurus = false,
 }: LombaListProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -101,13 +103,15 @@ export default function LombaList({
         {!isCompact && (
           <div className="flex gap-2">
             {subTab === 'lomba' ? (
-              <button
-                onClick={onOpenAddLomba}
-                className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
-              >
-                <Plus size={15} />
-                Tambah Lomba
-              </button>
+              isPengurus && (
+                <button
+                  onClick={onOpenAddLomba}
+                  className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                >
+                  <Plus size={15} />
+                  Tambah Lomba
+                </button>
+              )
             ) : (
               <button
                 onClick={onOpenAddPermintaan}
@@ -251,22 +255,28 @@ export default function LombaList({
                   <div className="shrink-0">{getStatusBadge(lomba.status)}</div>
 
                   <div className="flex items-center gap-2">
-                    {lomba.status !== 'Selesai' ? (
-                      <select
-                        value={lomba.status}
-                        onChange={e => onStatusChange(lomba.id, e.target.value as Lomba['status'])}
-                        className="text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white font-bold text-gray-600 focus:outline-hidden focus:ring-1 focus:ring-red-500 cursor-pointer shadow-3xs"
-                      >
-                        <option value="Belum Mulai">Ubah Ke Belum Mulai</option>
-                        <option value="Berjalan">Ubah Ke Berjalan</option>
-                        <option value="Selesai">Ubah Ke Selesai</option>
-                      </select>
+                    {isPengurus ? (
+                      lomba.status !== 'Selesai' ? (
+                        <select
+                          value={lomba.status}
+                          onChange={e => onStatusChange(lomba.id, e.target.value as Lomba['status'])}
+                          className="text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white font-bold text-gray-600 focus:outline-hidden focus:ring-1 focus:ring-red-500 cursor-pointer shadow-3xs"
+                        >
+                          <option value="Belum Mulai">Ubah Ke Belum Mulai</option>
+                          <option value="Berjalan">Ubah Ke Berjalan</option>
+                          <option value="Selesai">Ubah Ke Selesai</option>
+                        </select>
+                      ) : (
+                        <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold uppercase border border-emerald-100 tracking-wider">
+                          Hasil Final
+                        </span>
+                      )
                     ) : (
-                      <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold uppercase border border-emerald-100 tracking-wider">
-                        Hasil Final
+                      <span className="text-[10px] text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200/50 font-bold uppercase tracking-wider">
+                        Terkunci
                       </span>
                     )}
-                    {onDeleteLomba && !isCompact && (
+                    {isPengurus && onDeleteLomba && !isCompact && (
                       <button
                         onClick={() => onDeleteLomba(lomba.id)}
                         className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95"
@@ -334,15 +344,17 @@ export default function LombaList({
                         Dukung ({usulan.jumlah_pendukung})
                       </button>
 
-                      <button
-                        onClick={() => onApproveRequestDirectly && onApproveRequestDirectly(usulan.id)}
-                        className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
-                      >
-                        <Check size={12} />
-                        Loloskan Lomba
-                      </button>
+                      {isPengurus && onApproveRequestDirectly && (
+                        <button
+                          onClick={() => onApproveRequestDirectly(usulan.id)}
+                          className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-3xs"
+                        >
+                          <Check size={12} />
+                          Loloskan Lomba
+                        </button>
+                      )}
 
-                      {onDeleteUsulan && (
+                      {isPengurus && onDeleteUsulan && (
                         <button
                           onClick={() => onDeleteUsulan(usulan.id)}
                           className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95"
