@@ -1,12 +1,12 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, ChangeEvent } from 'react';
 import { X, Landmark, Plus, Trash2, Info, AlertTriangle, Calendar } from 'lucide-react';
 import { Lomba, Kas } from '../types';
 
 interface ModalCatatKasProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddKas: (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => void;
-  onEditKas?: (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => void;
+  onAddKas: (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => void;
+  onEditKas?: (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => void;
   kasToEdit?: Kas | null;
   lombas: Lomba[];
 }
@@ -29,6 +29,7 @@ export default function ModalCatatKas({
   const [kategori, setKategori] = useState('Peralatan Lomba');
   const [keterangan, setKeterangan] = useState('');
   const [tanggal, setTanggal] = useState('');
+  const [buktiFoto, setBuktiFoto] = useState('');
   
   // Dynamic linking to a Lomba
   const [lombaIdLink, setLombaIdLink] = useState<number | ''>('');
@@ -53,6 +54,7 @@ export default function ModalCatatKas({
         setJumlahManual(kasToEdit.jumlah.toString());
         setLombaIdLink(kasToEdit.lomba_id || '');
         setTanggal(kasToEdit.tanggal || new Date().toISOString().split('T')[0]);
+        setBuktiFoto(kasToEdit.bukti_foto || '');
         setItems([]);
       } else {
         setTipe('pengeluaran');
@@ -61,6 +63,7 @@ export default function ModalCatatKas({
         setJumlahManual('');
         setLombaIdLink('');
         setTanggal(new Date().toISOString().split('T')[0]);
+        setBuktiFoto('');
         setItems([{ id: '1', nama: '', harga: 0 }]);
       }
     }
@@ -80,7 +83,7 @@ export default function ModalCatatKas({
   if (!isOpen) return null;
 
   const handleAddItemRow = () => {
-    setItems(prev => [...prev, { id: Date.now().toString(), nama: '', harga: 0 }]);
+    setItems(prev => [...prev, { id: (Date.now() + Math.random()).toString(), nama: '', harga: 0 }]);
   };
 
   const handleRemoveItemRow = (id: string) => {
@@ -100,6 +103,21 @@ export default function ModalCatatKas({
     }));
   };
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Ukuran foto bukti terlalu besar! Maksimal 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBuktiFoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Compute calculated dynamic sum for items if pengeluaran and not editing, otherwise use jumlahManual
   const computedTotal = (tipe === 'pengeluaran' && !isEditing && items.length > 0)
     ? items.reduce((acc, curr) => acc + (Number(curr.harga) || 0), 0)
@@ -117,14 +135,14 @@ export default function ModalCatatKas({
         alert('Mohon lengkapi nominal transaksi dan keterangan!');
         return;
       }
-      onEditKas?.(kasToEdit.id, tipe, kategori, Number(jumlahManual), keterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal);
+      onEditKas?.(kasToEdit.id, tipe, kategori, Number(jumlahManual), keterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal, buktiFoto);
     } else {
       if (tipe === 'pemasukan') {
         if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
           alert('Mohon lengkapi nominal pemasukan dan keterangan!');
           return;
         }
-        onAddKas('pemasukan', kategori, Number(jumlahManual), keterangan, undefined, finalTanggal);
+        onAddKas('pemasukan', kategori, Number(jumlahManual), keterangan, undefined, finalTanggal, buktiFoto);
       } else {
         // Validating items
         const hasEmptyItem = items.some(item => !item.nama.trim() || item.harga <= 0);
@@ -141,7 +159,7 @@ export default function ModalCatatKas({
         const itemsString = items.map(it => `${it.nama} (Rp ${it.harga.toLocaleString('id-ID')})`).join(', ');
         const finalKeterangan = `${keterangan} [Rincian: ${itemsString}]`;
 
-        onAddKas('pengeluaran', kategori, computedTotal, finalKeterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal);
+        onAddKas('pengeluaran', kategori, computedTotal, finalKeterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal, buktiFoto);
       }
     }
 
@@ -151,6 +169,7 @@ export default function ModalCatatKas({
     setKeterangan('');
     setLombaIdLink('');
     setTanggal('');
+    setBuktiFoto('');
     onClose();
   };
 
@@ -342,6 +361,37 @@ export default function ModalCatatKas({
               onChange={e => setKeterangan(e.target.value)}
               className="w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500 resize-none"
             />
+          </div>
+
+          {/* Bukti Transaksi (Foto/Kwitansi) */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Bukti Foto / Kwitansi (Opsional)</label>
+            <div className="flex items-center gap-3">
+              <label className="flex-1 flex flex-col items-center justify-center border border-dashed border-gray-200 rounded-xl p-4 hover:border-red-500/50 hover:bg-red-50/5 cursor-pointer transition-all">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <span className="text-xs font-bold text-gray-600">Pilih / Ambil Foto Bukti</span>
+                <span className="text-[9px] text-gray-400 mt-0.5">Format JPG/PNG, Maks 2MB</span>
+              </label>
+
+              {buktiFoto && (
+                <div className="relative w-16 h-16 rounded-xl border border-gray-200 overflow-hidden shrink-0 group">
+                  <img src={buktiFoto} alt="Bukti Transaksi" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <button
+                    type="button"
+                    onClick={() => setBuktiFoto('')}
+                    className="absolute inset-0 bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    title="Hapus Foto"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Live total preview card */}

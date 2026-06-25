@@ -23,7 +23,8 @@ import {
   Kas,
   Aktivitas,
   IuranKK,
-  PermintaanLomba
+  PermintaanLomba,
+  LaporanIuranMingguan
 } from './types';
 import {
   INITIAL_LOMBA,
@@ -51,37 +52,74 @@ import ModalAddLomba from './components/ModalAddLomba';
 import ModalBayarIuran from './components/ModalBayarIuran';
 import ModalPermintaanLomba from './components/ModalPermintaanLomba';
 import ModalAuth from './components/ModalAuth';
+import ModalLaporanIuranMingguan from './components/ModalLaporanIuranMingguan';
+import ModalExportPdfLaporan from './components/ModalExportPdfLaporan';
+
+// Helper to generate a truly unique numerical ID to prevent duplicate keys in lists
+function getUniqueId(): number {
+  return Date.now() + Math.floor(Math.random() * 1000000);
+}
+
+// Utility to ensure there are no duplicate IDs across any hydrated dataset
+function ensureUniqueIds<T extends { id: number | string }>(items: T[]): T[] {
+  const seen = new Set<string | number>();
+  return items.map(item => {
+    if (seen.has(item.id)) {
+      const newId = typeof item.id === 'number'
+        ? Date.now() + Math.floor(Math.random() * 10000000)
+        : (Date.now() + Math.random()).toString();
+      seen.add(newId);
+      return { ...item, id: newId };
+    }
+    seen.add(item.id);
+    return item;
+  });
+}
 
 export default function App() {
   // 1. States with LocalStorage Hydration
   const [lombas, setLombas] = useState<Lomba[]>(() => {
     const saved = localStorage.getItem('hut81_lombas');
-    return saved ? JSON.parse(saved) : INITIAL_LOMBA;
+    const parsed = saved ? JSON.parse(saved) : INITIAL_LOMBA;
+    return ensureUniqueIds(parsed);
   });
 
   const [pesertas, setPesertas] = useState<Peserta[]>(() => {
     const saved = localStorage.getItem('hut81_pesertas');
-    return saved ? JSON.parse(saved) : INITIAL_PESERTA;
+    const parsed = saved ? JSON.parse(saved) : INITIAL_PESERTA;
+    return ensureUniqueIds(parsed);
   });
 
   const [kas, setKas] = useState<Kas[]>(() => {
     const saved = localStorage.getItem('hut81_kas');
-    return saved ? JSON.parse(saved) : INITIAL_KAS;
+    const parsed = saved ? JSON.parse(saved) : INITIAL_KAS;
+    // Ensure "Rekap Iuran Mingguan" records do not pollute the general kas ledger
+    const cleaned = parsed.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
+    return ensureUniqueIds(cleaned);
   });
 
   const [aktivitas, setAktivitas] = useState<Aktivitas[]>(() => {
     const saved = localStorage.getItem('hut81_aktivitas');
-    return saved ? JSON.parse(saved) : INITIAL_AKTIVITAS;
+    const parsed = saved ? JSON.parse(saved) : INITIAL_AKTIVITAS;
+    return ensureUniqueIds(parsed);
   });
 
   const [iuranKK, setIuranKK] = useState<IuranKK[]>(() => {
     const saved = localStorage.getItem('hut81_iuran_kk');
-    return saved ? JSON.parse(saved) : INITIAL_IURAN_KK;
+    const parsed = saved ? JSON.parse(saved) : INITIAL_IURAN_KK;
+    return ensureUniqueIds(parsed);
   });
 
   const [permintaanLomba, setPermintaanLomba] = useState<PermintaanLomba[]>(() => {
     const saved = localStorage.getItem('hut81_permintaan_lomba');
-    return saved ? JSON.parse(saved) : INITIAL_PERMINTAAN_LOMBA;
+    const parsed = saved ? JSON.parse(saved) : INITIAL_PERMINTAAN_LOMBA;
+    return ensureUniqueIds(parsed);
+  });
+
+  const [laporanIuranMingguan, setLaporanIuranMingguan] = useState<LaporanIuranMingguan[]>(() => {
+    const saved = localStorage.getItem('hut81_laporan_iuran_mingguan');
+    const parsed = saved ? JSON.parse(saved) : [];
+    return ensureUniqueIds(parsed);
   });
 
   // --- Auth State ---
@@ -93,15 +131,25 @@ export default function App() {
 
   const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string }[]>(() => {
     const saved = localStorage.getItem('hut81_accounts');
-    if (saved) return JSON.parse(saved);
-    const initial = [
-      { username: 'admin', password: 'password', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris' },
-      { username: 'sunardi', password: 'password', nama: 'Sunardi', jabatan: 'Ketua RT.002' },
-      { username: 'anto', password: 'password', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia' },
-      { username: 'ayeh', password: 'password', nama: 'Ayeh Patoni', jabatan: 'Bendahara' }
-    ];
-    localStorage.setItem('hut81_accounts', JSON.stringify(initial));
-    return initial;
+    let parsed = saved ? JSON.parse(saved) : null;
+    if (!parsed) {
+      parsed = [
+        { username: 'admin', password: 'SuperPanitia', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris' },
+        { username: 'sunardi', password: 'SuperPanitia', nama: 'Sunardi', jabatan: 'Ketua RT.002' },
+        { username: 'anto', password: 'SuperPanitia', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia' },
+        { username: 'ayeh', password: 'SuperPanitia', nama: 'Ayeh Patoni', jabatan: 'Bendahara' }
+      ];
+    } else {
+      const defaultUsernames = ['admin', 'sunardi', 'anto', 'ayeh'];
+      parsed = parsed.map((acc: any) => {
+        if (defaultUsernames.includes(acc.username) && (acc.password === 'password' || acc.password === 'SuperPanitia')) {
+          return { ...acc, password: 'SuperPanitia' };
+        }
+        return acc;
+      });
+    }
+    localStorage.setItem('hut81_accounts', JSON.stringify(parsed));
+    return parsed;
   });
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'lomba' | 'keuangan' | 'warga' | 'log'>('dashboard');
@@ -116,6 +164,10 @@ export default function App() {
   const [isAddLombaOpen, setIsAddLombaOpen] = useState(false);
   const [isBayarIuranOpen, setIsBayarIuranOpen] = useState(false);
   const [isPermintaanOpen, setIsPermintaanOpen] = useState(false);
+  const [isLaporanIuranMingguanOpen, setIsLaporanIuranMingguanOpen] = useState(false);
+  const [laporanToEdit, setLaporanToEdit] = useState<LaporanIuranMingguan | null>(null);
+  const [selectedReportForExport, setSelectedReportForExport] = useState<LaporanIuranMingguan | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedKKIdForModal, setSelectedKKIdForModal] = useState<number | ''>('');
 
   // 2. Persist states
@@ -154,6 +206,10 @@ export default function App() {
     localStorage.setItem('hut81_permintaan_lomba', JSON.stringify(permintaanLomba));
   }, [permintaanLomba]);
 
+  useEffect(() => {
+    localStorage.setItem('hut81_laporan_iuran_mingguan', JSON.stringify(laporanIuranMingguan));
+  }, [laporanIuranMingguan]);
+
   // 3. Digital Clock Live
   useEffect(() => {
     const updateClock = () => {
@@ -174,7 +230,7 @@ export default function App() {
   // Helper to log audit activities
   const logAktivitas = (tipe: Aktivitas['tipe'], keterangan: string) => {
     const newLog: Aktivitas = {
-      id: Date.now(),
+      id: getUniqueId(),
       tipe,
       keterangan,
       waktu: 'Baru saja'
@@ -206,7 +262,7 @@ export default function App() {
   const handleAddPeserta = (nama: string, telp: string, rt: string, lombaId: number) => {
     if (!checkAuth()) return;
     const newPeserta: Peserta = {
-      id: Date.now(),
+      id: getUniqueId(),
       nama_peserta: nama,
       no_telp: telp,
       rt,
@@ -239,23 +295,24 @@ export default function App() {
     logAktivitas('skor', `Hasil Juara lomba "${lomba?.nama_lomba}" telah diinput. Juara 1: ${j1}.`);
   };
 
-  const handleAddKas = (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => {
+  const handleAddKas = (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => {
     // If called via UI direct action or internally
     const newKas: Kas = {
-      id: Date.now(),
+      id: getUniqueId(),
       tipe,
       kategori,
       jumlah,
       keterangan,
       tanggal: tanggal || new Date().toISOString().split('T')[0],
-      lomba_id: lombaId
+      lomba_id: lombaId,
+      bukti_foto: buktiFoto
     };
 
     setKas(prev => [newKas, ...prev]);
     logAktivitas('kas', `Buku Kas: Catat ${tipe} (${kategori}) sebesar Rp ${jumlah.toLocaleString('id-ID')} untuk "${keterangan}".`);
   };
 
-  const handleEditKas = (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => {
+  const handleEditKas = (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => {
     if (!checkAuth()) return;
     setKas(prev => prev.map(item => {
       if (item.id === id) {
@@ -266,12 +323,48 @@ export default function App() {
           jumlah,
           keterangan,
           lomba_id: lombaId,
-          tanggal: tanggal || item.tanggal
+          tanggal: tanggal || item.tanggal,
+          bukti_foto: buktiFoto || item.bukti_foto
         };
       }
       return item;
     }));
     logAktivitas('kas', `Edit Kas: Revisi transaksi "${keterangan}" (${tipe}) menjadi Rp ${jumlah.toLocaleString('id-ID')}.`);
+  };
+
+  const handleAddLaporanIuranMingguan = (report: Omit<LaporanIuranMingguan, 'id' | 'tanggal_lapor' | 'dilaporkan_oleh'>) => {
+    const newReport: LaporanIuranMingguan = {
+      ...report,
+      id: getUniqueId(),
+      tanggal_lapor: new Date().toISOString().split('T')[0],
+      dilaporkan_oleh: currentUser ? `${currentUser.nama} (${currentUser.jabatan})` : 'Bendahara'
+    };
+    setLaporanIuranMingguan(prev => [newReport, ...prev]);
+    
+    // Log this in activities
+    logAktivitas('iuran', `Laporan Iuran: Rekap iuran ${newReport.minggu_ke} terkumpul Rp ${newReport.total_jumlah.toLocaleString('id-ID')} dilaporkan.`);
+  };
+
+  const handleEditLaporanIuranMingguan = (id: number, report: Omit<LaporanIuranMingguan, 'id' | 'tanggal_lapor' | 'dilaporkan_oleh'>) => {
+    if (!checkAuth()) return;
+    setLaporanIuranMingguan(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          ...report
+        };
+      }
+      return item;
+    }));
+    logAktivitas('iuran', `Laporan Iuran: Laporan ${report.minggu_ke} direvisi dengan total Rp ${report.total_jumlah.toLocaleString('id-ID')}.`);
+  };
+
+  const handleDeleteLaporanIuranMingguan = (id: number) => {
+    if (!checkAuth()) return;
+    const reportToDelete = laporanIuranMingguan.find(r => r.id === id);
+    if (!reportToDelete) return;
+    setLaporanIuranMingguan(prev => prev.filter(r => r.id !== id));
+    logAktivitas('iuran', `Laporan Iuran: Laporan ${reportToDelete.minggu_ke} dengan total Rp ${reportToDelete.total_jumlah.toLocaleString('id-ID')} telah dihapus.`);
   };
 
   const handleToggleAbsensi = (pesertaId: number) => {
@@ -294,7 +387,7 @@ export default function App() {
   const handleAddLomba = (nama: string, pj: string, anggaran: number, kategori: string, dariPermintaanId?: number) => {
     if (!checkAuth()) return;
     const newLomba: Lomba = {
-      id: Date.now(),
+      id: getUniqueId(),
       nama_lomba: nama,
       pj,
       status: 'Belum Mulai',
@@ -320,7 +413,7 @@ export default function App() {
           const newTerbayar = item.terbayar + amount;
           const newStatus = newTerbayar >= item.target ? 'Lunas' : 'Mencicil';
           const newHistoryItem = {
-            id: Date.now(),
+            id: getUniqueId(),
             tanggal: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }),
             jumlah: amount
           };
@@ -350,7 +443,7 @@ export default function App() {
   const handleAddNewKK = (namaKK: string, rt: string) => {
     if (!checkAuth()) return;
     const newKK: IuranKK = {
-      id: Date.now(),
+      id: getUniqueId(),
       nama_kk: namaKK,
       rt,
       target: 50000,
@@ -379,7 +472,7 @@ export default function App() {
 
   const handleCreatePermintaan = (nama: string, pengusul: string, rt: string, kategori: string, biaya: number) => {
     const newReq: PermintaanLomba = {
-      id: Date.now(),
+      id: getUniqueId(),
       nama_lomba: nama,
       pengusul,
       rt,
@@ -473,7 +566,7 @@ export default function App() {
       setKas([]);
       setAktivitas([
         {
-          id: Date.now(),
+          id: getUniqueId(),
           tipe: 'sistem',
           keterangan: 'Seluruh database lama berhasil dikosongkan secara total oleh admin.',
           waktu: 'Baru saja'
@@ -850,6 +943,20 @@ export default function App() {
                 }}
                 onDeleteKK={handleDeleteKK}
                 isPengurus={!!currentUser}
+                laporanMingguanList={laporanIuranMingguan}
+                onOpenLaporanMingguan={() => {
+                  setLaporanToEdit(null);
+                  setIsLaporanIuranMingguanOpen(true);
+                }}
+                onEditLaporanMingguan={(report) => {
+                  setLaporanToEdit(report);
+                  setIsLaporanIuranMingguanOpen(true);
+                }}
+                onDeleteLaporanMingguan={handleDeleteLaporanIuranMingguan}
+                onExportReportPdf={(report) => {
+                  setSelectedReportForExport(report);
+                  setIsExportModalOpen(true);
+                }}
               />
             </div>
           )}
@@ -948,6 +1055,26 @@ export default function App() {
         isOpen={isPermintaanOpen}
         onClose={() => setIsPermintaanOpen(false)}
         onCreatePermintaan={handleCreatePermintaan}
+      />
+
+      <ModalLaporanIuranMingguan
+        isOpen={isLaporanIuranMingguanOpen}
+        onClose={() => {
+          setIsLaporanIuranMingguanOpen(false);
+          setLaporanToEdit(null);
+        }}
+        onAddLaporan={handleAddLaporanIuranMingguan}
+        reportToEdit={laporanToEdit}
+        onEditLaporan={handleEditLaporanIuranMingguan}
+      />
+
+      <ModalExportPdfLaporan
+        isOpen={isExportModalOpen}
+        onClose={() => {
+          setIsExportModalOpen(false);
+          setSelectedReportForExport(null);
+        }}
+        report={selectedReportForExport}
       />
 
       <ModalAuth

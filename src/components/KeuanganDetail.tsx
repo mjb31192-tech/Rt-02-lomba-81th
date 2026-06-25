@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Kas, IuranKK, Lomba } from '../types';
-import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit } from 'lucide-react';
+import { Kas, IuranKK, Lomba, LaporanIuranMingguan } from '../types';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X } from 'lucide-react';
 
 interface KeuanganDetailProps {
   kasList: Kas[];
@@ -13,6 +13,11 @@ interface KeuanganDetailProps {
   onEditKasClick?: (kas: Kas) => void;
   onDeleteKK?: (id: number) => void;
   isPengurus?: boolean;
+  laporanMingguanList?: LaporanIuranMingguan[];
+  onOpenLaporanMingguan?: () => void;
+  onExportReportPdf?: (report: LaporanIuranMingguan) => void;
+  onEditLaporanMingguan?: (report: LaporanIuranMingguan) => void;
+  onDeleteLaporanMingguan?: (id: number) => void;
 }
 
 export default function KeuanganDetail({
@@ -26,11 +31,17 @@ export default function KeuanganDetail({
   onEditKasClick,
   onDeleteKK,
   isPengurus = false,
+  laporanMingguanList = [],
+  onOpenLaporanMingguan,
+  onExportReportPdf,
+  onEditLaporanMingguan,
+  onDeleteLaporanMingguan,
 }: KeuanganDetailProps) {
   const [search, setSearch] = useState('');
   const [tipeFilter, setTipeFilter] = useState<string>('all');
   const [subTab, setSubTab] = useState<'jurnal' | 'iuran' | 'laporan'>('jurnal');
   const [rtFilter, setRtFilter] = useState('all');
+  const [selectedProofPhoto, setSelectedProofPhoto] = useState<string | null>(null);
 
   // Calculate general cash flow summary
   const totalMasuk = kasList.filter(k => k.tipe === 'pemasukan').reduce((acc, curr) => acc + curr.jumlah, 0);
@@ -289,7 +300,7 @@ export default function KeuanganDetail({
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-gray-800 leading-normal">{k.keterangan}</h4>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-[10px] text-gray-400 font-bold px-2 py-0.5 bg-gray-100 rounded-md">
                             {k.kategori}
                           </span>
@@ -297,6 +308,16 @@ export default function KeuanganDetail({
                             <Calendar size={10} />
                             {k.tanggal}
                           </span>
+                          {k.bukti_foto && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedProofPhoto(k.bukti_foto)}
+                              className="inline-flex items-center gap-1 text-[9px] bg-red-50 text-red-600 border border-red-100 font-bold px-1.5 py-0.5 rounded hover:bg-red-100 transition-all cursor-pointer"
+                            >
+                              <Camera size={10} />
+                              Lihat Bukti
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -311,24 +332,50 @@ export default function KeuanganDetail({
                         </span>
                       </div>
 
-                      {isPengurus && onEditKasClick && (
-                        <button
-                          onClick={() => onEditKasClick(k)}
-                          className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
-                          title="Revisi / Edit Transaksi"
-                        >
-                          <Edit size={13} />
-                        </button>
-                      )}
+                      {isPengurus ? (
+                        <div className="flex items-center gap-1.5">
+                          {onEditKasClick && (
+                            <button
+                              onClick={() => onEditKasClick(k)}
+                              className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                              title="Revisi / Edit Transaksi"
+                            >
+                              <Edit size={13} />
+                            </button>
+                          )}
 
-                      {isPengurus && onDeleteKas && (
-                        <button
-                          onClick={() => onDeleteKas(k.id)}
-                          className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                          {onDeleteKas && (
+                            <button
+                              onClick={() => onDeleteKas(k.id)}
+                              className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                              title="Hapus Transaksi"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk mengedit transaksi keuangan.");
+                            }}
+                            className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
+                            title="Login untuk Edit"
+                          >
+                            <Edit size={13} />
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk menghapus transaksi keuangan.");
+                            }}
+                            className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
+                            title="Login untuk Hapus"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -471,6 +518,141 @@ export default function KeuanganDetail({
               {filteredKKs.length === 0 && (
                 <div className="col-span-full py-8 text-center text-gray-400 text-xs font-medium">
                   Belum ada Kepala Keluarga yang terdaftar untuk filter ini.
+                </div>
+              )}
+            </div>
+
+            {/* ----------------- SECTION: LAPORAN MINGGUAN KAS IURAN ----------------- */}
+            <div className="border-t border-gray-150 pt-5 px-4 pb-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 p-4 rounded-2xl border border-emerald-500/10">
+                <div>
+                  <h3 className="font-display font-black text-xs sm:text-sm text-emerald-800 uppercase tracking-wider flex items-center gap-2">
+                    <History size={16} className="text-emerald-600 animate-pulse" />
+                    Laporan Serah Terima Iuran Warga Perminggu
+                  </h3>
+                  <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">
+                    Arsip rekapitulasi penyetoran berkas &amp; uang iuran perminggu oleh pengurus RT
+                  </p>
+                </div>
+                {isPengurus && onOpenLaporanMingguan && (
+                  <button
+                    onClick={onOpenLaporanMingguan}
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    <Camera size={12} />
+                    Buat Laporan Mingguan
+                  </button>
+                )}
+              </div>
+
+              {laporanMingguanList.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50/50 border border-dashed border-gray-150 rounded-2xl text-gray-400 text-xs font-medium">
+                  Belum ada laporan iuran mingguan yang dibuat. Klik tombol di atas untuk mengunggah laporan pertama.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {laporanMingguanList.map((rep) => (
+                    <div key={rep.id} className="bg-white border border-gray-150 rounded-xl p-4 shadow-3xs hover:shadow-2xs transition-all flex gap-3.5 relative animate-fade-in">
+                      {rep.bukti_foto && (
+                        <div 
+                          className="relative w-20 h-24 sm:w-24 sm:h-28 rounded-lg overflow-hidden border border-gray-200 group shrink-0 shadow-3xs cursor-zoom-in"
+                          onClick={() => setSelectedProofPhoto(rep.bukti_foto)}
+                        >
+                          <img src={rep.bukti_foto} alt="Bukti Iuran" className="w-full h-full object-cover transition-transform group-hover:scale-105" referrerPolicy="no-referrer" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye size={16} className="text-white" />
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[9px] bg-emerald-50 text-emerald-600 border border-emerald-100 font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-md">
+                              {rep.minggu_ke}
+                            </span>
+                            <span className="text-[9px] text-gray-400 font-mono font-medium">
+                              {rep.tanggal_lapor}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-gray-800 text-xs font-display mt-2">
+                            Total: <span className="text-emerald-600 font-mono font-black text-sm">{formatRupiah(rep.total_jumlah)}</span>
+                          </h4>
+                          <p className="text-[10px] text-gray-400 font-semibold font-mono mt-0.5">
+                            Periode: {rep.tanggal_mulai} s/d {rep.tanggal_selesai}
+                          </p>
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                            {rep.keterangan}
+                          </p>
+                        </div>
+                        <div className="pt-2 border-t border-gray-100 mt-2 flex items-center justify-between gap-1.5">
+                          <span className="text-[9px] text-gray-400 font-medium leading-none flex-1">
+                            Dilaporkan oleh:<br />
+                            <strong className="text-gray-600 font-semibold">{rep.dilaporkan_oleh}</strong>
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {isPengurus ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => onEditLaporanMingguan?.(rep)}
+                                  className="p-1.5 text-blue-600 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition-all cursor-pointer active:scale-95 shadow-3xs"
+                                  title="Edit Laporan Mingguan"
+                                >
+                                  <Edit size={11} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm(`Apakah Anda yakin ingin menghapus Laporan ${rep.minggu_ke}?`)) {
+                                      onDeleteLaporanMingguan?.(rep.id);
+                                    }
+                                  }}
+                                  className="p-1.5 text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-all cursor-pointer active:scale-95 shadow-3xs"
+                                  title="Hapus Laporan Mingguan"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk mengedit laporan.");
+                                  }}
+                                  className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer"
+                                  title="Login untuk Edit"
+                                >
+                                  <Edit size={11} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk menghapus laporan.");
+                                  }}
+                                  className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer"
+                                  title="Login untuk Hapus"
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              </>
+                            )}
+                            {onExportReportPdf && (
+                              <button
+                                type="button"
+                                onClick={() => onExportReportPdf(rep)}
+                                className="inline-flex items-center gap-1 text-[10px] bg-red-50 text-red-600 border border-red-100 font-bold px-2 py-1.5 rounded-lg hover:bg-red-100 transition-all cursor-pointer whitespace-nowrap active:scale-95 shadow-3xs"
+                                title="Ekspor Laporan Mingguan ke PDF A4"
+                              >
+                                <Printer size={11} />
+                                Cetak PDF
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -734,6 +916,27 @@ export default function KeuanganDetail({
               </div>
             </div>
 
+          </div>
+        )}
+
+        {selectedProofPhoto && (
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in cursor-zoom-out" 
+            onClick={() => setSelectedProofPhoto(null)}
+          >
+            <div 
+              className="relative max-w-3xl w-full bg-white p-2 rounded-2xl overflow-hidden shadow-2xl flex flex-col" 
+              onClick={e => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => setSelectedProofPhoto(null)}
+                className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-black/80 transition-all cursor-pointer z-10"
+                title="Tutup"
+              >
+                <X size={18} />
+              </button>
+              <img src={selectedProofPhoto} alt="Bukti Transaksi" className="max-h-[80vh] w-full object-contain rounded-xl" referrerPolicy="no-referrer" />
+            </div>
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import { Aktivitas } from '../types';
-import { DollarSign, UserCheck, Medal, CheckSquare, Settings, Activity } from 'lucide-react';
+import { DollarSign, UserCheck, Medal, CheckSquare, Settings, Activity, CreditCard, ClipboardList } from 'lucide-react';
 
 interface AktivitasTimelineProps {
   aktivitases: Aktivitas[];
@@ -7,7 +7,8 @@ interface AktivitasTimelineProps {
 }
 
 export default function AktivitasTimeline({ aktivitases, isCompact = false }: AktivitasTimelineProps) {
-  const filtered = aktivitases.filter(act => ['kas', 'iuran', 'skor', 'sistem'].includes(act.tipe));
+  // Only important Lomba and Keuangan events
+  const filtered = aktivitases.filter(act => ['kas', 'iuran', 'pendaftaran', 'skor', 'permintaan'].includes(act.tipe));
   const displayAktivitases = isCompact ? filtered.slice(0, 5) : filtered;
 
   const getIcon = (tipe: Aktivitas['tipe']) => {
@@ -16,6 +17,11 @@ export default function AktivitasTimeline({ aktivitases, isCompact = false }: Ak
         return {
           icon: <DollarSign size={16} />,
           bg: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+        };
+      case 'iuran':
+        return {
+          icon: <CreditCard size={16} />,
+          bg: 'bg-teal-50 text-teal-600 border-teal-100',
         };
       case 'pendaftaran':
         return {
@@ -27,10 +33,10 @@ export default function AktivitasTimeline({ aktivitases, isCompact = false }: Ak
           icon: <Medal size={16} />,
           bg: 'bg-amber-50 text-amber-600 border-amber-100',
         };
-      case 'absensi':
+      case 'permintaan':
         return {
-          icon: <CheckSquare size={16} />,
-          bg: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+          icon: <ClipboardList size={16} />,
+          bg: 'bg-blue-50 text-blue-600 border-blue-100',
         };
       default:
         return {

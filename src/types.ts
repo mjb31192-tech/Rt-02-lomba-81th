@@ -28,6 +28,7 @@ export interface Kas {
   keterangan: string;
   tanggal: string;
   lomba_id?: number; // Optional link to a specific Lomba budget
+  bukti_foto?: string; // Base64 or image path for photo proof
 }
 
 export interface Aktivitas {
@@ -60,5 +61,17 @@ export interface PermintaanLomba {
   estimasi_biaya: number;
   jumlah_pendukung: number;
   status: 'Menunggu' | 'Disetujui' | 'Ditolak';
+}
+
+export interface LaporanIuranMingguan {
+  id: number;
+  minggu_ke: string; // e.g. "Minggu I", "Minggu II"
+  tanggal_mulai: string;
+  tanggal_selesai: string;
+  total_jumlah: number;
+  keterangan: string;
+  bukti_foto?: string; // base64 photo
+  tanggal_lapor: string;
+  dilaporkan_oleh: string;
 }
 

@@ -175,6 +175,11 @@ export default function ModalAuth({ isOpen, onClose, onLoginSuccess, accounts, o
 
           {activeTab === 'login' ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 font-medium flex items-start gap-2">
+                <span className="shrink-0">ℹ️</span>
+                <span>Untuk login pengurus, silakan gunakan password default <strong>SuperPanitia</strong>.</span>
+              </div>
+
               {loginError && (
                 <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-xs font-medium">
                   <ShieldAlert size={15} className="shrink-0 mt-0.5" />
