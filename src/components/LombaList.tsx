@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lomba, PermintaanLomba } from '../types';
-import { Search, Plus, User, Award, CheckCircle, RefreshCw, HelpCircle, MessageSquare, ThumbsUp, Sparkles, Check, Trash2 } from 'lucide-react';
+import { Search, Plus, User, Award, CheckCircle, RefreshCw, HelpCircle, MessageSquare, ThumbsUp, Sparkles, Check, Trash2, Edit } from 'lucide-react';
 
 interface LombaListProps {
   lombas: Lomba[];
@@ -14,6 +14,7 @@ interface LombaListProps {
   onDeleteLomba?: (id: number) => void;
   onDeleteUsulan?: (id: number) => void;
   isPengurus?: boolean;
+  onEditLombaClick?: (lomba: Lomba) => void;
 }
 
 export default function LombaList({
@@ -28,6 +29,7 @@ export default function LombaList({
   onDeleteLomba,
   onDeleteUsulan,
   isPengurus = false,
+  onEditLombaClick,
 }: LombaListProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -275,6 +277,15 @@ export default function LombaList({
                       <span className="text-[10px] text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200/50 font-bold uppercase tracking-wider">
                         Terkunci
                       </span>
+                    )}
+                    {isPengurus && onEditLombaClick && (
+                      <button
+                        onClick={() => onEditLombaClick(lomba)}
+                        className="p-1.5 text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all cursor-pointer active:scale-95"
+                        title="Edit Detail Lomba"
+                      >
+                        <Edit size={13} />
+                      </button>
                     )}
                     {isPengurus && onDeleteLomba && !isCompact && (
                       <button

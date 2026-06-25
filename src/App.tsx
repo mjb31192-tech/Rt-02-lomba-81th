@@ -44,6 +44,8 @@ import KeuanganDetail from './components/KeuanganDetail';
 import WargaDetail from './components/WargaDetail';
 import MerahPutihHero from './components/MerahPutihHero';
 import JajaranPanitia from './components/JajaranPanitia';
+import WargaGraphicDashboard from './components/WargaGraphicDashboard';
+import ModalWargaIuranDetail from './components/ModalWargaIuranDetail';
 
 import ModalPendaftaran from './components/ModalPendaftaran';
 import ModalInputSkor from './components/ModalInputSkor';
@@ -124,7 +126,14 @@ export default function App() {
 
   // --- Auth State ---
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ username: string; nama: string; jabatan: string } | null>(() => {
+  const [currentUser, setCurrentUser] = useState<{ 
+    username: string; 
+    nama: string; 
+    jabatan: string;
+    mewakili_kk?: string;
+    sebagai_apa?: string;
+    kk_id?: number;
+  } | null>(() => {
     const saved = localStorage.getItem('hut81_current_user');
     return saved ? JSON.parse(saved) : null;
   });
@@ -171,6 +180,10 @@ export default function App() {
   const [selectedReportForExport, setSelectedReportForExport] = useState<LaporanIuranMingguan | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedKKIdForModal, setSelectedKKIdForModal] = useState<number | ''>('');
+  
+  // Custom Warga & Lomba edit states
+  const [lombaToEdit, setLombaToEdit] = useState<Lomba | null>(null);
+  const [isWargaIuranDetailOpen, setIsWargaIuranDetailOpen] = useState(false);
 
   // 2. Persist states
   useEffect(() => {
@@ -405,6 +418,14 @@ export default function App() {
         prev.map(item => item.id === dariPermintaanId ? { ...item, status: 'Disetujui' } : item)
       );
     }
+  };
+
+  const handleEditLomba = (id: number, nama: string, pj: string, anggaran: number, kategori: string, status: Lomba['status']) => {
+    if (!checkAuth()) return;
+    setLombas(prev =>
+      prev.map(l => l.id === id ? { ...l, nama_lomba: nama, pj, anggaran, kategori, status } : l)
+    );
+    logAktivitas('sistem', `Edit Lomba: Detail Lomba "${nama}" telah disesuaikan oleh Panitia (PJ: ${pj}, Anggaran: Rp ${anggaran.toLocaleString('id-ID')}, Status: ${status}).`);
   };
 
   const handlePayIuran = (kkId: number, amount: number) => {
@@ -819,6 +840,15 @@ export default function App() {
               {/* Quick Stats Grid */}
               <QuickStats lombas={lombas} pesertas={pesertas} kas={kas} iuranKK={iuranKK} />
 
+              {/* Warga Graphic Dashboard (Interactive Graphics Panel for Citizens & General Public) */}
+              <WargaGraphicDashboard
+                currentUser={currentUser}
+                iuranKKList={iuranKK}
+                lombasList={lombas}
+                onOpenCheckIuran={() => setIsWargaIuranDetailOpen(true)}
+                onOpenUsulkanLomba={() => setIsPermintaanOpen(true)}
+              />
+
               {/* Quick Actions Grid (Pengurus Only) */}
               {!!currentUser && (
                 <QuickActions
@@ -845,6 +875,10 @@ export default function App() {
                     onDeleteLomba={handleDeleteLomba}
                     onDeleteUsulan={handleDeletePermintaan}
                     isPengurus={!!currentUser}
+                    onEditLombaClick={(lomba) => {
+                      setLombaToEdit(lomba);
+                      setIsAddLombaOpen(true);
+                    }}
                   />
                   <button 
                     onClick={() => setActiveTab('lomba')}
@@ -919,6 +953,10 @@ export default function App() {
                 onDeleteLomba={handleDeleteLomba}
                 onDeleteUsulan={handleDeletePermintaan}
                 isPengurus={!!currentUser}
+                onEditLombaClick={(lomba) => {
+                  setLombaToEdit(lomba);
+                  setIsAddLombaOpen(true);
+                }}
               />
             </div>
           )}
@@ -1036,9 +1074,14 @@ export default function App() {
 
       <ModalAddLomba
         isOpen={isAddLombaOpen}
-        onClose={() => setIsAddLombaOpen(false)}
+        onClose={() => {
+          setIsAddLombaOpen(false);
+          setLombaToEdit(null);
+        }}
         onAddLomba={handleAddLomba}
         permintaanLombaList={permintaanLomba}
+        lombaToEdit={lombaToEdit}
+        onEditLomba={handleEditLomba}
       />
 
       <ModalBayarIuran
@@ -1084,14 +1127,27 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={(user) => {
           setCurrentUser(user);
-          logAktivitas('sistem', `Pengurus "${user.nama}" (${user.jabatan}) berhasil login ke sistem.`);
-          alert(`Selamat Datang, ${user.nama}! Anda masuk sebagai ${user.jabatan}.`);
+          if (user.jabatan === 'Warga') {
+            logAktivitas('sistem', `Warga "${user.nama}" berhasil masuk mewakili Kepala KK "${user.mewakili_kk || 'Umum'}".`);
+            setIsWargaIuranDetailOpen(true);
+          } else {
+            logAktivitas('sistem', `Pengurus "${user.nama}" (${user.jabatan}) berhasil login ke sistem.`);
+            alert(`Selamat Datang, ${user.nama}! Anda masuk sebagai ${user.jabatan}.`);
+          }
         }}
         accounts={accounts}
         onSignUpSuccess={(newAcc) => {
           setAccounts((prev) => [...prev, newAcc]);
           logAktivitas('sistem', `Akun baru terdaftar: "${newAcc.nama}" (${newAcc.jabatan}).`);
         }}
+        iuranKKList={iuranKK}
+      />
+
+      <ModalWargaIuranDetail
+        isOpen={isWargaIuranDetailOpen}
+        onClose={() => setIsWargaIuranDetailOpen(false)}
+        currentUser={currentUser}
+        iuranKKList={iuranKK}
       />
     </div>
   );

@@ -1,12 +1,14 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { X, Trophy, Sparkles, MessageSquare } from 'lucide-react';
-import { PermintaanLomba } from '../types';
+import { PermintaanLomba, Lomba } from '../types';
 
 interface ModalAddLombaProps {
   isOpen: boolean;
   onClose: () => void;
   onAddLomba: (nama: string, pj: string, anggaran: number, kategori: string, dariPermintaanId?: number) => void;
   permintaanLombaList: PermintaanLomba[];
+  lombaToEdit?: Lomba | null;
+  onEditLomba?: (id: number, nama: string, pj: string, anggaran: number, kategori: string, status: Lomba['status']) => void;
 }
 
 export default function ModalAddLomba({
@@ -14,31 +16,43 @@ export default function ModalAddLomba({
   onClose,
   onAddLomba,
   permintaanLombaList,
+  lombaToEdit,
+  onEditLomba,
 }: ModalAddLombaProps) {
   const [nama, setNama] = useState('');
   const [pj, setPj] = useState('');
   const [anggaran, setAnggaran] = useState('');
   const [kategori, setKategori] = useState('Umum');
+  const [status, setStatus] = useState<Lomba['status']>('Belum Mulai');
   
   // Dynamic source: whether loading from a citizen request
   const [selectedReqId, setSelectedReqId] = useState<number | ''>('');
 
   useEffect(() => {
-    if (selectedReqId) {
+    if (lombaToEdit) {
+      setNama(lombaToEdit.nama_lomba);
+      setPj(lombaToEdit.pj);
+      setAnggaran(String(lombaToEdit.anggaran));
+      setKategori(lombaToEdit.kategori);
+      setStatus(lombaToEdit.status);
+      setSelectedReqId('');
+    } else if (selectedReqId) {
       const req = permintaanLombaList.find(r => r.id === selectedReqId);
       if (req) {
         setNama(req.nama_lomba);
         setPj(req.pengusul);
         setAnggaran(String(req.estimasi_biaya));
         setKategori(req.kategori);
+        setStatus('Belum Mulai');
       }
     } else {
       setNama('');
       setPj('');
       setAnggaran('');
       setKategori('Umum');
+      setStatus('Belum Mulai');
     }
-  }, [selectedReqId, permintaanLombaList]);
+  }, [selectedReqId, permintaanLombaList, lombaToEdit]);
 
   if (!isOpen) return null;
 
@@ -48,13 +62,19 @@ export default function ModalAddLomba({
       alert('Mohon lengkapi semua field!');
       return;
     }
-    onAddLomba(nama, pj, Number(anggaran), kategori, selectedReqId ? Number(selectedReqId) : undefined);
+    
+    if (lombaToEdit && onEditLomba) {
+      onEditLomba(lombaToEdit.id, nama, pj, Number(anggaran), kategori, status);
+    } else {
+      onAddLomba(nama, pj, Number(anggaran), kategori, selectedReqId ? Number(selectedReqId) : undefined);
+    }
     
     // reset
     setNama('');
     setPj('');
     setAnggaran('');
     setKategori('Umum');
+    setStatus('Belum Mulai');
     setSelectedReqId('');
     onClose();
   };
@@ -167,6 +187,21 @@ export default function ModalAddLomba({
                 />
               </div>
             </div>
+
+            {lombaToEdit && (
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Status Pelaksanaan</label>
+                <select
+                  value={status}
+                  onChange={e => setStatus(e.target.value as Lomba['status'])}
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500 bg-white cursor-pointer"
+                >
+                  <option value="Belum Mulai">Belum Mulai</option>
+                  <option value="Berjalan">Berjalan</option>
+                  <option value="Selesai">Selesai</option>
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2.5 shrink-0">
@@ -181,7 +216,7 @@ export default function ModalAddLomba({
               type="submit"
               className="px-5 py-2.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
             >
-              {selectedReqId ? 'Setujui & Buat Lomba' : 'Simpan Lomba'}
+              {lombaToEdit ? 'Simpan Perubahan Lomba' : selectedReqId ? 'Setujui & Buat Lomba' : 'Simpan Lomba Baru'}
             </button>
           </div>
         </form>

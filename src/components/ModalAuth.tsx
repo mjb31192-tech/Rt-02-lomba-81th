@@ -3,6 +3,7 @@ import {
   X, Lock, Unlock, User, Award, ShieldAlert, CheckCircle2, 
   Mail, Phone, Fingerprint, Timer, KeyRound, ArrowRight, Smartphone
 } from 'lucide-react';
+import { IuranKK } from '../types';
 
 interface Account {
   username: string;
@@ -14,9 +15,17 @@ interface Account {
 interface ModalAuthProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (user: { username: string; nama: string; jabatan: string }) => void;
+  onLoginSuccess: (user: { 
+    username: string; 
+    nama: string; 
+    jabatan: string;
+    mewakili_kk?: string;
+    sebagai_apa?: string;
+    kk_id?: number;
+  }) => void;
   accounts: Account[];
   onSignUpSuccess: (newAcc: Account) => void;
+  iuranKKList?: IuranKK[];
 }
 
 export default function ModalAuth({ 
@@ -24,7 +33,8 @@ export default function ModalAuth({
   onClose, 
   onLoginSuccess, 
   accounts, 
-  onSignUpSuccess 
+  onSignUpSuccess,
+  iuranKKList = []
 }: ModalAuthProps) {
   // Main Navigation Mode
   const [mode, setMode] = useState<'warga' | 'panitia'>('warga');
@@ -40,6 +50,10 @@ export default function ModalAuth({
   const [otpTimer, setOtpTimer] = useState(0);
   const [otpError, setOtpError] = useState('');
   const [otpSuccessMsg, setOtpSuccessMsg] = useState('');
+
+  // Perwakilan KK States
+  const [mewakiliKkId, setMewakiliKkId] = useState<string>('');
+  const [sebagaiApa, setSebagaiApa] = useState<string>('Kepala Keluarga');
 
   // Hidden Panitia Unlock States ("Sensor Sensitif" Gate)
   const [showPanitiaGate, setShowPanitiaGate] = useState(false);
@@ -133,16 +147,24 @@ export default function ModalAuth({
     // Standard simulated valid OTP is anything or 1708 (HUT RI date)
     const finalNama = wargaTab === 'signup' ? wargaNama.trim() : `Warga_${loginMethod === 'email' ? wargaEmail.split('@')[0] : wargaPhone.slice(-4)}`;
     
+    const selectedKKItem = iuranKKList.find(item => item.id === parseInt(mewakiliKkId));
+    const finalMewakiliKK = selectedKKItem ? selectedKKItem.nama_kk : '';
+
     onLoginSuccess({
       username: 'warga_' + Math.random().toString(36).substring(2, 9),
       nama: finalNama,
-      jabatan: 'Warga'
+      jabatan: 'Warga',
+      mewakili_kk: finalMewakiliKK,
+      sebagai_apa: sebagaiApa,
+      kk_id: selectedKKItem ? selectedKKItem.id : undefined
     });
 
     // Reset forms & close
     setWargaNama('');
     setWargaEmail('');
     setWargaPhone('');
+    setMewakiliKkId('');
+    setSebagaiApa('Kepala Keluarga');
     setOtpSent(false);
     setOtpCode('');
     onClose();
@@ -499,6 +521,47 @@ export default function ModalAuth({
                       </div>
                     </div>
                   )}
+
+                  {/* Select Perwakilan KK & Hubungan */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-dashed border-gray-100">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider mb-1">
+                        Mewakili Kepala KK <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        required
+                        value={mewakiliKkId}
+                        onChange={(e) => setMewakiliKkId(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 bg-white"
+                      >
+                        <option value="">-- Pilih Kepala KK --</option>
+                        {iuranKKList.map((kk) => (
+                          <option key={kk.id} value={kk.id}>
+                            {kk.nama_kk} ({kk.rt})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider mb-1">
+                        Hubungan Keluarga <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        required
+                        value={sebagaiApa}
+                        onChange={(e) => setSebagaiApa(e.target.value)}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 bg-white"
+                      >
+                        <option value="Kepala Keluarga">Saya Sendiri (Kepala Keluarga)</option>
+                        <option value="Istri">Istri</option>
+                        <option value="Anak">Anak</option>
+                        <option value="Orang Tua">Orang Tua</option>
+                        <option value="Mertua">Mertua</option>
+                        <option value="Kerabat / Saudara">Kerabat / Saudara</option>
+                        <option value="Lainnya">Lainnya</option>
+                      </select>
+                    </div>
+                  </div>
 
                   <button
                     type="submit"

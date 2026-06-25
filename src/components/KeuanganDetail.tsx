@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba, LaporanIuranMingguan } from '../types';
-import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale } from 'lucide-react';
 
 interface KeuanganDetailProps {
   kasList: Kas[];
@@ -567,32 +567,33 @@ export default function KeuanganDetail({
                           </div>
                         </div>
                       )}
-                      <div className="flex-1 flex flex-col justify-between">
+                      <div className="flex-1 flex flex-col justify-between min-w-0">
                         <div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[9px] bg-emerald-50 text-emerald-600 border border-emerald-100 font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-md">
+                          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                            <span className="text-[9px] bg-emerald-50 text-emerald-600 border border-emerald-100 font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded-md shrink-0">
                               {rep.minggu_ke}
                             </span>
-                            <span className="text-[9px] text-gray-400 font-mono font-medium">
+                            <span className="text-[9px] text-gray-400 font-mono font-medium shrink-0">
                               {rep.tanggal_lapor}
                             </span>
                           </div>
-                          <h4 className="font-bold text-gray-800 text-xs font-display mt-2">
+                          <h4 className="font-bold text-gray-800 text-xs font-display mt-2 break-words">
                             Total: <span className="text-emerald-600 font-mono font-black text-sm">{formatRupiah(rep.total_jumlah)}</span>
                           </h4>
-                          <p className="text-[10px] text-gray-400 font-semibold font-mono mt-0.5">
-                            Periode: {rep.tanggal_mulai} s/d {rep.tanggal_selesai}
+                          <p className="text-[10px] text-gray-400 font-semibold font-mono mt-1 leading-tight flex flex-wrap gap-x-1">
+                            <span>Periode:</span>
+                            <span className="break-all">{rep.tanggal_mulai} s/d {rep.tanggal_selesai}</span>
                           </p>
-                          <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-2 break-words">
                             {rep.keterangan}
                           </p>
                         </div>
-                        <div className="pt-2 border-t border-gray-100 mt-2 flex items-center justify-between gap-1.5">
-                          <span className="text-[9px] text-gray-400 font-medium leading-none flex-1">
-                            Dilaporkan oleh:<br />
-                            <strong className="text-gray-600 font-semibold">{rep.dilaporkan_oleh}</strong>
+                        <div className="pt-2 border-t border-gray-100 mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <span className="text-[9px] text-gray-400 font-medium leading-tight">
+                            Dilaporkan oleh:<br className="sm:hidden" />
+                            <strong className="text-gray-600 font-semibold ml-0.5 sm:ml-0">{rep.dilaporkan_oleh}</strong>
                           </span>
-                          <div className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-1 self-end sm:self-auto shrink-0">
                             {isPengurus ? (
                               <>
                                 <button
@@ -658,6 +659,14 @@ export default function KeuanganDetail({
                   ))}
                 </div>
               )}
+
+              {/* UU ITE Legal Notice at the bottom of the Weekly Report Tab */}
+              <div className="mt-5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-2 text-[11px] text-slate-500 leading-relaxed text-justify">
+                <Scale size={14} className="text-slate-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Aturan Hukum Dokumen Elektronik (UU ITE):</strong> Berdasarkan Undang Undang ITE no. 11 Tahun 2008 yang mengatur Dokumen Elektronik dan informasi lain di dalamnya sebagai alat bukti yang sah dan dapat di pertanggung jawabkan.
+                </span>
+              </div>
             </div>
           </div>
         )}

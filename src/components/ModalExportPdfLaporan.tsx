@@ -220,6 +220,11 @@ export default function ModalExportPdfLaporan({
             </div>
           </div>
 
+          {/* Legal Footnote UU ITE */}
+          <div className="mt-6 pt-4 border-t border-gray-150 text-justify text-[9px] text-gray-400 leading-relaxed shrink-0">
+            <strong>Catatan Hukum Elektronik:</strong> Berdasarkan Undang Undang ITE no. 11 Tahun 2008 yang mengatur Dokumen Elektronik dan informasi lain di dalamnya sebagai alat bukti yang sah dan dapat di pertanggung jawabkan.
+          </div>
+
         </div>
       </div>
 
