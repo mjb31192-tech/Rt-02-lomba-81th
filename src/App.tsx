@@ -129,6 +129,8 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const isPengurus = !!currentUser && currentUser.jabatan !== 'Warga';
+
   const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string }[]>(() => {
     const saved = localStorage.getItem('hut81_accounts');
     let parsed = saved ? JSON.parse(saved) : null;
@@ -239,8 +241,8 @@ export default function App() {
   };
 
   const checkAuth = (): boolean => {
-    if (!currentUser) {
-      alert("Akses Terbatas: Silakan login/daftar sebagai pengurus panitia terlebih dahulu untuk mengubah data!");
+    if (!isPengurus) {
+      alert("Akses Terbatas: Fitur ini hanya untuk pengurus panitia! Warga hanya diperbolehkan melihat data.");
       setIsAuthModalOpen(true);
       return false;
     }
@@ -627,22 +629,22 @@ export default function App() {
             <div className="flex items-center gap-3 border-l border-gray-200 pl-5">
               {currentUser ? (
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-200 shadow-3xs flex items-center justify-center font-bold text-xs text-emerald-600 font-display">
+                  <div className={`w-9 h-9 rounded-full shadow-3xs flex items-center justify-center font-bold text-xs font-display ${isPengurus ? 'bg-emerald-50 border border-emerald-200 text-emerald-600' : 'bg-red-50 border border-red-200 text-red-600'}`}>
                     {currentUser.nama.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="text-left hidden md:block">
                     <p className="text-sm font-semibold text-gray-800 leading-tight">{currentUser.nama}</p>
-                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider leading-none">{currentUser.jabatan}</p>
+                    <p className={`text-[9px] font-bold uppercase tracking-wider leading-none ${isPengurus ? 'text-emerald-600' : 'text-red-500'}`}>{currentUser.jabatan}</p>
                   </div>
                   <button
                     onClick={() => {
-                      if (confirm("Apakah Anda yakin ingin keluar dari Mode Pengurus?")) {
-                        logAktivitas('sistem', `Pengurus "${currentUser.nama}" (${currentUser.jabatan}) telah keluar dari sistem.`);
+                      if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.nama}?`)) {
+                        logAktivitas('sistem', `Pengguna "${currentUser.nama}" (${currentUser.jabatan}) telah keluar dari sistem.`);
                         setCurrentUser(null);
                       }
                     }}
                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer active:scale-95"
-                    title="Log Out Panitia"
+                    title="Log Out"
                   >
                     <LogOut size={16} />
                   </button>
@@ -657,7 +659,7 @@ export default function App() {
                     className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs"
                   >
                     <Lock size={12} />
-                    <span>Masuk Panitia</span>
+                    <span>Masuk / Daftar</span>
                   </button>
                 </div>
               )}
@@ -746,11 +748,11 @@ export default function App() {
                 {currentUser ? (
                   <div className="text-left bg-gray-50 p-3 rounded-xl border border-gray-100">
                     <p className="text-xs font-bold text-gray-800">{currentUser.nama}</p>
-                    <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-wider">{currentUser.jabatan}</p>
+                    <p className={`text-[9px] font-bold uppercase tracking-wider ${isPengurus ? 'text-emerald-600' : 'text-red-500'}`}>{currentUser.jabatan}</p>
                     <button
                       onClick={() => {
-                        if (confirm("Apakah Anda yakin ingin keluar dari Mode Pengurus?")) {
-                          logAktivitas('sistem', `Pengurus "${currentUser.nama}" (${currentUser.jabatan}) telah keluar.`);
+                        if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.nama}?`)) {
+                          logAktivitas('sistem', `Pengguna "${currentUser.nama}" (${currentUser.jabatan}) telah keluar.`);
                           setCurrentUser(null);
                           setIsMobileMenuOpen(false);
                         }
@@ -758,7 +760,7 @@ export default function App() {
                       className="mt-2 w-full flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold py-1.5 rounded-lg transition-all"
                     >
                       <LogOut size={12} />
-                      <span>Log Out Panitia</span>
+                      <span>Log Out Akun</span>
                     </button>
                   </div>
                 ) : (
@@ -770,7 +772,7 @@ export default function App() {
                     className="w-full flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all"
                   >
                     <Lock size={12} />
-                    <span>Masuk Panitia</span>
+                    <span>Masuk / Daftar</span>
                   </button>
                 )}
                 <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider text-center mt-1">
@@ -809,13 +811,13 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-fade-in">
               {/* Glorious Merah Putih Banner & Soundtrack */}
-              <MerahPutihHero kasList={kas} lombasList={lombas} />
+              <MerahPutihHero kasList={kas} lombasList={lombas} iuranKK={iuranKK} />
 
               {/* Countdown Kemerdekaan */}
               <Countdown />
 
               {/* Quick Stats Grid */}
-              <QuickStats lombas={lombas} pesertas={pesertas} kas={kas} />
+              <QuickStats lombas={lombas} pesertas={pesertas} kas={kas} iuranKK={iuranKK} />
 
               {/* Quick Actions Grid (Pengurus Only) */}
               {!!currentUser && (

@@ -1,15 +1,20 @@
-import { Lomba, Peserta, Kas } from '../types';
+import { Lomba, Peserta, Kas, IuranKK } from '../types';
 import { Wallet, Trophy, Users, CheckCircle2, TrendingUp, Sparkles } from 'lucide-react';
 
 interface QuickStatsProps {
   lombas: Lomba[];
   pesertas: Peserta[];
   kas: Kas[];
+  iuranKK?: IuranKK[];
 }
 
-export default function QuickStats({ lombas, pesertas, kas }: QuickStatsProps) {
+export default function QuickStats({ lombas, pesertas, kas, iuranKK = [] }: QuickStatsProps) {
   // 1. Kas Calculations
-  const totalMasuk = kas.filter(k => k.tipe === 'pemasukan').reduce((acc, curr) => acc + curr.jumlah, 0);
+  const totalIuranKK = iuranKK.reduce((acc, curr) => acc + curr.terbayar, 0);
+  const standardMasuk = kas
+    .filter(k => k.tipe === 'pemasukan' && !k.keterangan.includes('Iuran KK:'))
+    .reduce((acc, curr) => acc + curr.jumlah, 0);
+  const totalMasuk = standardMasuk + totalIuranKK;
   const totalKeluar = kas.filter(k => k.tipe === 'pengeluaran').reduce((acc, curr) => acc + curr.jumlah, 0);
   const sisaKas = totalMasuk - totalKeluar;
   const totalAnggaranLomba = lombas.reduce((acc, curr) => acc + curr.anggaran, 0);

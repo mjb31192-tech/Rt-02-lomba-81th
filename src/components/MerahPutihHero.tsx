@@ -1,16 +1,21 @@
 import React from 'react';
-import { Kas, Lomba } from '../types';
+import { Kas, Lomba, IuranKK } from '../types';
 import { Flag, Star, Trophy, Wallet, Landmark, Award } from 'lucide-react';
 import PatrioticSoundtrack from './PatrioticSoundtrack';
 
 interface MerahPutihHeroProps {
   kasList: Kas[];
   lombasList: Lomba[];
+  iuranKK?: IuranKK[];
 }
 
-export default function MerahPutihHero({ kasList, lombasList }: MerahPutihHeroProps) {
+export default function MerahPutihHero({ kasList, lombasList, iuranKK = [] }: MerahPutihHeroProps) {
   // Calculate stats dynamically
-  const totalMasuk = kasList.filter(k => k.tipe === 'pemasukan').reduce((acc, curr) => acc + curr.jumlah, 0);
+  const totalIuranKK = iuranKK.reduce((acc, curr) => acc + curr.terbayar, 0);
+  const standardMasuk = kasList
+    .filter(k => k.tipe === 'pemasukan' && !k.keterangan.includes('Iuran KK:'))
+    .reduce((acc, curr) => acc + curr.jumlah, 0);
+  const totalMasuk = standardMasuk + totalIuranKK;
   const totalKeluar = kasList.filter(k => k.tipe === 'pengeluaran').reduce((acc, curr) => acc + curr.jumlah, 0);
   const sisaKas = totalMasuk - totalKeluar;
 

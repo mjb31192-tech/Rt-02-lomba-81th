@@ -43,11 +43,6 @@ export default function KeuanganDetail({
   const [rtFilter, setRtFilter] = useState('all');
   const [selectedProofPhoto, setSelectedProofPhoto] = useState<string | null>(null);
 
-  // Calculate general cash flow summary
-  const totalMasuk = kasList.filter(k => k.tipe === 'pemasukan').reduce((acc, curr) => acc + curr.jumlah, 0);
-  const totalKeluar = kasList.filter(k => k.tipe === 'pengeluaran').reduce((acc, curr) => acc + curr.jumlah, 0);
-  const sisaKas = totalMasuk - totalKeluar;
-
   // Calculate KK contribution summary
   const totalKK = iuranKKList.length;
   const totalTargetIuran = totalKK * 50000;
@@ -57,6 +52,14 @@ export default function KeuanganDetail({
   const lunasCount = iuranKKList.filter(k => k.status === 'Lunas').length;
   const mencicilCount = iuranKKList.filter(k => k.status === 'Mencicil').length;
   const belumBayarCount = iuranKKList.filter(k => k.status === 'Belum Bayar').length;
+
+  // Calculate general cash flow summary
+  const standardPemasukan = kasList
+    .filter(k => k.tipe === 'pemasukan' && !k.keterangan.includes('Iuran KK:'))
+    .reduce((acc, curr) => acc + curr.jumlah, 0);
+  const totalMasuk = standardPemasukan + totalIuranTerkumpul;
+  const totalKeluar = kasList.filter(k => k.tipe === 'pengeluaran').reduce((acc, curr) => acc + curr.jumlah, 0);
+  const sisaKas = totalMasuk - totalKeluar;
 
   const filteredKas = kasList.filter(k => {
     const matchSearch = k.keterangan.toLowerCase().includes(search.toLowerCase()) || 
