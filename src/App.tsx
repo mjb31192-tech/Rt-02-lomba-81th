@@ -112,6 +112,7 @@ export default function App() {
   const [isPendaftaranOpen, setIsPendaftaranOpen] = useState(false);
   const [isInputSkorOpen, setIsInputSkorOpen] = useState(false);
   const [isCatatKasOpen, setIsCatatKasOpen] = useState(false);
+  const [kasToEdit, setKasToEdit] = useState<Kas | null>(null);
   const [isAddLombaOpen, setIsAddLombaOpen] = useState(false);
   const [isBayarIuranOpen, setIsBayarIuranOpen] = useState(false);
   const [isPermintaanOpen, setIsPermintaanOpen] = useState(false);
@@ -238,7 +239,7 @@ export default function App() {
     logAktivitas('skor', `Hasil Juara lomba "${lomba?.nama_lomba}" telah diinput. Juara 1: ${j1}.`);
   };
 
-  const handleAddKas = (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number) => {
+  const handleAddKas = (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => {
     // If called via UI direct action or internally
     const newKas: Kas = {
       id: Date.now(),
@@ -246,12 +247,31 @@ export default function App() {
       kategori,
       jumlah,
       keterangan,
-      tanggal: new Date().toISOString().split('T')[0],
+      tanggal: tanggal || new Date().toISOString().split('T')[0],
       lomba_id: lombaId
     };
 
     setKas(prev => [newKas, ...prev]);
     logAktivitas('kas', `Buku Kas: Catat ${tipe} (${kategori}) sebesar Rp ${jumlah.toLocaleString('id-ID')} untuk "${keterangan}".`);
+  };
+
+  const handleEditKas = (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => {
+    if (!checkAuth()) return;
+    setKas(prev => prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          tipe,
+          kategori,
+          jumlah,
+          keterangan,
+          lomba_id: lombaId,
+          tanggal: tanggal || item.tanggal
+        };
+      }
+      return item;
+    }));
+    logAktivitas('kas', `Edit Kas: Revisi transaksi "${keterangan}" (${tipe}) menjadi Rp ${jumlah.toLocaleString('id-ID')}.`);
   };
 
   const handleToggleAbsensi = (pesertaId: number) => {
@@ -812,7 +832,10 @@ export default function App() {
             <div className="animate-fade-in">
               <KeuanganDetail
                 kasList={kas}
-                onOpenCatatKas={() => setIsCatatKasOpen(true)}
+                onOpenCatatKas={() => {
+                  setKasToEdit(null);
+                  setIsCatatKasOpen(true);
+                }}
                 iuranKKList={iuranKK}
                 onOpenBayarIuran={() => setIsBayarIuranOpen(true)}
                 onSelectKKAndPay={(kkId) => {
@@ -821,6 +844,10 @@ export default function App() {
                 }}
                 lombasList={lombas}
                 onDeleteKas={handleDeleteKas}
+                onEditKasClick={(item) => {
+                  setKasToEdit(item);
+                  setIsCatatKasOpen(true);
+                }}
                 onDeleteKK={handleDeleteKK}
                 isPengurus={!!currentUser}
               />
@@ -888,8 +915,13 @@ export default function App() {
 
       <ModalCatatKas
         isOpen={isCatatKasOpen}
-        onClose={() => setIsCatatKasOpen(false)}
+        onClose={() => {
+          setIsCatatKasOpen(false);
+          setKasToEdit(null);
+        }}
         onAddKas={handleAddKas}
+        onEditKas={handleEditKas}
+        kasToEdit={kasToEdit}
         lombas={lombas}
       />
 

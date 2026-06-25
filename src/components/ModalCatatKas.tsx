@@ -1,11 +1,13 @@
 import { useState, FormEvent, useEffect } from 'react';
-import { X, Landmark, Plus, Trash2, Info, AlertTriangle } from 'lucide-react';
-import { Lomba } from '../types';
+import { X, Landmark, Plus, Trash2, Info, AlertTriangle, Calendar } from 'lucide-react';
+import { Lomba, Kas } from '../types';
 
 interface ModalCatatKasProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddKas: (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number) => void;
+  onAddKas: (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => void;
+  onEditKas?: (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string) => void;
+  kasToEdit?: Kas | null;
   lombas: Lomba[];
 }
 
@@ -19,11 +21,14 @@ export default function ModalCatatKas({
   isOpen,
   onClose,
   onAddKas,
+  onEditKas,
+  kasToEdit = null,
   lombas,
 }: ModalCatatKasProps) {
   const [tipe, setTipe] = useState<'pemasukan' | 'pengeluaran'>('pengeluaran');
   const [kategori, setKategori] = useState('Peralatan Lomba');
   const [keterangan, setKeterangan] = useState('');
+  const [tanggal, setTanggal] = useState('');
   
   // Dynamic linking to a Lomba
   const [lombaIdLink, setLombaIdLink] = useState<number | ''>('');
@@ -36,16 +41,41 @@ export default function ModalCatatKas({
   // Flat amount for pemasukan, or fallback for pengeluaran
   const [jumlahManual, setJumlahManual] = useState('');
 
+  const isEditing = !!kasToEdit;
+
   useEffect(() => {
     // Reset inputs when opened or type changed
     if (isOpen) {
+      if (isEditing && kasToEdit) {
+        setTipe(kasToEdit.tipe);
+        setKategori(kasToEdit.kategori);
+        setKeterangan(kasToEdit.keterangan);
+        setJumlahManual(kasToEdit.jumlah.toString());
+        setLombaIdLink(kasToEdit.lomba_id || '');
+        setTanggal(kasToEdit.tanggal || new Date().toISOString().split('T')[0]);
+        setItems([]);
+      } else {
+        setTipe('pengeluaran');
+        setKategori('Peralatan Lomba');
+        setKeterangan('');
+        setJumlahManual('');
+        setLombaIdLink('');
+        setTanggal(new Date().toISOString().split('T')[0]);
+        setItems([{ id: '1', nama: '', harga: 0 }]);
+      }
+    }
+  }, [isOpen, kasToEdit, isEditing]);
+
+  // Set default category on type change (only in add mode)
+  useEffect(() => {
+    if (isOpen && !isEditing) {
       if (tipe === 'pemasukan') {
         setKategori('Iuran Warga');
       } else {
         setKategori('Peralatan Lomba');
       }
     }
-  }, [tipe, isOpen]);
+  }, [tipe, isOpen, isEditing]);
 
   if (!isOpen) return null;
 
@@ -70,8 +100,8 @@ export default function ModalCatatKas({
     }));
   };
 
-  // Compute calculated dynamic sum for items if pengeluaran, otherwise use jumlahManual
-  const computedTotal = tipe === 'pengeluaran'
+  // Compute calculated dynamic sum for items if pengeluaran and not editing, otherwise use jumlahManual
+  const computedTotal = (tipe === 'pengeluaran' && !isEditing && items.length > 0)
     ? items.reduce((acc, curr) => acc + (Number(curr.harga) || 0), 0)
     : Number(jumlahManual) || 0;
 
@@ -80,29 +110,39 @@ export default function ModalCatatKas({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     
-    if (tipe === 'pemasukan') {
+    const finalTanggal = tanggal || new Date().toISOString().split('T')[0];
+
+    if (isEditing && kasToEdit) {
       if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
-        alert('Mohon lengkapi nominal pemasukan dan keterangan!');
+        alert('Mohon lengkapi nominal transaksi dan keterangan!');
         return;
       }
-      onAddKas('pemasukan', kategori, Number(jumlahManual), keterangan);
+      onEditKas?.(kasToEdit.id, tipe, kategori, Number(jumlahManual), keterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal);
     } else {
-      // Validating items
-      const hasEmptyItem = items.some(item => !item.nama.trim() || item.harga <= 0);
-      if (hasEmptyItem) {
-        alert('Mohon lengkapi nama dan harga untuk semua baris pengeluaran!');
-        return;
-      }
-      if (!keterangan) {
-        alert('Mohon isi keterangan/deskripsi pengeluaran!');
-        return;
-      }
+      if (tipe === 'pemasukan') {
+        if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
+          alert('Mohon lengkapi nominal pemasukan dan keterangan!');
+          return;
+        }
+        onAddKas('pemasukan', kategori, Number(jumlahManual), keterangan, undefined, finalTanggal);
+      } else {
+        // Validating items
+        const hasEmptyItem = items.some(item => !item.nama.trim() || item.harga <= 0);
+        if (hasEmptyItem) {
+          alert('Mohon lengkapi nama dan harga untuk semua baris pengeluaran!');
+          return;
+        }
+        if (!keterangan) {
+          alert('Mohon isi keterangan/deskripsi pengeluaran!');
+          return;
+        }
 
-      // Generate formatted description compiling items
-      const itemsString = items.map(it => `${it.nama} (Rp ${it.harga.toLocaleString('id-ID')})`).join(', ');
-      const finalKeterangan = `${keterangan} [Rincian: ${itemsString}]`;
+        // Generate formatted description compiling items
+        const itemsString = items.map(it => `${it.nama} (Rp ${it.harga.toLocaleString('id-ID')})`).join(', ');
+        const finalKeterangan = `${keterangan} [Rincian: ${itemsString}]`;
 
-      onAddKas('pengeluaran', kategori, computedTotal, finalKeterangan, lombaIdLink ? Number(lombaIdLink) : undefined);
+        onAddKas('pengeluaran', kategori, computedTotal, finalKeterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal);
+      }
     }
 
     // Reset fields
@@ -110,6 +150,7 @@ export default function ModalCatatKas({
     setJumlahManual('');
     setKeterangan('');
     setLombaIdLink('');
+    setTanggal('');
     onClose();
   };
 
@@ -129,7 +170,7 @@ export default function ModalCatatKas({
             </div>
             <div>
               <h3 className="font-display font-black text-gray-800 text-sm uppercase tracking-wider">
-                {tipe === 'pengeluaran' ? 'Catat Pengeluaran Dinamis' : 'Catat Kas Masuk'}
+                {isEditing ? 'Revisi Transaksi Keuangan' : (tipe === 'pengeluaran' ? 'Catat Pengeluaran Dinamis' : 'Catat Kas Masuk')}
               </h3>
               <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">Anggaran HUT RI 81</p>
             </div>
@@ -194,8 +235,8 @@ export default function ModalCatatKas({
             )}
           </div>
 
-          {/* DYNAMIC ITEMIZED BILLS (ONLY FOR PENGELUARAN) */}
-          {tipe === 'pengeluaran' ? (
+          {/* DYNAMIC ITEMIZED BILLS (ONLY FOR PENGELUARAN AND NOT EDITING) */}
+          {tipe === 'pengeluaran' && !isEditing ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Detail Baris Pengeluaran</label>
@@ -249,10 +290,25 @@ export default function ModalCatatKas({
                 placeholder="Misal: 50000"
                 value={jumlahManual}
                 onChange={e => setJumlahManual(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500 font-mono font-bold text-emerald-600"
+                className={`w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500 font-mono font-bold ${tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-600'}`}
               />
             </div>
           )}
+
+          {/* Tanggal Transaksi */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Tanggal Transaksi</label>
+            <div className="relative">
+              <Calendar size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="date"
+                required
+                value={tanggal}
+                onChange={e => setTanggal(e.target.value)}
+                className="w-full pl-10 pr-3.5 py-2.5 text-xs border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500 bg-white"
+              />
+            </div>
+          </div>
 
           {/* Budget warning alert if exceeds Lomba Budget */}
           {tipe === 'pengeluaran' && selectedLomba && (

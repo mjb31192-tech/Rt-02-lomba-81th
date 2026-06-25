@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba } from '../types';
-import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2 } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit } from 'lucide-react';
 
 interface KeuanganDetailProps {
   kasList: Kas[];
@@ -10,6 +10,7 @@ interface KeuanganDetailProps {
   onSelectKKAndPay: (kkId: number) => void;
   lombasList: Lomba[];
   onDeleteKas?: (id: number) => void;
+  onEditKasClick?: (kas: Kas) => void;
   onDeleteKK?: (id: number) => void;
   isPengurus?: boolean;
 }
@@ -22,6 +23,7 @@ export default function KeuanganDetail({
   onSelectKKAndPay,
   lombasList,
   onDeleteKas,
+  onEditKasClick,
   onDeleteKK,
   isPengurus = false,
 }: KeuanganDetailProps) {
@@ -308,6 +310,16 @@ export default function KeuanganDetail({
                           {k.tipe}
                         </span>
                       </div>
+
+                      {isPengurus && onEditKasClick && (
+                        <button
+                          onClick={() => onEditKasClick(k)}
+                          className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                          title="Revisi / Edit Transaksi"
+                        >
+                          <Edit size={13} />
+                        </button>
+                      )}
 
                       {isPengurus && onDeleteKas && (
                         <button
