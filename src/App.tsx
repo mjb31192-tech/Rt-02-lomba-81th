@@ -184,6 +184,37 @@ export default function App() {
   // Custom Warga & Lomba edit states
   const [lombaToEdit, setLombaToEdit] = useState<Lomba | null>(null);
   const [isWargaIuranDetailOpen, setIsWargaIuranDetailOpen] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Fetch initial database state from public API on mount
+  useEffect(() => {
+    async function fetchServerData() {
+      try {
+        const response = await fetch("/api/data");
+        if (response.ok) {
+          const data = await response.json();
+          if (data) {
+            if (data.lombas && Array.isArray(data.lombas)) setLombas(ensureUniqueIds(data.lombas));
+            if (data.pesertas && Array.isArray(data.pesertas)) setPesertas(ensureUniqueIds(data.pesertas));
+            if (data.kas && Array.isArray(data.kas)) {
+              const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
+              setKas(ensureUniqueIds(cleaned));
+            }
+            if (data.aktivitas && Array.isArray(data.aktivitas)) setAktivitas(ensureUniqueIds(data.aktivitas));
+            if (data.iuranKK && Array.isArray(data.iuranKK)) setIuranKK(ensureUniqueIds(data.iuranKK));
+            if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) setPermintaanLomba(ensureUniqueIds(data.permintaanLomba));
+            if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
+            if (data.accounts && Array.isArray(data.accounts)) setAccounts(data.accounts);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal melakukan sinkronisasi data dari server public:", err);
+      } finally {
+        setIsDataLoaded(true);
+      }
+    }
+    fetchServerData();
+  }, []);
 
   // 2. Persist states
   useEffect(() => {
@@ -194,36 +225,45 @@ export default function App() {
     }
   }, [currentUser]);
 
+  // Synchronize local states to public API server and localStorage when changed
   useEffect(() => {
-    localStorage.setItem('hut81_accounts', JSON.stringify(accounts));
-  }, [accounts]);
-  useEffect(() => {
+    if (!isDataLoaded) return;
+
+    const payload = {
+      lombas,
+      pesertas,
+      kas,
+      aktivitas,
+      iuranKK,
+      permintaanLomba,
+      laporanIuranMingguan,
+      accounts
+    };
+
     localStorage.setItem('hut81_lombas', JSON.stringify(lombas));
-  }, [lombas]);
-
-  useEffect(() => {
     localStorage.setItem('hut81_pesertas', JSON.stringify(pesertas));
-  }, [pesertas]);
-
-  useEffect(() => {
     localStorage.setItem('hut81_kas', JSON.stringify(kas));
-  }, [kas]);
-
-  useEffect(() => {
     localStorage.setItem('hut81_aktivitas', JSON.stringify(aktivitas));
-  }, [aktivitas]);
-
-  useEffect(() => {
     localStorage.setItem('hut81_iuran_kk', JSON.stringify(iuranKK));
-  }, [iuranKK]);
-
-  useEffect(() => {
     localStorage.setItem('hut81_permintaan_lomba', JSON.stringify(permintaanLomba));
-  }, [permintaanLomba]);
-
-  useEffect(() => {
     localStorage.setItem('hut81_laporan_iuran_mingguan', JSON.stringify(laporanIuranMingguan));
-  }, [laporanIuranMingguan]);
+    localStorage.setItem('hut81_accounts', JSON.stringify(accounts));
+
+    const syncWithServer = async () => {
+      try {
+        await fetch("/api/data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error("Gagal menyimpan sinkronisasi data ke server public:", err);
+      }
+    };
+
+    const handler = setTimeout(syncWithServer, 600);
+    return () => clearTimeout(handler);
+  }, [isDataLoaded, lombas, pesertas, kas, aktivitas, iuranKK, permintaanLomba, laporanIuranMingguan, accounts]);
 
   // 3. Digital Clock Live
   useEffect(() => {
