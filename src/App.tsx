@@ -879,6 +879,9 @@ export default function App() {
                       setLombaToEdit(lomba);
                       setIsAddLombaOpen(true);
                     }}
+                    onAddLombaDirectly={handleAddLomba}
+                    onCreatePermintaanDirectly={handleCreatePermintaan}
+                    currentUser={currentUser}
                   />
                   <button 
                     onClick={() => setActiveTab('lomba')}
@@ -957,6 +960,9 @@ export default function App() {
                   setLombaToEdit(lomba);
                   setIsAddLombaOpen(true);
                 }}
+                onAddLombaDirectly={handleAddLomba}
+                onCreatePermintaanDirectly={handleCreatePermintaan}
+                currentUser={currentUser}
               />
             </div>
           )}
