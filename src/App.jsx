@@ -1,30 +1,35 @@
-
 import React, { useState, useEffect } from 'react';
 
-// URL API Vercel utama Anda
-const API_URL = "https://api-rt02-lomba-81th.vercel.app";
+// Ambil URL base otomatis atau gunakan default local
+const API_URL = window.location.origin;
 
 export default function App() {
-  const [peserta, setPeserta] = useState([]);
+  // State untuk menampung database lengkap dari server.ts
+  const [dbData, setDbData] = useState({
+    lombas: [],
+    pesertas: [],
+    kas: [],
+    iuranKK: [],
+    permintaanLomba: []
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ nama: '', lomba: '', no_rumah: '' });
+  const [form, setForm] = useState({ nama: '', lomba_id: '', no_telp: '', rt: '' });
   const [loading, setLoading] = useState(false);
 
-  // 1. Ambil data asli dari MySQL via API Vercel
-  const fetchPeserta = async () => {
+  // 1. Ambil data lengkap dari endpoint /api/data (server.ts)
+  const fetchAllData = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/peserta`);
-      const result = await response.json();
-      if (result.success) {
-        setPeserta(result.data);
-      }
+      const response = await fetch(`${API_URL}/api/data`);
+      const data = await response.json();
+      setDbData(data);
     } catch (error) {
-      console.error("Gagal mengambil data dari MySQL:", error);
+      console.error("Gagal mengambil data dari server:", error);
     }
   };
 
   useEffect(() => {
-    fetchPeserta();
+    fetchAllData();
   }, []);
 
   // 2. Handle input form perubahan text
@@ -32,30 +37,50 @@ export default function App() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // 3. Kirim data pendaftaran baru ke MySQL via API Vercel
+  // 3. Simpan data peserta baru ke dalam array pesertas, lalu kirim kembali ke /api/data
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.nama || !form.lomba || !form.no_rumah) {
+    if (!form.nama || !form.lomba_id || !form.rt) {
       return alert("Semua kolom wajib diisi!");
     }
-    
+
     setLoading(true);
+
+    // Buat objek peserta baru sesuai skema server.ts
+    const newPeserta = {
+      id: Date.now(),
+      nama_peserta: form.nama,
+      no_telp: form.no_telp || "-",
+      rt: form.rt,
+      lomba_id: parseInt(form.lomba_id),
+      absensi: false,
+      waktu_daftar: new Date().toISOString().replace('T', ' ').substring(0, 19)
+    };
+
+    // Gabungkan dengan data lama yang ada di database json
+    const updatedPesertas = [newPeserta, ...dbData.pesertas];
+    const fullPayload = {
+      ...dbData,
+      pesertas: updatedPesertas
+    };
+
     try {
-      const response = await fetch(`${API_URL}/api/peserta`, {
+      // Kirim seluruh objek database terbaru ke server.ts
+      const response = await fetch(`${API_URL}/api/data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify(fullPayload)
       });
       const result = await response.json();
-      
-      if (result.success) {
-        alert(result.message);
-        setForm({ nama: '', lomba: '', no_rumah: '' }); // Reset form
-        setIsModalOpen(false); // Tutup modal setelah sukses
-        fetchPeserta(); // Refresh otomatis daftar peserta dari MySQL
+
+      if (result.status === "success") {
+        alert("Pendaftaran berhasil disimpan ke server!");
+        setForm({ nama: '', lomba_id: '', no_telp: '', rt: '' }); // Reset form
+        setIsModalOpen(false); // Tutup modal
+        fetchAllData(); // Muat ulang data terbaru
       }
     } catch (error) {
-      alert("Gagal mendaftar ke server database.");
+      alert("Gagal menyimpan data pendaftaran.");
     } finally {
       setLoading(false);
     }
@@ -70,68 +95,62 @@ export default function App() {
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             🏆 Pendaftaran Lomba RT 02
           </h2>
-          <p className="text-sm text-gray-500">Data terhubung langsung ke Live MySQL Cloud via Vercel API</p>
+          <p className="text-sm text-gray-500">Terhubung ke Database File Lokal JSON Server</p>
         </div>
         
-        {/* Tombol pemicu Modal */}
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition flex items-center gap-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition"
         >
           ➕ Tambah Peserta Baru
         </button>
       </div>
 
-      {/* TAMPILAN UTAMA: DAFTAR PESERTA DARI MYSQL */}
+      {/* TAMPILAN UTAMA: DAFTAR PESERTA */}
       <div className="bg-white rounded-xl shadow border p-6">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-          👥 Warga Terdaftar ({peserta.length})
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">
+          👥 Warga Terdaftar ({dbData.pesertas.length})
         </h3>
         
-        {peserta.length === 0 ? (
+        {dbData.pesertas.length === 0 ? (
           <div className="text-center py-8 text-gray-400 border border-dashed rounded-lg">
-            Belum ada peserta terdaftar di database MySQL. Yuk jadi yang pertama!
+            Belum ada peserta terdaftar. Yuk daftar sekarang!
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {peserta.map((p) => (
-              <div key={p.id} className="p-4 border rounded-xl bg-gray-50 flex justify-between items-center hover:shadow-sm transition">
-                <div>
-                  <div className="font-bold text-gray-800 text-base">{p.nama}</div>
-                  <div className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-1">
-                    🎯 Lomba: {p.lomba}
+            {dbData.pesertas.map((p) => {
+              // Cari nama lomba berdasarkan lomba_id
+              const lombaSesuai = dbData.lombas.find(l => l.id === p.lomba_id);
+              return (
+                <div key={p.id} className="p-4 border rounded-xl bg-gray-50 flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-gray-800 text-base">{p.nama_peserta}</div>
+                    <div className="text-xs text-blue-600 font-medium bg-blue-50 px-2 py-0.5 rounded-md inline-block mt-1">
+                      🎯 Lomba: {lombaSesuai ? lombaSesuai.nama_lomba : "Lomba Lainnya"}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-1 rounded-md">
+                      {p.rt}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold text-gray-500 bg-gray-200 px-2 py-1 rounded-md">
-                    🏠 No. {p.no_rumah}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* ─── COMPONENT MODAL PENDAFTARAN ─── */}
+      {/* MODAL WINDOWS */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl transform overflow-hidden transition-all border">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border overflow-hidden">
             
-            {/* Header Modal */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 text-white flex justify-between items-center">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                📝 Form Registrasi Peserta
-              </h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-white hover:text-gray-200 text-xl font-bold bg-blue-800 bg-opacity-30 w-8 h-8 rounded-full flex items-center justify-center"
-              >
-                ✕
-              </button>
+              <h3 className="text-lg font-bold">📝 Form Registrasi Peserta</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-white text-xl">✕</button>
             </div>
 
-            {/* Isi Form Konten Modal */}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap Warga</label>
@@ -142,51 +161,65 @@ export default function App() {
                   placeholder="Contoh: Budi Susanto"
                   value={form.nama}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
+                  className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori / Nama Lomba</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Lomba</label>
+                <select
+                  name="lomba_id"
+                  required
+                  value={form.lomba_id}
+                  onChange={handleChange}
+                  className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800 bg-white"
+                >
+                  <option value="">-- Pilih Jenis Lomba --</option>
+                  {dbData.lombas.map((l) => (
+                    <option key={l.id} value={l.id}>{l.nama_lomba} ({l.kategori})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Telepon/WA</label>
                 <input
                   type="text"
-                  name="lomba"
-                  required
-                  placeholder="Contoh: Balap Karung, Catur, dll."
-                  value={form.lomba}
+                  name="no_telp"
+                  placeholder="Contoh: 081234xxxx"
+                  value={form.no_telp}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
+                  className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nomor / Blok Rumah</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Asal RT</label>
                 <input
                   type="text"
-                  name="no_rumah"
+                  name="rt"
                   required
-                  placeholder="Contoh: B-14 atau RT 02/03"
-                  value={form.no_rumah}
+                  placeholder="Contoh: RT 02"
+                  value={form.rt}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
+                  className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-800"
                 />
               </div>
 
-              {/* Tombol Aksi Modal */}
               <div className="flex justify-end gap-2 pt-4 border-t mt-6">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                  className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition disabled:bg-blue-400"
+                  className="px-5 py-2 text-white bg-blue-600 rounded-lg disabled:bg-blue-400"
                 >
-                  {loading ? 'Menyimpan ke MySQL...' : 'Simpan Pendaftaran'}
+                  {loading ? 'Menyimpan...' : 'Simpan Pendaftaran'}
                 </button>
               </div>
             </form>
