@@ -116,19 +116,8 @@ async function startServer() {
   // --- API ENDPOINTS ---
 
   // Health and Feature Info API
-  import { prisma } from './db'; // Impor modul yang baru dibuat
-
-app.get("/api/data", async (req, res) => {
-  try {
-    // Ambil data dari database asli menggunakan Prisma
-    const lombas = await prisma.lomba.findMany(); 
-    const pesertas = await prisma.peserta.findMany();
-    // ... dst
-    res.json({ lombas, pesertas });
-  } catch (err) {
-    res.status(500).json({ error: "Gagal ambil data dari DB" });
-  }
-});
+  app.get("/api/health", (req, res) => {
+    res.json({
       status: "ok",
       aiEnabled: !!ai,
       timestamp: new Date().toISOString(),
