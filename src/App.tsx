@@ -236,9 +236,59 @@ export default function App() {
     }
     fetchServerData();
 
-    // 5-second polling interval for real-time synchronization
+    // Establish Server-Sent Events (SSE) connection for instant, real-time live synchronization
+    const eventSource = new EventSource("/api/updates-stream");
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "update" && payload.data) {
+          const data = payload.data;
+          isIncomingUpdate.current = true;
+          if (data.lombas && Array.isArray(data.lombas)) {
+            setLombas(ensureUniqueIds(data.lombas));
+          }
+          if (data.pesertas && Array.isArray(data.pesertas)) {
+            setPesertas(ensureUniqueIds(data.pesertas));
+          }
+          if (data.kas && Array.isArray(data.kas)) {
+            const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
+            setKas(ensureUniqueIds(cleaned));
+          }
+          if (data.aktivitas && Array.isArray(data.aktivitas)) {
+            setAktivitas(ensureUniqueIds(data.aktivitas));
+          }
+          if (data.iuranKK && Array.isArray(data.iuranKK)) {
+            setIuranKK(ensureUniqueIds(data.iuranKK));
+          }
+          if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) {
+            setPermintaanLomba(ensureUniqueIds(data.permintaanLomba));
+          }
+          if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) {
+            setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
+          }
+          if (data.accounts && Array.isArray(data.accounts)) {
+            setAccounts(data.accounts);
+          }
+          setTimeout(() => {
+            isIncomingUpdate.current = false;
+          }, 500);
+        }
+      } catch (err) {
+        console.error("Gagal mengurai pesan live update:", err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.warn("EventSource terputus, mengandalkan fallback polling otomatis.");
+    };
+
+    // 5-second polling interval as a robust fallback for real-time synchronization
     const interval = setInterval(fetchServerData, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      eventSource.close();
+    };
   }, []);
 
   // 2. Persist states in localStorage & Server database

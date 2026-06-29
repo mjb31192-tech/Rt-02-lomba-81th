@@ -113,7 +113,48 @@ async function startServer() {
     });
   }
 
+  // Track active Server-Sent Events (SSE) connections
+  let sseClients: any[] = [];
+
+  // Broadcast data changes to all connected SSE clients
+  const broadcastUpdate = (data: any) => {
+    sseClients.forEach(client => {
+      try {
+        client.write(`data: ${JSON.stringify({ type: "update", data })}\n\n`);
+      } catch (err) {
+        // Suppress errors for closed connections
+      }
+    });
+  };
+
   // --- API ENDPOINTS ---
+
+  // Real-time Event Stream for instant live database sync
+  app.get("/api/updates-stream", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no"); // Disable buffering for proxy servers
+
+    // Send initial handshake success
+    res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+
+    // Keep-alive heartbeat ping every 15 seconds to prevent connection timeouts
+    const pingInterval = setInterval(() => {
+      try {
+        res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
+      } catch (err) {
+        // Write failed
+      }
+    }, 15000);
+
+    sseClients.push(res);
+
+    req.on("close", () => {
+      clearInterval(pingInterval);
+      sseClients = sseClients.filter(client => client !== res);
+    });
+  });
 
   // Health and Feature Info API
   app.get("/api/health", (req, res) => {
@@ -154,6 +195,7 @@ async function startServer() {
       };
 
       writeDB(updatedData);
+      broadcastUpdate(updatedData);
       res.json({ status: "success", message: "Database tersinkronisasi dengan sukses ke server public!" });
     } catch (err: any) {
       console.error("Gagal menyimpan data:", err);
