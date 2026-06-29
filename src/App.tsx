@@ -266,11 +266,16 @@ export default function App() {
 
     // Async write-back sync to Server file database
     const syncWithServer = async () => {
+      if (!isPengurus) return; // Only Pengurus (admins) are allowed to overwrite server state
       setIsSyncing(true);
       try {
         await fetch("/api/data", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "x-user-role": currentUser?.jabatan || "Warga",
+            "x-username": currentUser?.username || ""
+          },
           body: JSON.stringify(payload)
         });
       } catch (err) {
@@ -282,7 +287,7 @@ export default function App() {
 
     const handler = setTimeout(syncWithServer, 500);
     return () => clearTimeout(handler);
-  }, [isDataLoaded, lombas, pesertas, kas, aktivitas, iuranKK, permintaanLomba, laporanIuranMingguan, accounts]);
+  }, [isDataLoaded, lombas, pesertas, kas, aktivitas, iuranKK, permintaanLomba, laporanIuranMingguan, accounts, isPengurus, currentUser]);
 
   // 3. Digital Clock Live
   useEffect(() => {

@@ -138,6 +138,16 @@ async function startServer() {
   // POST save complete database state
   app.post("/api/data", (req, res) => {
     try {
+      const userRole = req.headers["x-user-role"];
+      const username = req.headers["x-username"];
+
+      // Verify that the request comes from an authorized Pengurus (admin)
+      if (!userRole || userRole === "Warga" || !username) {
+        return res.status(403).json({ 
+          error: "Akses ditolak: Hanya panitia/pengurus RT yang dapat mensinkronisasikan perubahan data ke server public." 
+        });
+      }
+
       const incomingData = req.body;
       const currentData = readDB();
 
