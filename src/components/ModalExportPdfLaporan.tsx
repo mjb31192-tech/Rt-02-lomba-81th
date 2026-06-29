@@ -101,6 +101,38 @@ export default function ModalExportPdfLaporan({
             </div>
           </motion.div>
 
+          {/* Dynamic scoped print style to ensure perfect printable A4 preview and no clashes */}
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media print {
+              body * {
+                visibility: hidden !important;
+              }
+              #printable-a4-area, #printable-a4-area * {
+                visibility: visible !important;
+              }
+              #printable-a4-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 1.5cm !important;
+                background: white !important;
+                color: black !important;
+                box-shadow: none !important;
+                border: none !important;
+                overflow: visible !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+              }
+              .print-hidden-element {
+                display: none !important;
+              }
+            }
+          `}} />
+
           {/* A4 Sheet Container */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.98 }}
@@ -112,7 +144,7 @@ export default function ModalExportPdfLaporan({
             {/* Printable Section */}
             <div 
               id="printable-a4-area" 
-              className="w-full sm:w-[210mm] sm:h-[297mm] bg-white p-8 sm:p-14 text-black shadow-2xl relative flex flex-col justify-between overflow-hidden border border-gray-150 print:border-none print:shadow-none print:w-[210mm] print:h-[297mm]"
+              className="w-full sm:w-[210mm] sm:h-[297mm] bg-white p-8 sm:p-12 text-black shadow-2xl relative flex flex-col justify-between sm:overflow-hidden print:overflow-visible border border-gray-150 print:border-none print:shadow-none print:w-[210mm] print:h-[297mm]"
               style={{ boxSizing: 'border-box' }}
             >
               {/* WATERMARK INDONESIA MERDEKA */}
@@ -124,96 +156,96 @@ export default function ModalExportPdfLaporan({
 
               <div>
                 {/* 1. KOP SURAT (LETTERHEAD) */}
-                <div className="flex items-center gap-5 pb-4 border-b-4 border-double border-black relative">
-                  <div className="w-14 h-14 bg-red-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs border border-red-700">
-                    <Landmark size={28} className="stroke-[2.5]" />
+                <div className="flex items-center gap-5 pb-3 border-b-4 border-double border-black relative">
+                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs border border-red-700">
+                    <Landmark size={24} className="stroke-[2.5]" />
                   </div>
                   <div className="flex-1 text-center pr-10">
-                    <h2 className="font-display font-black text-sm sm:text-base text-gray-950 uppercase tracking-wider leading-none">
+                    <h2 className="font-display font-black text-xs sm:text-sm text-gray-950 uppercase tracking-wider leading-none">
                       PANITIA HARI BESAR NASIONAL (PHBN)
                     </h2>
-                    <h1 className="font-display font-black text-lg sm:text-xl text-red-600 uppercase tracking-widest mt-0.5 leading-none">
+                    <h1 className="font-display font-black text-base sm:text-lg text-red-600 uppercase tracking-widest mt-0.5 leading-none">
                       HUT REPUBLIK INDONESIA KE-81
                     </h1>
-                    <p className="text-[10px] text-gray-600 font-semibold tracking-wider uppercase mt-1 leading-none">
+                    <p className="text-[9px] text-gray-600 font-semibold tracking-wider uppercase mt-1 leading-none">
                       RUKUN TETANGGA 002/003 - KELURAHAN KEDAUNG BARU
                     </p>
-                    <p className="text-[8px] text-gray-400 font-semibold tracking-widest uppercase mt-0.5 leading-none">
+                    <p className="text-[7px] text-gray-400 font-semibold tracking-widest uppercase mt-0.5 leading-none">
                       Kecamatan Neglasari, Kota Tangerang
                     </p>
                   </div>
                 </div>
 
                 {/* 2. SURAT KETERANGAN / JUDUL LAPORAN */}
-                <div className="text-center my-6">
-                  <h3 className="font-display font-black text-sm uppercase tracking-widest text-gray-900 border-b border-gray-300 pb-1.5 inline-block px-4">
+                <div className="text-center my-4">
+                  <h3 className="font-display font-black text-xs uppercase tracking-widest text-gray-900 border-b border-gray-300 pb-1 inline-block px-4">
                     LAPORAN PERTANGGUNGJAWABAN IURAN MINGGUAN
                   </h3>
-                  <p className="text-[9px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-1">
+                  <p className="text-[8px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-0.5">
                     NOMOR DOKUMEN: LP-IM/VIII/2026/REKAP-{report.id.toString().slice(-4)}
                   </p>
                 </div>
 
                 {/* 3. METADATA DOKUMEN */}
-                <div className="grid grid-cols-2 gap-y-2 gap-x-4 bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs mb-5">
+                <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 bg-gray-50 border border-gray-200 rounded-xl p-3 text-[11px] mb-4">
                   <div>
-                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest block">Periode Laporan</span>
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Periode Laporan</span>
                     <strong className="text-gray-800 font-bold">{report.minggu_ke}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest block">Tanggal Lapor</span>
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Tanggal Lapor</span>
                     <strong className="text-gray-800 font-mono">{report.tanggal_lapor}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest block">Rentang Tanggal Kegiatan</span>
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Rentang Tanggal Kegiatan</span>
                     <strong className="text-gray-800 font-mono">{report.tanggal_mulai} s.d {report.tanggal_selesai}</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest block">Dilaporkan Oleh</span>
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Dilaporkan Oleh</span>
                     <strong className="text-gray-800 font-bold">{report.dilaporkan_oleh}</strong>
                   </div>
                 </div>
 
                 {/* 4. TOTAL REKAP & TERBILANG */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden mb-5">
-                  <div className="bg-red-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
-                    <span className="text-[10px] text-red-800 font-black uppercase tracking-widest">
+                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
+                  <div className="bg-red-50/70 px-3.5 py-2 border-b border-gray-200 flex items-center justify-between">
+                    <span className="text-[9px] text-red-800 font-black uppercase tracking-widest">
                       Jumlah Dana Penerimaan Kas Iuran
                     </span>
-                    <span className="text-xs text-red-600 font-mono font-bold">STATUS: TERKUMPUL &amp; DISERAHKAN</span>
+                    <span className="text-[9px] text-red-600 font-mono font-bold">STATUS: TERKUMPUL &amp; DISERAHKAN</span>
                   </div>
-                  <div className="p-4 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-3.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <h4 className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Rincian Nominal Kas:</h4>
-                      <p className="text-2xl font-mono font-black text-red-600 mt-1">Rp {formattedTotal}</p>
+                      <h4 className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider">Rincian Nominal Kas:</h4>
+                      <p className="text-xl font-mono font-black text-red-600 mt-0.5">Rp {formattedTotal}</p>
                     </div>
-                    <div className="max-w-xs text-right sm:text-right">
-                      <h4 className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">Terbilang (Sesuai Ejaan):</h4>
-                      <p className="text-xs font-bold text-gray-700 italic mt-1 leading-snug">
+                    <div className="max-w-xs text-right">
+                      <h4 className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider">Terbilang (Sesuai Ejaan):</h4>
+                      <p className="text-[10px] font-bold text-gray-700 italic mt-0.5 leading-snug">
                         "{formatTerbilang(report.total_jumlah)}"
                       </p>
                     </div>
                   </div>
-                  <div className="px-4 py-2 bg-gray-50 border-t border-gray-150 text-[11px] text-gray-600">
+                  <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-150 text-[10px] text-gray-600">
                     <strong className="font-semibold text-gray-700">Keterangan Catatan:</strong> {report.keterangan}
                   </div>
                 </div>
 
-                {/* 5. DOCK FOTO BUKTI (DILAMPIRKAN) */}
+                {/* 5. DOCK FOTO BUKTI (DILAMPIRKAN) - Optimized height to prevent overflow */}
                 {report.bukti_foto && (
-                  <div className="border border-gray-200 rounded-xl p-4 bg-white flex flex-col items-center">
-                    <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest mb-2 text-center block">
+                  <div className="border border-gray-200 rounded-xl p-3 bg-white flex flex-col items-center mb-2">
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest mb-1.5 text-center block">
                       LAMPIRAN FISIK / BUKTI SERAH TERIMA &amp; PENYETORAN FOTO
                     </span>
-                    <div className="w-full max-h-[100mm] flex items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50/50 p-1 shadow-3xs">
+                    <div className="w-full max-h-[60mm] flex items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50/50 p-1 shadow-3xs">
                       <img 
                         src={report.bukti_foto} 
                         alt="Bukti Serah Terima" 
-                        className="max-h-[92mm] object-contain rounded-md"
+                        className="max-h-[52mm] object-contain rounded-md"
                         referrerPolicy="no-referrer"
                       />
                     </div>
-                    <span className="text-[8px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-1.5 text-center">
+                    <span className="text-[8px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-1 text-center">
                       Dokumen Lampiran Sah (Diambil Secara Digital)
                     </span>
                   </div>

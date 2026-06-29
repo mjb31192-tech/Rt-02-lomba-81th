@@ -673,24 +673,24 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-800 pb-20 md:pb-0">
       {/* 1. TOP NAVBAR FRAME (Sleek Interface Style) */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40 h-16 shrink-0 shadow-xs">
-        <div className="h-full px-6 md:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
+        <div className="h-full px-3 sm:px-6 md:px-8 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3.5">
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-1.5 hover:bg-gray-100 rounded-lg md:hidden text-gray-600 transition-all cursor-pointer"
             >
-              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-red-200/80 transition-transform hover:scale-105">
-                <Flag size={20} className="text-white" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-red-200/80 transition-transform hover:scale-105 shrink-0">
+                <Flag size={16} className="text-white sm:block" />
               </div>
-              <div>
-                <h1 className="font-display font-black text-base sm:text-lg text-gray-800 uppercase tracking-tight leading-tight">
+              <div className="min-w-0">
+                <h1 className="font-display font-black text-[11px] min-[360px]:text-xs sm:text-lg text-gray-800 uppercase tracking-tight leading-tight truncate">
                   HUT-RI 81 RT.002/RW.003
                 </h1>
-                <p className="text-[9px] text-red-600 uppercase tracking-widest leading-none font-bold">
+                <p className="text-[7px] sm:text-[9px] text-red-600 uppercase tracking-widest leading-none font-bold truncate">
                   Guyub Rukun Merdeka
                 </p>
               </div>
@@ -698,9 +698,9 @@ export default function App() {
           </div>
 
           {/* Digital Clock & Profile Widget */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Real-time Server Database Sync Badge */}
-            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 shadow-3xs" title="Data disinkronisasikan otomatis dengan server public">
+            <div className="hidden md:flex items-center gap-1.5 bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 shadow-3xs" title="Data disinkronisasikan otomatis dengan server public">
               <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : isDataLoaded ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
               <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
                 {isSyncing ? 'Sinkron...' : isDataLoaded ? 'Server Terhubung' : 'Offline'}
@@ -714,10 +714,10 @@ export default function App() {
             </div>
 
             {/* Authentic & Dynamic Auth Profile Widget */}
-            <div className="flex items-center gap-3 border-l border-gray-200 pl-5">
+            <div className="flex items-center gap-2 sm:gap-3 border-l border-gray-200 pl-2 sm:pl-5 shrink-0">
               {currentUser ? (
-                <div className="flex items-center gap-2.5">
-                  <div className={`w-9 h-9 rounded-full shadow-3xs flex items-center justify-center font-bold text-xs font-display ${isPengurus ? 'bg-emerald-50 border border-emerald-200 text-emerald-600' : 'bg-red-50 border border-red-200 text-red-600'}`}>
+                <div className="flex items-center gap-1.5 sm:gap-2.5">
+                  <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-full shadow-3xs flex items-center justify-center font-bold text-[10px] sm:text-xs font-display shrink-0 ${isPengurus ? 'bg-emerald-50 border border-emerald-200 text-emerald-600' : 'bg-red-50 border border-red-200 text-red-600'}`}>
                     {currentUser.nama.substring(0, 2).toUpperCase()}
                   </div>
                   <div className="text-left hidden md:block">
@@ -731,23 +731,24 @@ export default function App() {
                         setCurrentUser(null);
                       }
                     }}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer active:scale-95"
+                    className="p-1 sm:p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
                     title="Log Out"
                   >
-                    <LogOut size={16} />
+                    <LogOut size={14} />
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <span className="hidden lg:inline-flex items-center gap-1 text-[9px] bg-amber-50 text-amber-600 font-bold border border-amber-200/50 px-2 py-1 rounded-full uppercase tracking-wider">
                     Mode Tamu / Penonton
                   </span>
                   <button
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs"
+                    className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-xs font-bold px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-lg sm:rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs shrink-0"
                   >
-                    <Lock size={12} />
-                    <span>Masuk / Daftar</span>
+                    <Lock size={11} className="shrink-0" />
+                    <span className="hidden sm:inline">Masuk / Daftar</span>
+                    <span className="inline sm:hidden">Masuk</span>
                   </button>
                 </div>
               )}
