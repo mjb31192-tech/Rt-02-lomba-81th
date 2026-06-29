@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Trophy, 
@@ -187,7 +187,9 @@ export default function App() {
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Fetch initial database state from public API on mount
+  const isIncomingUpdate = useRef(false);
+
+  // Fetch initial database state from public API and set up real-time polling
   useEffect(() => {
     async function fetchServerData() {
       try {
@@ -195,31 +197,35 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           if (data) {
-            if (data.lombas && Array.isArray(data.lombas) && data.lombas.length > 0) {
+            isIncomingUpdate.current = true;
+            if (data.lombas && Array.isArray(data.lombas)) {
               setLombas(ensureUniqueIds(data.lombas));
             }
-            if (data.pesertas && Array.isArray(data.pesertas) && data.pesertas.length > 0) {
+            if (data.pesertas && Array.isArray(data.pesertas)) {
               setPesertas(ensureUniqueIds(data.pesertas));
             }
-            if (data.kas && Array.isArray(data.kas) && data.kas.length > 0) {
+            if (data.kas && Array.isArray(data.kas)) {
               const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
               setKas(ensureUniqueIds(cleaned));
             }
-            if (data.aktivitas && Array.isArray(data.aktivitas) && data.aktivitas.length > 0) {
+            if (data.aktivitas && Array.isArray(data.aktivitas)) {
               setAktivitas(ensureUniqueIds(data.aktivitas));
             }
-            if (data.iuranKK && Array.isArray(data.iuranKK) && data.iuranKK.length > 0) {
+            if (data.iuranKK && Array.isArray(data.iuranKK)) {
               setIuranKK(ensureUniqueIds(data.iuranKK));
             }
-            if (data.permintaanLomba && Array.isArray(data.permintaanLomba) && data.permintaanLomba.length > 0) {
+            if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) {
               setPermintaanLomba(ensureUniqueIds(data.permintaanLomba));
             }
             if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) {
               setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
             }
-            if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+            if (data.accounts && Array.isArray(data.accounts)) {
               setAccounts(data.accounts);
             }
+            setTimeout(() => {
+              isIncomingUpdate.current = false;
+            }, 500);
           }
         }
       } catch (err) {
@@ -229,6 +235,10 @@ export default function App() {
       }
     }
     fetchServerData();
+
+    // 5-second polling interval for real-time synchronization
+    const interval = setInterval(fetchServerData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // 2. Persist states in localStorage & Server database
@@ -242,6 +252,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isDataLoaded) return;
+    if (isIncomingUpdate.current) return; // Prevent infinite sync loops when pulling updates
 
     const payload = {
       lombas,
@@ -266,7 +277,6 @@ export default function App() {
 
     // Async write-back sync to Server file database
     const syncWithServer = async () => {
-      if (!isPengurus) return; // Only Pengurus (admins) are allowed to overwrite server state
       setIsSyncing(true);
       try {
         await fetch("/api/data", {
@@ -274,7 +284,7 @@ export default function App() {
           headers: { 
             "Content-Type": "application/json",
             "x-user-role": currentUser?.jabatan || "Warga",
-            "x-username": currentUser?.username || ""
+            "x-username": currentUser?.username || "Guest"
           },
           body: JSON.stringify(payload)
         });
@@ -287,7 +297,7 @@ export default function App() {
 
     const handler = setTimeout(syncWithServer, 500);
     return () => clearTimeout(handler);
-  }, [isDataLoaded, lombas, pesertas, kas, aktivitas, iuranKK, permintaanLomba, laporanIuranMingguan, accounts, isPengurus, currentUser]);
+  }, [isDataLoaded, lombas, pesertas, kas, aktivitas, iuranKK, permintaanLomba, laporanIuranMingguan, accounts, currentUser]);
 
   // 3. Digital Clock Live
   useEffect(() => {
