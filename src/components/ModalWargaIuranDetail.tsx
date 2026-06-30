@@ -1,7 +1,8 @@
-import React from 'react';
-import { X, CheckCircle2, AlertTriangle, HelpCircle, Receipt, Clock, Scale } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, CheckCircle2, AlertTriangle, HelpCircle, Receipt, Clock, Scale, Printer } from 'lucide-react';
 import { IuranKK } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import ModalCetakKwitansiIuran from './ModalCetakKwitansiIuran';
 
 interface ModalWargaIuranDetailProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export default function ModalWargaIuranDetail({
   iuranKKList,
 }: ModalWargaIuranDetailProps) {
   if (!currentUser || currentUser.jabatan !== 'Warga') return null;
+
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   // Find the represented KK details
   const representedKkId = currentUser.kk_id;
@@ -69,7 +72,8 @@ export default function ModalWargaIuranDetail({
   };
 
   return (
-    <AnimatePresence>
+    <>
+      <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           {/* Backdrop */}
@@ -179,6 +183,16 @@ export default function ModalWargaIuranDetail({
                     </div>
                   </div>
 
+                  {/* Cetak Kwitansi Mandiri Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsReceiptOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-3 px-4 rounded-xl transition-all active:scale-[0.98] cursor-pointer shadow-xs border border-emerald-700 hover:shadow-md hover:shadow-emerald-100/50"
+                  >
+                    <Printer size={15} />
+                    <span>Cetak Kwitansi Pembayaran Mandiri</span>
+                  </button>
+
                   {/* Payment History Section */}
                   <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-3xs">
                     <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide border-b border-gray-100 pb-2 mb-2 flex items-center gap-1.5">
@@ -247,5 +261,12 @@ export default function ModalWargaIuranDetail({
         </div>
       )}
     </AnimatePresence>
+
+    <ModalCetakKwitansiIuran
+      isOpen={isReceiptOpen}
+      onClose={() => setIsReceiptOpen(false)}
+      kk={kkData || null}
+    />
+    </>
   );
 }

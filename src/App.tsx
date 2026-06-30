@@ -56,6 +56,7 @@ import ModalPermintaanLomba from './components/ModalPermintaanLomba';
 import ModalAuth from './components/ModalAuth';
 import ModalLaporanIuranMingguan from './components/ModalLaporanIuranMingguan';
 import ModalExportPdfLaporan from './components/ModalExportPdfLaporan';
+import ModalRaffleDoorprize from './components/ModalRaffleDoorprize';
 
 // Helper to generate a truly unique numerical ID to prevent duplicate keys in lists
 function getUniqueId(): number {
@@ -184,6 +185,7 @@ export default function App() {
   // Custom Warga & Lomba edit states
   const [lombaToEdit, setLombaToEdit] = useState<Lomba | null>(null);
   const [isWargaIuranDetailOpen, setIsWargaIuranDetailOpen] = useState(false);
+  const [isRaffleOpen, setIsRaffleOpen] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -991,6 +993,7 @@ export default function App() {
                 lombasList={lombas}
                 onOpenCheckIuran={() => setIsWargaIuranDetailOpen(true)}
                 onOpenUsulkanLomba={() => setIsPermintaanOpen(true)}
+                onOpenRaffle={() => setIsRaffleOpen(true)}
               />
 
               {/* Quick Actions Grid (Pengurus Only) */}
@@ -1297,6 +1300,12 @@ export default function App() {
         isOpen={isWargaIuranDetailOpen}
         onClose={() => setIsWargaIuranDetailOpen(false)}
         currentUser={currentUser}
+        iuranKKList={iuranKK}
+      />
+
+      <ModalRaffleDoorprize
+        isOpen={isRaffleOpen}
+        onClose={() => setIsRaffleOpen(false)}
         iuranKKList={iuranKK}
       />
     </div>

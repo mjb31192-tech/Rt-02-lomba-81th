@@ -1,5 +1,5 @@
 import React from 'react';
-import { Landmark, TrendingUp, Users, Heart, Award, ArrowUpRight, ShieldCheck, Scale } from 'lucide-react';
+import { Landmark, TrendingUp, Users, Heart, Award, ArrowUpRight, ShieldCheck, Scale, Gift } from 'lucide-react';
 import { IuranKK, Lomba } from '../types';
 
 interface WargaGraphicDashboardProps {
@@ -15,6 +15,7 @@ interface WargaGraphicDashboardProps {
   lombasList: Lomba[];
   onOpenCheckIuran: () => void;
   onOpenUsulkanLomba: () => void;
+  onOpenRaffle: () => void;
 }
 
 export default function WargaGraphicDashboard({
@@ -23,6 +24,7 @@ export default function WargaGraphicDashboard({
   lombasList = [],
   onOpenCheckIuran,
   onOpenUsulkanLomba,
+  onOpenRaffle,
 }: WargaGraphicDashboardProps) {
   
   // Calculate stats
@@ -215,18 +217,18 @@ export default function WargaGraphicDashboard({
               </div>
             </div>
 
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between hover:bg-slate-900/80 transition-all">
+            <button
+              onClick={onOpenRaffle}
+              className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between hover:bg-slate-900/80 hover:border-amber-500/40 transition-all cursor-pointer group text-left"
+            >
               <div>
-                <h4 className="text-xs font-bold text-slate-100">Status Panitia</h4>
-                <p className="text-[9px] text-emerald-400 flex items-center gap-1 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Sistem Aktif
-                </p>
+                <h4 className="text-xs font-bold text-slate-100 group-hover:text-amber-400 transition-colors">Undian Doorprize</h4>
+                <p className="text-[9px] text-slate-400 mt-0.5">Kocok kupon undian warga</p>
               </div>
-              <div className="p-1.5 bg-emerald-600/20 text-emerald-500 rounded-lg">
-                <Users size={14} />
+              <div className="p-1.5 bg-amber-650/20 text-amber-500 rounded-lg group-hover:bg-amber-650 group-hover:text-white transition-all">
+                <Gift size={14} />
               </div>
-            </div>
+            </button>
           </div>
 
         </div>

@@ -38,6 +38,14 @@ function formatTerbilang(num: number): string {
   return terbilang(num) + " Rupiah";
 }
 
+// Generate a deterministic and unique doorprize coupon code for each family
+export function getDoorprizeCode(kkId: number, rt: string): string {
+  const hash = (kkId * 31337 + 7919) % 9000 + 1000;
+  // Format RT: remove whitespace, non-alphanumeric, pad to 2 digits if numeric
+  const cleanRt = rt.replace(/\D/g, '').padStart(2, '0');
+  return `DP-${cleanRt}-${hash}`;
+}
+
 export default function ModalCetakKwitansiIuran({
   isOpen,
   onClose,
@@ -60,51 +68,62 @@ export default function ModalCetakKwitansiIuran({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-start overflow-y-auto p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm print:bg-white print:p-0 print:overflow-visible">
+        <div className="fixed inset-0 z-50 flex flex-col justify-start overflow-y-auto p-4 sm:p-6 bg-slate-950/85 backdrop-blur-sm print:bg-white print:p-0 print:overflow-visible">
           {/* Sticky Toolbar for Print Control (Hidden during printing) */}
           <motion.div 
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
-            className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-between px-5 py-4 mb-6 shrink-0 print:hidden z-10"
+            className="w-full max-w-[80mm] mx-auto bg-white rounded-xl shadow-xl border border-gray-100 flex items-center justify-between px-4 py-3 mb-4 shrink-0 print:hidden z-10"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-red-50 text-red-600">
-                <Receipt size={18} />
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-red-50 text-red-600">
+                <Receipt size={16} />
               </div>
               <div>
-                <h3 className="font-display font-black text-gray-800 text-sm uppercase tracking-wider">
-                  Cetak Bukti Iuran KK
+                <h3 className="font-display font-black text-gray-800 text-xs uppercase tracking-wider">
+                  Cetak Thermal
                 </h3>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">
-                  Kwitansi Transaksi Pembayaran Resmi
+                <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-widest">
+                  Bluetooth Portable (58/80mm)
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handlePrint}
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer hover:shadow-md hover:shadow-red-100"
+                className="inline-flex items-center gap-1 bg-gray-900 hover:bg-black text-white text-[10px] font-bold px-3 py-2 rounded-lg transition-all active:scale-95 cursor-pointer shadow-xs"
               >
-                <Printer size={14} />
-                Cetak Bukti (A4)
+                <Printer size={12} />
+                Cetak
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2.5 bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                className="p-2 bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all cursor-pointer"
                 title="Tutup Pratinjau"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
           </motion.div>
 
-          {/* Dynamic scoped print style specifically for this invoice receipt */}
+          {/* Dynamic scoped print style specifically for 58/80mm thermal receipt printer rolls */}
           <style dangerouslySetInnerHTML={{ __html: `
             @media print {
+              @page {
+                size: 80mm auto;
+                margin: 0 !important;
+              }
+              html, body {
+                width: 80mm !important;
+                background-color: #fff !important;
+                color: #000 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
               body * {
                 visibility: hidden !important;
               }
@@ -115,183 +134,165 @@ export default function ModalCetakKwitansiIuran({
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
-                width: 100% !important;
+                width: 80mm !important;
+                max-width: 80mm !important;
                 margin: 0 !important;
-                padding: 1.5cm !important;
+                padding: 4mm !important;
                 background: white !important;
                 color: black !important;
                 box-shadow: none !important;
                 border: none !important;
                 overflow: visible !important;
+                font-family: 'Courier New', Courier, monospace !important;
               }
             }
           `}} />
 
-          {/* Kwitansi A4 Container */}
+          {/* Thermal Receipt Container */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="w-full max-w-[210mm] mx-auto bg-transparent p-0 sm:p-4 mb-12 flex justify-center print:p-0 print:mb-0 z-10"
+            className="w-full max-w-[80mm] mx-auto bg-transparent p-0 mb-12 flex justify-center print:p-0 print:mb-0 z-10"
           >
-            {/* Printable Kwitansi Card */}
+            {/* Printable Thermal Receipt Card */}
             <div 
               id="printable-kwitansi-area" 
-              className="w-full sm:w-[210mm] sm:h-[155mm] bg-white p-8 sm:p-10 text-black shadow-2xl relative flex flex-col justify-between sm:overflow-hidden print:overflow-visible border border-gray-150 print:border-none print:shadow-none print:w-[210mm]"
+              className="w-[80mm] bg-white p-5 text-black shadow-2xl relative flex flex-col font-mono text-[10px] leading-tight border border-gray-300 print:border-none print:shadow-none print:w-[80mm]"
               style={{ boxSizing: 'border-box' }}
             >
-              {/* WATERMARK STAMP */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
-                <span className="text-[70px] font-black uppercase text-red-600 rotate-12 tracking-widest">
-                  BUKTI IURAN RESMI
-                </span>
+              
+              {/* HEADER */}
+              <div className="text-center font-bold">
+                <p className="text-xs tracking-wider">PANITIA PHBN RT.002/003</p>
+                <p className="text-[11px] font-black tracking-widest mt-0.5">HUT RI KE-81</p>
+                <p className="text-[9px] font-normal leading-none text-gray-700 mt-1">KEL. KEDAUNG BARU</p>
+                <p className="text-[8px] font-normal text-gray-500 mt-0.5">TANGERANG, BANTEN</p>
               </div>
 
-              <div>
-                {/* 1. KOP SURAT (LETTERHEAD) */}
-                <div className="flex items-center gap-5 pb-3 border-b-4 border-double border-black relative">
-                  <div className="w-11 h-11 bg-red-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs border border-red-700">
-                    <Landmark size={20} className="stroke-[2.5]" />
-                  </div>
-                  <div className="flex-1 text-center pr-10">
-                    <h2 className="font-display font-black text-xs text-gray-950 uppercase tracking-wider leading-none">
-                      PANITIA HARI BESAR NASIONAL (PHBN)
-                    </h2>
-                    <h1 className="font-display font-black text-sm sm:text-base text-red-600 uppercase tracking-widest mt-0.5 leading-none">
-                      HUT REPUBLIK INDONESIA KE-81
-                    </h1>
-                    <p className="text-[8px] text-gray-600 font-semibold tracking-wider uppercase mt-1 leading-none">
-                      RUKUN TETANGGA 002/003 - KELURAHAN KEDAUNG BARU
-                    </p>
-                  </div>
+              {/* DIVIDER */}
+              <div className="text-center my-2 text-gray-400 select-none tracking-tighter">
+                ================================
+              </div>
+
+              {/* TRANSACTION INFO */}
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>No. Resi:</span>
+                  <span className="font-bold">KW-{kk.rt}-{kk.id.toString().slice(-4)}</span>
                 </div>
-
-                {/* 2. JUDUL KWITANSI */}
-                <div className="text-center my-4">
-                  <h3 className="font-display font-black text-[11px] uppercase tracking-widest text-gray-900 border-b border-gray-300 pb-0.5 inline-block px-4">
-                    KWITANSI RESMI BUKTI PEMBAYARAN IURAN WARGA
-                  </h3>
-                  <p className="text-[8px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-0.5">
-                    NOMOR TRANSKASI: KW-{kk.rt}-{kk.id.toString().slice(-4)}
-                  </p>
-                </div>
-
-                {/* 3. INFORMASI TRANSKASI / DETAIL KK */}
-                <div className="grid grid-cols-12 gap-4 mt-2">
-                  <div className="col-span-8 space-y-2 border-r border-gray-150 pr-4">
-                    <div className="grid grid-cols-3 text-xs leading-relaxed">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Telah Diterima Dari</span>
-                      <span className="col-span-2 font-black text-gray-950 font-display">: {kk.nama_kk}</span>
-                    </div>
-                    <div className="grid grid-cols-3 text-xs leading-relaxed">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Rukun Tetangga (RT)</span>
-                      <span className="col-span-2 font-bold text-gray-800">: RT {kk.rt}</span>
-                    </div>
-                    <div className="grid grid-cols-3 text-xs leading-relaxed">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Target Wajib Iuran</span>
-                      <span className="col-span-2 font-bold text-gray-800 font-mono">: Rp {formattedTarget}</span>
-                    </div>
-                    <div className="grid grid-cols-3 text-xs leading-relaxed">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Total Terbayar</span>
-                      <span className="col-span-2 font-black text-emerald-600 font-mono text-[13px]">: Rp {formattedTerbayar}</span>
-                    </div>
-                    <div className="grid grid-cols-3 text-xs leading-relaxed">
-                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[9px]">Terbilang Pembayaran</span>
-                      <span className="col-span-2 font-bold text-gray-700 italic">: "{formatTerbilang(kk.terbayar)}"</span>
-                    </div>
-                  </div>
-
-                  {/* Stamp status area */}
-                  <div className="col-span-4 flex flex-col items-center justify-center bg-gray-50/50 border border-gray-150 rounded-xl p-3 relative overflow-hidden">
-                    {isLunas ? (
-                      <div className="flex flex-col items-center justify-center text-emerald-600 text-center select-none rotate-6">
-                        <CheckCircle size={32} className="stroke-[2.5] text-emerald-500 mb-1" />
-                        <span className="text-lg font-black tracking-widest border-4 border-emerald-500/80 rounded-lg px-2 py-0.5 leading-none uppercase select-none">
-                          LUNAS
-                        </span>
-                        <span className="text-[7px] text-gray-400 font-semibold font-mono mt-1 uppercase">TERBAYAR PENUH</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-amber-600 text-center select-none -rotate-3">
-                        <AlertTriangle size={32} className="stroke-[2.5] text-amber-500 mb-1" />
-                        <span className="text-xs font-black tracking-wider border-4 border-amber-500/80 rounded-lg px-1.5 py-0.5 leading-none uppercase select-none">
-                          BELUM LUNAS
-                        </span>
-                        <span className="text-[7px] text-red-500 font-bold font-mono mt-1 uppercase">SISA: Rp {formattedDeficit}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. DETAIL RIWAYAT SETORAN */}
-                <div className="mt-4">
-                  <h4 className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest mb-1.5">
-                    Riwayat Angsuran / Rincian Setoran:
-                  </h4>
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-[10px] text-left border-collapse">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-150 text-gray-500 font-bold text-[8px] uppercase tracking-wider">
-                          <th className="px-3 py-1.5 w-16 text-center">No Setoran</th>
-                          <th className="px-3 py-1.5">Tanggal Transaksi</th>
-                          <th className="px-3 py-1.5 text-right">Jumlah Setoran (IDR)</th>
-                          <th className="px-3 py-1.5 text-center">Status Transaksi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {kk.riwayat.map((item, idx) => (
-                          <tr key={item.id || idx} className="border-b border-gray-100 last:border-b-0 font-medium text-gray-800">
-                            <td className="px-3 py-1.5 text-center font-mono font-bold text-gray-500">{idx + 1}</td>
-                            <td className="px-3 py-1.5 font-mono">{item.tanggal}</td>
-                            <td className="px-3 py-1.5 text-right font-mono font-bold text-emerald-600">Rp {item.jumlah.toLocaleString('id-ID')}</td>
-                            <td className="px-3 py-1.5 text-center">
-                              <span className="inline-block px-2 py-0.5 text-[8px] font-bold uppercase rounded-sm bg-emerald-50 text-emerald-600 border border-emerald-100">
-                                Berhasil
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                        {kk.riwayat.length === 0 && (
-                          <tr>
-                            <td colSpan={4} className="px-3 py-3 text-center text-gray-400 italic">
-                              Belum ada transaksi setoran pembayaran iuran yang terekam.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="flex justify-between">
+                  <span>Tanggal :</span>
+                  <span>{new Date().toLocaleDateString('id-ID', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
 
-              {/* 5. BLOK TANDA TANGAN SERAH TERIMA */}
-              <div className="mt-6 pt-4 border-t border-dashed border-gray-200 grid grid-cols-3 gap-4 text-center text-[10px] shrink-0">
-                <div>
-                  <p className="text-gray-500 font-semibold mb-10">Dilaporkan Oleh /<br/>Yang Menyerahkan,</p>
-                  <div className="w-24 border-b border-gray-900 mx-auto"></div>
-                  <p className="font-bold text-gray-800 mt-1">Ahmad Mujibur Rahman</p>
-                  <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-wider">Utusan RT / Bendahara Iuran</p>
+              {/* DIVIDER */}
+              <div className="text-center my-2 text-gray-400 select-none tracking-tighter">
+                --------------------------------
+              </div>
+
+              {/* WARGA DETAILS */}
+              <div className="space-y-1">
+                <div className="flex flex-col mb-1">
+                  <span className="text-[9px] uppercase text-gray-500">Nama Kepala Keluarga:</span>
+                  <span className="font-bold text-xs uppercase">{kk.nama_kk}</span>
                 </div>
-                <div>
-                  <p className="text-gray-500 font-semibold mb-10">Diterima Oleh<br/>(Bendahara),</p>
-                  <div className="w-24 border-b border-gray-900 mx-auto"></div>
-                  <p className="font-bold text-gray-800 mt-1">Ayeh Patoni</p>
-                  <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-wider">Bendahara Panitia</p>
+                <div className="flex justify-between">
+                  <span>Rukun Tetangga:</span>
+                  <span className="font-bold">RT {kk.rt}</span>
                 </div>
-                <div>
-                  <p className="text-gray-500 font-semibold mb-10">Mengetahui &amp;<br/>Menyetujui,</p>
-                  <div className="w-24 border-b border-gray-900 mx-auto"></div>
-                  <p className="font-bold text-gray-800 mt-1">Anto (Zhipo)</p>
-                  <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-wider">Ketua Panitia HUT RI-81</p>
+                <div className="flex justify-between">
+                  <span>Wajib Iuran :</span>
+                  <span>Rp {formattedTarget}</span>
+                </div>
+                <div className="flex justify-between text-base font-black border-t border-dashed border-gray-300 pt-1 mt-1">
+                  <span>TOTAL SETOR :</span>
+                  <span>Rp {formattedTerbayar}</span>
                 </div>
               </div>
 
-              {/* Legal Footnote UU ITE */}
-              <div className="mt-4 pt-3 border-t border-gray-150 text-justify text-[8px] text-gray-400 leading-relaxed shrink-0 flex items-center gap-1.5 font-sans">
-                <Scale size={10} className="text-gray-300 shrink-0" />
-                <span>
-                  <strong>Legal Notice UU ITE:</strong> Kwitansi digital ini diakui secara hukum sah berdasarkan UU No. 11 Th. 2008 tentang Informasi &amp; Transaksi Elektronik sebagai alat bukti pembayaran yang dapat dipertanggungjawabkan.
-                </span>
+              {/* DIVIDER */}
+              <div className="text-center my-2 text-gray-400 select-none tracking-tighter">
+                --------------------------------
+              </div>
+
+              {/* RIWAYAT SETORAN */}
+              <div className="space-y-1 text-[9px]">
+                <p className="font-bold uppercase text-[8px] tracking-wider text-gray-500">Rincian Angsuran Setoran:</p>
+                {kk.riwayat.map((item, idx) => (
+                  <div key={item.id || idx} className="flex justify-between pl-1">
+                    <span>{idx + 1}. {item.tanggal}</span>
+                    <span className="font-bold">Rp {item.jumlah.toLocaleString('id-ID')}</span>
+                  </div>
+                ))}
+                {kk.riwayat.length === 0 && (
+                  <p className="text-center italic text-gray-400">Belum ada transaksi</p>
+                )}
+              </div>
+
+              {/* DIVIDER */}
+              <div className="text-center my-2 text-gray-400 select-none tracking-tighter">
+                ================================
+              </div>
+
+              {/* STATUS BOX */}
+              <div className="my-2 p-1.5 border border-black rounded text-center text-[11px] font-black uppercase tracking-wider">
+                {isLunas ? (
+                  <div className="text-black">
+                    *** STATUS: LUNAS ***
+                  </div>
+                ) : (
+                  <div className="text-black">
+                    * BELUM LUNAS (SISA: Rp {formattedDeficit}) *
+                  </div>
+                )}
+              </div>
+
+              {/* KUPON DOORPRIZE */}
+              <div className="my-2.5 p-2 border-2 border-dashed border-black rounded text-center bg-gray-50/50 relative">
+                <p className="text-[8px] font-extrabold uppercase tracking-widest text-gray-500 leading-none">
+                  KUPON UNDIAN DOORPRIZE PHBN
+                </p>
+                <p className="text-[14px] font-black tracking-widest text-black mt-1 leading-none">
+                  {getDoorprizeCode(kk.id, kk.rt)}
+                </p>
+                <p className="text-[7px] text-gray-400 uppercase tracking-wider mt-1 leading-none font-sans font-bold">
+                  * Simpan struk ini untuk diundi pada puncak acara *
+                </p>
+              </div>
+
+              {/* TERBILANG */}
+              <p className="text-[8px] text-gray-600 italic text-center mb-4 px-1">
+                "{formatTerbilang(kk.terbayar)}"
+              </p>
+
+              {/* VERTICAL STACKED SIGNATURES (PERFECT FOR THERMAL) */}
+              <div className="space-y-4 text-[9px] text-center border-t border-dashed border-gray-300 pt-3">
+                <div>
+                  <p className="text-gray-500 font-bold uppercase text-[8px]">Yang Menyerahkan,</p>
+                  <p className="font-bold text-black mt-4 border-b border-black w-2/3 mx-auto pb-0.5">Ahmad Mujibur Rahman</p>
+                  <p className="text-[7px] text-gray-400 leading-none mt-0.5">UTUSAN RT / BENDAHARA IURAN</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-bold uppercase text-[8px]">Diterima Oleh (Bendahara),</p>
+                  <p className="font-bold text-black mt-4 border-b border-black w-2/3 mx-auto pb-0.5">Ayeh Patoni</p>
+                  <p className="text-[7px] text-gray-400 leading-none mt-0.5">BENDAHARA PANITIA PHBN</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-bold uppercase text-[8px]">Mengetahui &amp; Menyetujui,</p>
+                  <p className="font-bold text-black mt-4 border-b border-black w-2/3 mx-auto pb-0.5">Anto (Zhipo)</p>
+                  <p className="text-[7px] text-gray-400 leading-none mt-0.5">KETUA PANITIA HUT RI-81</p>
+                </div>
+              </div>
+
+              {/* FOOTER */}
+              <div className="text-center mt-6 pt-3 border-t border-dashed border-gray-300 text-[8px] text-gray-500 leading-tight space-y-1">
+                <p className="font-bold">TERIMA KASIH ATAS PARTISIPASI ANDA</p>
+                <p>Merdeka! HUT RI Ke-81</p>
+                <p className="text-[6px] text-gray-400 font-sans leading-none pt-2">
+                  Kwitansi ini sah menurut hukum &amp; diakui secara digital berdasarkan UU ITE No. 11/2008.
+                </p>
               </div>
 
             </div>
