@@ -371,7 +371,7 @@ export default function ModalAuth({
                           type="password"
                           value={secretPasscode}
                           onChange={(e) => setSecretPasscode(e.target.value)}
-                          placeholder="Masukkan Kode Keamanan (SuperPanitia)"
+                          placeholder="Masukkan Kode Keamanan Pengurus"
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 font-medium"
                         />
                       </div>
@@ -679,11 +679,6 @@ export default function ModalAuth({
 
                   {wargaTab === 'login' ? (
                     <form onSubmit={handleLoginSubmit} className="space-y-4">
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800 font-medium flex items-start gap-2">
-                        <span className="shrink-0">ℹ️</span>
-                        <span>Gunakan password default <strong>SuperPanitia</strong> untuk masuk sebagai panitia.</span>
-                      </div>
-
                       {loginError && (
                         <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-xs font-medium">
                           <ShieldAlert size={15} className="shrink-0 mt-0.5" />
@@ -729,30 +724,6 @@ export default function ModalAuth({
                       >
                         Masuk Sistem Pengurus
                       </button>
-
-                      {/* SENSITIVE CHIP CARDS (Quick Access) */}
-                      <div className="border-t border-gray-100 pt-4 mt-2">
-                        <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">
-                          🔒 Akses Cepat Pengurus Terenkripsi:
-                        </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {accounts.map((acc) => (
-                            <button
-                              key={acc.username}
-                              type="button"
-                              onClick={() => handleQuickLogin(acc)}
-                              className="text-left bg-gray-50 hover:bg-indigo-50/50 border border-gray-100 hover:border-indigo-200 p-2.5 rounded-xl transition-all group cursor-pointer"
-                            >
-                              <p className="text-[10px] font-bold text-gray-700 group-hover:text-indigo-800 leading-none truncate">
-                                {acc.nama}
-                              </p>
-                              <p className="text-[8px] text-gray-400 group-hover:text-indigo-500/80 font-semibold mt-1 uppercase tracking-wide">
-                                {acc.jabatan}
-                              </p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
                     </form>
                   ) : (
                     <form onSubmit={handleSignUpSubmit} className="space-y-4">
