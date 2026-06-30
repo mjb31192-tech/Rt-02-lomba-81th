@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba, LaporanIuranMingguan } from '../types';
+import ModalCetakKwitansiIuran from './ModalCetakKwitansiIuran';
 import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale } from 'lucide-react';
 
 interface KeuanganDetailProps {
@@ -42,6 +43,8 @@ export default function KeuanganDetail({
   const [subTab, setSubTab] = useState<'jurnal' | 'iuran' | 'laporan'>('jurnal');
   const [rtFilter, setRtFilter] = useState('all');
   const [selectedProofPhoto, setSelectedProofPhoto] = useState<string | null>(null);
+  const [selectedReceiptKK, setSelectedReceiptKK] = useState<IuranKK | null>(null);
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   // Calculate KK contribution summary
   const totalKK = iuranKKList.length;
@@ -493,6 +496,19 @@ export default function KeuanganDetail({
                       </span>
 
                       <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedReceiptKK(kk);
+                            setIsReceiptOpen(true);
+                          }}
+                          className="p-1 text-emerald-600 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-100 rounded-md transition-all cursor-pointer flex items-center gap-0.5 text-[9px] font-bold shadow-3xs"
+                          title="Cetak Bukti Transaksi Iuran"
+                        >
+                          <Printer size={10} />
+                          <span>Cetak</span>
+                        </button>
+
                         {isPengurus && (
                           <button
                             onClick={() => onSelectKKAndPay(kk.id)}
@@ -951,6 +967,15 @@ export default function KeuanganDetail({
             </div>
           </div>
         )}
+
+        <ModalCetakKwitansiIuran
+          isOpen={isReceiptOpen}
+          onClose={() => {
+            setIsReceiptOpen(false);
+            setSelectedReceiptKK(null);
+          }}
+          kk={selectedReceiptKK}
+        />
 
       </div>
     </div>

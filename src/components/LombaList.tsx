@@ -87,11 +87,22 @@ export default function LombaList({
       
       clearInterval(interval);
       
+      const contentType = response.headers.get("content-type") || "";
+      const isJson = contentType.includes("application/json");
+
       if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Gagal memproses rekomendasi AI.");
+        if (isJson) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Gagal memproses rekomendasi AI.");
+        } else {
+          throw new Error(`Error HTTP ${response.status}: Gagal memproses rekomendasi AI. Sesi mungkin kedaluwarsa.`);
+        }
       }
       
+      if (!isJson) {
+        throw new Error("Format respons server tidak valid (bukan JSON).");
+      }
+
       const data = await response.json();
       if (data && data.rekomendasi) {
         setAiResult(data.rekomendasi);

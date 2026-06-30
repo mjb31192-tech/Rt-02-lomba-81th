@@ -7,7 +7,7 @@ interface ModalBayarIuranProps {
   isOpen: boolean;
   onClose: () => void;
   iuranKKList: IuranKK[];
-  onPayIuran: (kkId: number, amount: number) => void;
+  onPayIuran: (kkId: number, amount: number, tanggal?: string) => void;
   onAddNewKK: (namaKK: string, rt: string) => void;
   initialKkId?: number | '';
 }
@@ -24,10 +24,12 @@ export default function ModalBayarIuran({
   const [amount, setAmount] = useState('');
   const [rtFilter, setRtFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     if (isOpen) {
       setSelectedKkId(initialKkId);
+      setTanggal(new Date().toISOString().split('T')[0]);
     }
   }, [isOpen, initialKkId]);
   
@@ -62,7 +64,7 @@ export default function ModalBayarIuran({
       }
     }
 
-    onPayIuran(Number(selectedKkId), payVal);
+    onPayIuran(Number(selectedKkId), payVal, tanggal);
     // Reset
     setAmount('');
     setSelectedKkId('');
@@ -104,10 +106,10 @@ export default function ModalBayarIuran({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="relative bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 z-10 flex flex-col md:flex-row h-[90vh] md:h-auto max-h-[640px]"
+            className="relative bg-white rounded-2xl w-full max-w-2xl overflow-y-auto md:overflow-hidden shadow-2xl border border-gray-100 z-10 flex flex-col md:flex-row h-auto max-h-[90vh] md:h-[620px]"
           >
             {/* LEFT COLUMN: KK SEARCH & SELECT */}
-            <div className="flex-1 p-5 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col min-h-0 bg-gray-50/50">
+            <div className="w-full md:w-1/2 p-5 border-b md:border-b-0 md:border-r border-gray-100 flex flex-col md:h-full min-h-0 bg-gray-50/50">
               <div className="flex items-center justify-between mb-3.5 shrink-0">
                 <h3 className="font-display font-black text-gray-800 text-xs uppercase tracking-wider">Cari &amp; Pilih KK</h3>
                 <button 
@@ -215,7 +217,7 @@ export default function ModalBayarIuran({
             </div>
 
             {/* RIGHT COLUMN: ACTION & HISTORY */}
-            <div className="flex-1 p-5 flex flex-col justify-between min-h-0 bg-white">
+            <div className="w-full md:w-1/2 p-5 flex flex-col justify-between md:h-full min-h-0 bg-white">
               <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-3.5 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="p-1 bg-red-50 text-red-600 rounded-lg">
@@ -285,6 +287,16 @@ export default function ModalBayarIuran({
                   <form onSubmit={handleSubmit} className="space-y-3 shrink-0">
                     {remaining > 0 ? (
                       <>
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Tanggal Transaksi Angsuran</label>
+                          <input
+                            type="date"
+                            required
+                            value={tanggal}
+                            onChange={e => setTanggal(e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-red-500 font-mono text-gray-800"
+                          />
+                        </div>
                         <div>
                           <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Jumlah Bayar Angsuran (Rupiah)</label>
                           <input

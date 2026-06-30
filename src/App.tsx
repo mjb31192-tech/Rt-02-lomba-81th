@@ -195,6 +195,10 @@ export default function App() {
       try {
         const response = await fetch("/api/data");
         if (response.ok) {
+          const contentType = response.headers.get("content-type") || "";
+          if (!contentType.includes("application/json")) {
+            throw new Error(`Respons server bukan JSON (Content-Type: ${contentType}). Sesi Anda mungkin kedaluwarsa atau server sedang mulai ulang. Silakan refresh halaman.`);
+          }
           const data = await response.json();
           if (data) {
             isIncomingUpdate.current = true;
@@ -229,7 +233,7 @@ export default function App() {
           }
         }
       } catch (err) {
-        console.error("Gagal melakukan sinkronisasi data dari server public:", err);
+        console.warn("Sinkronisasi data dari server tertunda (sedang memuat ulang):", err);
       } finally {
         setIsDataLoaded(true);
       }
@@ -552,28 +556,35 @@ export default function App() {
     logAktivitas('sistem', `Edit Lomba: Detail Lomba "${nama}" telah disesuaikan oleh Panitia (PJ: ${pj}, Anggaran: Rp ${anggaran.toLocaleString('id-ID')}, Status: ${status}).`);
   };
 
-  const handlePayIuran = (kkId: number, amount: number) => {
+  const handlePayIuran = (kkId: number, amount: number, tanggal?: string) => {
     if (!checkAuth()) return;
     setIuranKK(prev =>
       prev.map(item => {
         if (item.id === kkId) {
           const newTerbayar = item.terbayar + amount;
           const newStatus = newTerbayar >= item.target ? 'Lunas' : 'Mencicil';
+          
+          const formattedTanggal = tanggal 
+            ? new Date(tanggal + 'T00:00:00').toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })
+            : new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+
           const newHistoryItem = {
             id: getUniqueId(),
-            tanggal: new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }),
+            tanggal: formattedTanggal,
             jumlah: amount
           };
           
-          // Log a financial transaction in state (pemasukan, category "Iuran Warga")
+          // Log a financial transaction in state (pemasukan, category "Iuran Warga") with custom date
           handleAddKas(
             'pemasukan',
             'Iuran Warga',
             amount,
-            `Iuran KK: ${item.nama_kk} (${item.rt}) [Angsuran]`
+            `Iuran KK: ${item.nama_kk} (${item.rt}) [Angsuran]`,
+            undefined,
+            tanggal
           );
 
-          logAktivitas('iuran', `Iuran Warga: ${item.nama_kk} (${item.rt}) mencicil Rp ${amount.toLocaleString('id-ID')}. Status: ${newStatus}.`);
+          logAktivitas('iuran', `Iuran Warga: ${item.nama_kk} (${item.rt}) mencicil Rp ${amount.toLocaleString('id-ID')} pada tanggal ${formattedTanggal}. Status: ${newStatus}.`);
 
           return {
             ...item,
@@ -983,7 +994,7 @@ export default function App() {
               />
 
               {/* Quick Actions Grid (Pengurus Only) */}
-              {!!currentUser && (
+              {isPengurus && (
                 <QuickActions
                   onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
                   onOpenInputSkor={() => setIsInputSkorOpen(true)}
@@ -1007,7 +1018,7 @@ export default function App() {
                     onOpenAddPermintaan={() => setIsPermintaanOpen(true)}
                     onDeleteLomba={handleDeleteLomba}
                     onDeleteUsulan={handleDeletePermintaan}
-                    isPengurus={!!currentUser}
+                    isPengurus={isPengurus}
                     onEditLombaClick={(lomba) => {
                       setLombaToEdit(lomba);
                       setIsAddLombaOpen(true);
@@ -1088,7 +1099,7 @@ export default function App() {
                 onOpenAddPermintaan={() => setIsPermintaanOpen(true)}
                 onDeleteLomba={handleDeleteLomba}
                 onDeleteUsulan={handleDeletePermintaan}
-                isPengurus={!!currentUser}
+                isPengurus={isPengurus}
                 onEditLombaClick={(lomba) => {
                   setLombaToEdit(lomba);
                   setIsAddLombaOpen(true);
@@ -1121,7 +1132,7 @@ export default function App() {
                   setIsCatatKasOpen(true);
                 }}
                 onDeleteKK={handleDeleteKK}
-                isPengurus={!!currentUser}
+                isPengurus={isPengurus}
                 laporanMingguanList={laporanIuranMingguan}
                 onOpenLaporanMingguan={() => {
                   setLaporanToEdit(null);
@@ -1148,7 +1159,7 @@ export default function App() {
                 onToggleAbsensi={handleToggleAbsensi}
                 onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
                 onDeletePeserta={handleDeletePeserta}
-                isPengurus={!!currentUser}
+                isPengurus={isPengurus}
               />
             </div>
           )}

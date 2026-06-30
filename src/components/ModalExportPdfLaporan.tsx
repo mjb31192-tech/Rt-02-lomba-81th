@@ -253,16 +253,22 @@ export default function ModalExportPdfLaporan({
               </div>
 
               {/* 6. SIGNATURE BLOCK (TANDA TANGAN) */}
-              <div className="mt-8 pt-6 border-t border-dashed border-gray-200 grid grid-cols-2 gap-4 text-center text-xs shrink-0">
+              <div className="mt-8 pt-6 border-t border-dashed border-gray-200 grid grid-cols-3 gap-4 text-center text-xs shrink-0">
                 <div>
-                  <p className="text-gray-500 font-semibold mb-12">Dilaporkan Oleh,</p>
-                  <div className="w-32 border-b border-gray-950 mx-auto"></div>
+                  <p className="text-gray-500 font-semibold mb-12">Dilaporkan Oleh /<br/>Yang Menyerahkan,</p>
+                  <div className="w-24 border-b border-gray-950 mx-auto"></div>
                   <p className="font-bold text-gray-800 mt-1.5">{report.dilaporkan_oleh.split('(')[0].trim()}</p>
                   <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Utusan RT / Bendahara Iuran</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 font-semibold mb-12">Mengetahui &amp; Menyetujui,</p>
-                  <div className="w-32 border-b border-gray-950 mx-auto"></div>
+                  <p className="text-gray-500 font-semibold mb-12">Diterima Oleh<br/>(Bendahara),</p>
+                  <div className="w-24 border-b border-gray-950 mx-auto"></div>
+                  <p className="font-bold text-gray-800 mt-1.5">Ayeh Patoni</p>
+                  <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Bendahara Panitia</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 font-semibold mb-12">Mengetahui &amp;<br/>Menyetujui,</p>
+                  <div className="w-24 border-b border-gray-950 mx-auto"></div>
                   <p className="font-bold text-gray-800 mt-1.5">Anto (Zhipo)</p>
                   <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Ketua Panitia HUT RI-81</p>
                 </div>
