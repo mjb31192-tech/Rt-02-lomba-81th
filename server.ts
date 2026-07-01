@@ -4,6 +4,8 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
 dotenv.config();
 
@@ -69,31 +71,119 @@ const INITIAL_DB = {
   laporanIuranMingguan: []
 };
 
-// Helper function to read from the JSON database file
-function readDB(): typeof INITIAL_DB {
+// --- FIREBASE ADMIN SETUP ---
+let firestoreDb: any = null;
+
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    if (config.projectId) {
+      initializeApp({
+        projectId: config.projectId,
+      });
+      const dbId = config.firestoreDatabaseId;
+      if (dbId && dbId !== "(default)") {
+        firestoreDb = getFirestore(dbId);
+      } else {
+        firestoreDb = getFirestore();
+      }
+      console.log(`Firebase Admin initialized successfully. Project ID: ${config.projectId}, Database ID: ${dbId || "(default)"}`);
+    }
+  }
+} catch (error) {
+  console.error("Gagal menginisialisasi Firebase Admin:", error);
+}
+
+let memoryDB: typeof INITIAL_DB = INITIAL_DB;
+
+// Load database state from Firestore or JSON fallback on startup
+async function initializeDatabase() {
+  if (firestoreDb) {
+    try {
+      console.log("Mencoba memuat data dari Firestore...");
+      const docRef = firestoreDb.collection("global_state").doc("current_db");
+      const docSnap = await docRef.get();
+      if (docSnap.exists) {
+        memoryDB = docSnap.data() as typeof INITIAL_DB;
+        console.log("Data berhasil dimuat dari Firestore.");
+        // Sync to local json file as local backup
+        fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
+        return;
+      } else {
+        console.log("Dokumen Firestore belum ada. Melakukan inisialisasi awal...");
+        if (fs.existsSync(DB_PATH)) {
+          try {
+            memoryDB = JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
+          } catch (e) {
+            memoryDB = INITIAL_DB;
+          }
+        } else {
+          memoryDB = INITIAL_DB;
+        }
+        await docRef.set(memoryDB);
+        console.log("Inisialisasi awal Firestore berhasil.");
+        return;
+      }
+    } catch (error) {
+      console.error("Gagal sinkronisasi dengan Firestore, menggunakan database lokal JSON:", error);
+    }
+  }
+
+  // Fallback to reading standard JSON database file
   try {
     if (fs.existsSync(DB_PATH)) {
       const data = fs.readFileSync(DB_PATH, "utf8");
-      return JSON.parse(data);
+      memoryDB = JSON.parse(data);
+    } else {
+      memoryDB = INITIAL_DB;
+      fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
     }
   } catch (error) {
     console.error("Gagal membaca database JSON, menggunakan nilai default:", error);
+    memoryDB = INITIAL_DB;
   }
-  // Initialize file with default values if empty or corrupt
-  writeDB(INITIAL_DB);
-  return INITIAL_DB;
 }
 
-// Helper function to write to the JSON database file
-function writeDB(data: typeof INITIAL_DB) {
+// Save database changes
+async function saveDatabase(data: typeof INITIAL_DB) {
+  memoryDB = data;
+
+  // Save to local JSON as fallback/backup
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf8");
   } catch (error) {
-    console.error("Gagal menulis ke database JSON:", error);
+    console.error("Gagal menulis cadangan lokal database JSON:", error);
+  }
+
+  // Save to Firestore for durable persistence
+  if (firestoreDb) {
+    try {
+      const docRef = firestoreDb.collection("global_state").doc("current_db");
+      await docRef.set(data);
+      console.log("Data berhasil disimpan secara permanen ke Firestore!");
+    } catch (error) {
+      console.error("Gagal menyimpan ke Firestore:", error);
+    }
   }
 }
 
+// Synchronous helper for instant reads from memory
+function readDB(): typeof INITIAL_DB {
+  return memoryDB;
+}
+
+// Async-safe writer wrapper
+function writeDB(data: typeof INITIAL_DB) {
+  saveDatabase(data).catch((err) => {
+    console.error("Async writeDB error:", err);
+  });
+}
+
 async function startServer() {
+  // Load database state from Firestore or JSON backup before server starts handling requests
+  await initializeDatabase();
+
   const app = express();
   const PORT = 3000;
 
