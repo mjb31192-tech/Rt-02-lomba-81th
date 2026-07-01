@@ -158,17 +158,37 @@ export default function ModalAuth({
             setIsLoginScanning(false);
             
             // Log in using the registered fingerprint accounts
-            const fingerprintAccs = accounts.filter(acc => acc.hasFingerprint);
-            if (fingerprintAccs.length > 0) {
-              const matchedAcc = fingerprintAccs[0];
+            let matchedAcc = null;
+            if (loginUser.trim()) {
+              matchedAcc = accounts.find(
+                (acc) => acc.username.toLowerCase() === loginUser.trim().toLowerCase() && acc.hasFingerprint
+              );
+              if (!matchedAcc) {
+                const userExists = accounts.some(acc => acc.username.toLowerCase() === loginUser.trim().toLowerCase());
+                if (userExists) {
+                  setLoginError(`Akun @${loginUser} belum mengaktifkan autentikasi sidik jari. Silakan masuk dengan password lalu aktifkan di Pengaturan Akun.`);
+                } else {
+                  setLoginError(`Username @${loginUser} tidak ditemukan.`);
+                }
+                return 100;
+              }
+            } else {
+              const fingerprintAccs = accounts.filter(acc => acc.hasFingerprint);
+              if (fingerprintAccs.length > 0) {
+                matchedAcc = fingerprintAccs[0];
+              } else {
+                setLoginError('Tidak ada akun pengurus dengan sidik jari terdaftar. Silakan masuk menggunakan username & password terlebih dahulu.');
+                return 100;
+              }
+            }
+
+            if (matchedAcc) {
               onLoginSuccess({
                 username: matchedAcc.username,
                 nama: matchedAcc.nama,
                 jabatan: matchedAcc.jabatan
               });
               onClose();
-            } else {
-              setLoginError('Tidak ada akun pengurus dengan sidik jari terdaftar. Silakan daftar pengurus baru dan aktifkan sidik jari.');
             }
             return 100;
           }
@@ -179,7 +199,7 @@ export default function ModalAuth({
       setLoginScanProgress(0);
     }
     return () => clearInterval(timer);
-  }, [isLoginScanning, loginScanProgress, accounts, onLoginSuccess, onClose]);
+  }, [isLoginScanning, loginScanProgress, accounts, loginUser, onLoginSuccess, onClose]);
 
   // Warga Request OTP Handler
   const handleRequestOTP = (e: React.FormEvent) => {
@@ -397,7 +417,7 @@ export default function ModalAuth({
                       Autentikasi Sensor Sensitif
                     </h4>
                     <p className="text-[10px] text-gray-400 font-medium max-w-xs mx-auto mt-1 leading-relaxed">
-                      Akses ini khusus pengurus panitia LPJ. Silakan tekan &amp; tahan tombol sidik jari untuk memindai biometrik atau masukkan sandi pengurus.
+                      Akses ini khusus pengurus panitia LPJ. Silakan ketuk tombol sidik jari di bawah untuk memindai biometrik atau masukkan sandi pengurus.
                     </p>
                   </div>
 
@@ -405,11 +425,15 @@ export default function ModalAuth({
                   <div className="flex flex-col items-center justify-center py-2">
                     <button
                       type="button"
-                      onMouseDown={() => setIsScanning(true)}
-                      onMouseUp={() => setIsScanning(false)}
-                      onMouseLeave={() => setIsScanning(false)}
-                      onTouchStart={() => setIsScanning(true)}
-                      onTouchEnd={() => setIsScanning(false)}
+                      onClick={() => {
+                        if (!isScanning) {
+                          setIsScanning(true);
+                          setScanProgress(0);
+                        } else {
+                          setIsScanning(false);
+                          setScanProgress(0);
+                        }
+                      }}
                       className={`relative w-20 h-20 rounded-full border-3 flex flex-col items-center justify-center transition-all cursor-pointer active:scale-95 ${
                         isScanning 
                           ? 'bg-red-50 border-red-500 text-red-600 scale-105 shadow-lg shadow-red-100' 
@@ -422,7 +446,7 @@ export default function ModalAuth({
                       )}
                     </button>
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2">
-                      {isScanning ? `Memindai Sidik Jari... ${scanProgress}%` : 'Tekan & Tahan untuk Pindai'}
+                      {isScanning ? `Memindai Sidik Jari... ${scanProgress}%` : 'Sentuh untuk Pindai Sidik Jari'}
                     </span>
                   </div>
 
@@ -886,17 +910,48 @@ export default function ModalAuth({
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                          Username Akun
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 flex justify-between items-center">
+                          <span>Username Akun</span>
+                          {regUser.trim().length > 0 && (
+                            <span className={`text-[9px] font-bold tracking-normal ${
+                              regUser.trim().length < 3 
+                                ? 'text-amber-500' 
+                                : accounts.some(acc => acc.username.toLowerCase() === regUser.trim().toLowerCase()) 
+                                ? 'text-red-500' 
+                                : 'text-emerald-500'
+                            }`}>
+                              {regUser.trim().length < 3 
+                                ? '⚠️ Minimal 3 Karakter' 
+                                : accounts.some(acc => acc.username.toLowerCase() === regUser.trim().toLowerCase()) 
+                                ? '❌ Sudah Terdaftar' 
+                                : '✅ Tersedia'}
+                            </span>
+                          )}
                         </label>
                         <div className="relative">
-                          <User className="absolute left-3.5 top-3 text-indigo-400" size={16} />
+                          <User className={`absolute left-3.5 top-3 ${
+                            regUser.trim().length === 0 
+                              ? 'text-indigo-400' 
+                              : regUser.trim().length < 3 
+                              ? 'text-amber-400' 
+                              : accounts.some(acc => acc.username.toLowerCase() === regUser.trim().toLowerCase()) 
+                              ? 'text-red-400' 
+                              : 'text-emerald-400'
+                          }`} size={16} />
                           <input
                             type="text"
                             value={regUser}
-                            onChange={(e) => setRegUser(e.target.value)}
+                            onChange={(e) => setRegUser(e.target.value.toLowerCase().replace(/\s/g, ''))}
                             placeholder="Kombinasi huruf & angka"
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                            className={`w-full bg-gray-50 border rounded-xl pl-10 pr-4 py-2.5 text-xs placeholder-gray-400 focus:outline-hidden focus:ring-2 font-semibold transition-all ${
+                              regUser.trim().length === 0 
+                                ? 'border-gray-200 focus:ring-indigo-500 text-gray-800' 
+                                : regUser.trim().length < 3 
+                                ? 'border-amber-200 focus:ring-amber-500 text-amber-700 bg-amber-50/20' 
+                                : accounts.some(acc => acc.username.toLowerCase() === regUser.trim().toLowerCase()) 
+                                ? 'border-red-200 focus:ring-red-500 text-red-700 bg-red-50/20' 
+                                : 'border-emerald-200 focus:ring-emerald-500 text-emerald-700 bg-emerald-50/20'
+                            }`}
                           />
                         </div>
                       </div>

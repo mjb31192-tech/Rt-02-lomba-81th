@@ -10,6 +10,7 @@ interface ModalCatatKasProps {
   onEditKas?: (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => void;
   kasToEdit?: Kas | null;
   lombas: Lomba[];
+  kasList?: Kas[];
 }
 
 interface ItemPengeluaran {
@@ -25,6 +26,7 @@ export default function ModalCatatKas({
   onEditKas,
   kasToEdit = null,
   lombas,
+  kasList = [],
 }: ModalCatatKasProps) {
   const [tipe, setTipe] = useState<'pemasukan' | 'pengeluaran'>('pengeluaran');
   const [kategori, setKategori] = useState('Peralatan Lomba');
@@ -43,11 +45,14 @@ export default function ModalCatatKas({
   // Flat amount for pemasukan, or fallback for pengeluaran
   const [jumlahManual, setJumlahManual] = useState('');
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const isEditing = !!kasToEdit;
 
   useEffect(() => {
     // Reset inputs when opened or type changed
     if (isOpen) {
+      setIsSubmitting(false);
       if (isEditing && kasToEdit) {
         setTipe(kasToEdit.tipe);
         setKategori(kasToEdit.kategori);
@@ -126,12 +131,57 @@ export default function ModalCatatKas({
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     
     const finalTanggal = tanggal || new Date().toISOString().split('T')[0];
+    const finalJumlah = isEditing ? Number(jumlahManual) : computedTotal;
+
+    // Build the final keterangan to check duplicates accurately
+    let finalKeterangan = keterangan;
+    if (!isEditing && tipe === 'pengeluaran') {
+      const itemsString = items.map(it => `${it.nama} (Rp ${it.harga.toLocaleString('id-ID')})`).join(', ');
+      finalKeterangan = `${keterangan} [Rincian: ${itemsString}]`;
+    }
+
+    // Check duplicate transaksi
+    const isDuplicate = kasList.some(item => {
+      if (isEditing && kasToEdit && item.id === kasToEdit.id) {
+        return false;
+      }
+      const matchTipe = item.tipe === tipe;
+      const matchKategori = item.kategori === kategori;
+      const matchJumlah = item.jumlah === finalJumlah;
+      const matchTanggal = item.tanggal === finalTanggal;
+
+      const existingDesc = item.keterangan.trim().toLowerCase();
+      const newDesc = finalKeterangan.trim().toLowerCase();
+      const matchDesc = existingDesc === newDesc || existingDesc.includes(newDesc) || newDesc.includes(existingDesc);
+
+      return matchTipe && matchKategori && matchJumlah && matchTanggal && matchDesc;
+    });
+
+    if (isDuplicate) {
+      const confirmProceed = window.confirm(
+        '⚠️ Peringatan Transaksi Duplikat!\n\n' +
+        `Transaksi serupa sudah terdaftar di sistem:\n` +
+        `• Jenis: ${tipe.toUpperCase()}\n` +
+        `• Kategori: ${kategori}\n` +
+        `• Nominal: Rp ${finalJumlah.toLocaleString('id-ID')}\n` +
+        `• Tanggal: ${finalTanggal}\n` +
+        `• Keterangan: ${finalKeterangan}\n\n` +
+        'Apakah Anda yakin ini bukan transaksi duplikat dan ingin menyimpannya?'
+      );
+      if (!confirmProceed) {
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
 
     if (isEditing && kasToEdit) {
       if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
         alert('Mohon lengkapi nominal transaksi dan keterangan!');
+        setIsSubmitting(false);
         return;
       }
       onEditKas?.(kasToEdit.id, tipe, kategori, Number(jumlahManual), keterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal, buktiFoto);
@@ -139,6 +189,7 @@ export default function ModalCatatKas({
       if (tipe === 'pemasukan') {
         if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
           alert('Mohon lengkapi nominal pemasukan dan keterangan!');
+          setIsSubmitting(false);
           return;
         }
         onAddKas('pemasukan', kategori, Number(jumlahManual), keterangan, undefined, finalTanggal, buktiFoto);
@@ -147,16 +198,14 @@ export default function ModalCatatKas({
         const hasEmptyItem = items.some(item => !item.nama.trim() || item.harga <= 0);
         if (hasEmptyItem) {
           alert('Mohon lengkapi nama dan harga untuk semua baris pengeluaran!');
+          setIsSubmitting(false);
           return;
         }
         if (!keterangan) {
           alert('Mohon isi keterangan/deskripsi pengeluaran!');
+          setIsSubmitting(false);
           return;
         }
-
-        // Generate formatted description compiling items
-        const itemsString = items.map(it => `${it.nama} (Rp ${it.harga.toLocaleString('id-ID')})`).join(', ');
-        const finalKeterangan = `${keterangan} [Rincian: ${itemsString}]`;
 
         onAddKas('pengeluaran', kategori, computedTotal, finalKeterangan, lombaIdLink ? Number(lombaIdLink) : undefined, finalTanggal, buktiFoto);
       }
@@ -433,9 +482,10 @@ export default function ModalCatatKas({
                 </button>
                 <button
                   type="submit"
-                  className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer hover:shadow-md ${tipe === 'pemasukan' ? 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-100' : 'bg-red-600 hover:bg-red-700 hover:shadow-red-100'}`}
+                  disabled={isSubmitting}
+                  className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${tipe === 'pemasukan' ? 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-100' : 'bg-red-600 hover:bg-red-700 hover:shadow-red-100'}`}
                 >
-                  Simpan Transaksi
+                  {isSubmitting ? 'Memproses...' : 'Simpan Transaksi'}
                 </button>
               </div>
             </form>

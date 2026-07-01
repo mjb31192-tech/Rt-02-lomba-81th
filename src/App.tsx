@@ -667,6 +667,13 @@ export default function App() {
 
   const handleAddNewKK = (namaKK: string, rt: string) => {
     if (!checkAuth()) return;
+    const exists = iuranKK.some(
+      item => item.nama_kk.toLowerCase().trim() === namaKK.toLowerCase().trim() && item.rt === rt
+    );
+    if (exists) {
+      alert(`⚠️ Kepala Keluarga dengan nama "${namaKK}" di wilayah ${rt} sudah terdaftar!`);
+      return;
+    }
     const newKK: IuranKK = {
       id: getUniqueId(),
       nama_kk: namaKK,
@@ -1305,6 +1312,7 @@ export default function App() {
         onEditKas={handleEditKas}
         kasToEdit={kasToEdit}
         lombas={lombas}
+        kasList={kas}
       />
 
       <ModalAddLomba
