@@ -4,8 +4,8 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
-import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp as initializeClientApp } from "firebase/app";
+import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 
 dotenv.config();
 
@@ -71,7 +71,7 @@ const INITIAL_DB = {
   laporanIuranMingguan: []
 };
 
-// --- FIREBASE ADMIN SETUP ---
+// --- FIREBASE CLIENT SETUP ---
 let firestoreDb: any = null;
 
 try {
@@ -79,20 +79,26 @@ try {
   if (fs.existsSync(configPath)) {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     if (config.projectId) {
-      initializeApp({
+      const firebaseConfig = {
+        apiKey: config.apiKey,
+        authDomain: config.authDomain,
         projectId: config.projectId,
-      });
+        storageBucket: config.storageBucket,
+        messagingSenderId: config.messagingSenderId,
+        appId: config.appId
+      };
+      const clientApp = initializeClientApp(firebaseConfig);
       const dbId = config.firestoreDatabaseId;
       if (dbId && dbId !== "(default)") {
-        firestoreDb = getFirestore(dbId);
+        firestoreDb = getClientFirestore(clientApp, dbId);
       } else {
-        firestoreDb = getFirestore();
+        firestoreDb = getClientFirestore(clientApp);
       }
-      console.log(`Firebase Admin initialized successfully. Project ID: ${config.projectId}, Database ID: ${dbId || "(default)"}`);
+      console.log(`Firebase Client SDK initialized on Server successfully. Project ID: ${config.projectId}, Database ID: ${dbId || "(default)"}`);
     }
   }
 } catch (error) {
-  console.error("Gagal menginisialisasi Firebase Admin:", error);
+  console.error("Gagal menginisialisasi Firebase Client SDK di Server:", error);
 }
 
 let memoryDB: typeof INITIAL_DB = INITIAL_DB;
@@ -101,10 +107,10 @@ let memoryDB: typeof INITIAL_DB = INITIAL_DB;
 async function initializeDatabase() {
   if (firestoreDb) {
     try {
-      console.log("Mencoba memuat data dari Firestore...");
-      const docRef = firestoreDb.collection("global_state").doc("current_db");
-      const docSnap = await docRef.get();
-      if (docSnap.exists) {
+      console.log("Mencoba memuat data dari Firestore via Client SDK...");
+      const docRef = doc(firestoreDb, "global_state", "current_db");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
         memoryDB = docSnap.data() as typeof INITIAL_DB;
         console.log("Data berhasil dimuat dari Firestore.");
         // Sync to local json file as local backup
@@ -121,7 +127,7 @@ async function initializeDatabase() {
         } else {
           memoryDB = INITIAL_DB;
         }
-        await docRef.set(memoryDB);
+        await setDoc(docRef, memoryDB);
         console.log("Inisialisasi awal Firestore berhasil.");
         return;
       }
@@ -159,9 +165,9 @@ async function saveDatabase(data: typeof INITIAL_DB) {
   // Save to Firestore for durable persistence
   if (firestoreDb) {
     try {
-      const docRef = firestoreDb.collection("global_state").doc("current_db");
-      await docRef.set(data);
-      console.log("Data berhasil disimpan secara permanen ke Firestore!");
+      const docRef = doc(firestoreDb, "global_state", "current_db");
+      await setDoc(docRef, data);
+      console.log("Data berhasil disimpan secara permanen ke Firestore via Client SDK!");
     } catch (error) {
       console.error("Gagal menyimpan ke Firestore:", error);
     }
@@ -207,10 +213,10 @@ async function startServer() {
   let sseClients: any[] = [];
 
   // Broadcast data changes to all connected SSE clients
-  const broadcastUpdate = (data: any) => {
+  const broadcastUpdate = (data: any, senderId: any = "") => {
     sseClients.forEach(client => {
       try {
-        client.write(`data: ${JSON.stringify({ type: "update", data })}\n\n`);
+        client.write(`data: ${JSON.stringify({ type: "update", data, senderId })}\n\n`);
       } catch (err) {
         // Suppress errors for closed connections
       }
@@ -271,6 +277,7 @@ async function startServer() {
     try {
       const incomingData = req.body;
       const currentData = readDB();
+      const clientId = req.headers["x-client-id"] || "";
 
       // Simple validations to prevent corrupted states
       const updatedData = {
@@ -285,7 +292,7 @@ async function startServer() {
       };
 
       writeDB(updatedData);
-      broadcastUpdate(updatedData);
+      broadcastUpdate(updatedData, clientId);
       res.json({ status: "success", message: "Database tersinkronisasi dengan sukses ke server public!" });
     } catch (err: any) {
       console.error("Gagal menyimpan data:", err);

@@ -141,7 +141,7 @@ export default function App() {
 
   const isPengurus = !!currentUser && currentUser.jabatan !== 'Warga';
 
-  const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string }[]>(() => {
+  const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string; hasFingerprint?: boolean }[]>(() => {
     const saved = localStorage.getItem('hut81_accounts');
     let parsed = saved ? JSON.parse(saved) : null;
     if (!parsed) {
@@ -190,13 +190,24 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const isIncomingUpdate = useRef(false);
+  const hasUnsavedChanges = useRef(false);
+  const clientIdRef = useRef(Math.random().toString(36).substring(2) + Date.now().toString(36));
+  const clientId = clientIdRef.current;
 
   // Fetch initial database state from public API and set up real-time polling
   useEffect(() => {
     async function fetchServerData() {
+      // Avoid fetching and overwriting local changes if there are unsaved edits
+      if (hasUnsavedChanges.current) {
+        return;
+      }
       try {
         const response = await fetch("/api/data");
         if (response.ok) {
+          // Double check after fetch resolved to prevent overwriting intermediate changes
+          if (hasUnsavedChanges.current) {
+            return;
+          }
           const contentType = response.headers.get("content-type") || "";
           if (!contentType.includes("application/json")) {
             throw new Error(`Respons server bukan JSON (Content-Type: ${contentType}). Sesi Anda mungkin kedaluwarsa atau server sedang mulai ulang. Silakan refresh halaman.`);
@@ -231,7 +242,7 @@ export default function App() {
             }
             setTimeout(() => {
               isIncomingUpdate.current = false;
-            }, 500);
+            }, 50);
           }
         }
       } catch (err) {
@@ -249,6 +260,15 @@ export default function App() {
       try {
         const payload = JSON.parse(event.data);
         if (payload.type === "update" && payload.data) {
+          // If the update was triggered by our own save operation, ignore it to prevent loops/overwrite
+          if (payload.senderId === clientId) {
+            return;
+          }
+          // If there are pending local unsaved edits, do not overwrite them with server data
+          if (hasUnsavedChanges.current) {
+            return;
+          }
+
           const data = payload.data;
           isIncomingUpdate.current = true;
           if (data.lombas && Array.isArray(data.lombas)) {
@@ -278,7 +298,7 @@ export default function App() {
           }
           setTimeout(() => {
             isIncomingUpdate.current = false;
-          }, 500);
+          }, 50);
         }
       } catch (err) {
         console.error("Gagal mengurai pesan live update:", err);
@@ -331,19 +351,26 @@ export default function App() {
     localStorage.setItem('hut81_laporan_iuran_mingguan', JSON.stringify(laporanIuranMingguan));
     localStorage.setItem('hut81_accounts', JSON.stringify(accounts));
 
+    // Mark that we have pending local changes to save
+    hasUnsavedChanges.current = true;
+
     // Async write-back sync to Server file database
     const syncWithServer = async () => {
       setIsSyncing(true);
       try {
-        await fetch("/api/data", {
+        const response = await fetch("/api/data", {
           method: "POST",
           headers: { 
             "Content-Type": "application/json",
             "x-user-role": currentUser?.jabatan || "Warga",
-            "x-username": currentUser?.username || "Guest"
+            "x-username": currentUser?.username || "Guest",
+            "x-client-id": clientId
           },
           body: JSON.stringify(payload)
         });
+        if (response.ok) {
+          hasUnsavedChanges.current = false; // Successfully saved, safe to resume server-sent updates
+        }
       } catch (err) {
         console.error("Gagal menyimpan sinkronisasi data ke server public:", err);
       } finally {

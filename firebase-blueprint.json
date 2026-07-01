@@ -1,0 +1,16 @@
+{
+  "entities": {
+    "GlobalState": {
+      "title": "Global State",
+      "description": "Global state for Sistem Manajemen Lomba",
+      "type": "object",
+      "properties": {}
+    }
+  },
+  "firestore": {
+    "/global_state/{documentId}": {
+      "schema": "GlobalState",
+      "description": "Stores the entire state of the app"
+    }
+  }
+}

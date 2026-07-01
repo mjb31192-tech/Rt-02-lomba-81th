@@ -1,7 +1,8 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { 
   X, Lock, Unlock, User, Award, ShieldAlert, CheckCircle2, 
-  Mail, Phone, Fingerprint, Timer, KeyRound, ArrowRight, Smartphone
+  Mail, Phone, Fingerprint, Timer, KeyRound, ArrowRight, Smartphone,
+  Eye, EyeOff
 } from 'lucide-react';
 import { IuranKK } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
@@ -11,6 +12,7 @@ interface Account {
   password: string;
   nama: string;
   jabatan: string;
+  hasFingerprint?: boolean;
 }
 
 interface ModalAuthProps {
@@ -76,6 +78,20 @@ export default function ModalAuth({
   const [regJabatan, setRegJabatan] = useState('Koordinator Lapangan');
   const [regError, setRegError] = useState('');
 
+  // Sensitive eye toggles
+  const [showLoginPass, setShowLoginPass] = useState(false);
+  const [showRegPass, setShowRegPass] = useState(false);
+  const [showSecretPasscode, setShowSecretPasscode] = useState(false);
+
+  // Fingerprint registration for new pengurus
+  const [regHasFingerprint, setRegHasFingerprint] = useState(false);
+  const [isRegScanning, setIsRegScanning] = useState(false);
+  const [regScanProgress, setRegScanProgress] = useState(0);
+
+  // Fingerprint login scanning
+  const [isLoginScanning, setIsLoginScanning] = useState(false);
+  const [loginScanProgress, setLoginScanProgress] = useState(0);
+
   // Handle OTP timer countdown
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -87,7 +103,7 @@ export default function ModalAuth({
     return () => clearInterval(interval);
   }, [otpTimer]);
 
-  // Handle Biometric scanning simulation
+  // Handle Biometric scanning simulation for general panitia gate
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isScanning && scanProgress < 100) {
@@ -109,6 +125,61 @@ export default function ModalAuth({
     }
     return () => clearInterval(timer);
   }, [isScanning, scanProgress]);
+
+  // Handle registration biometrics scan animation
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isRegScanning && regScanProgress < 100) {
+      timer = setInterval(() => {
+        setRegScanProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(timer);
+            setIsRegScanning(false);
+            setRegHasFingerprint(true);
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 80);
+    } else if (!isRegScanning && regScanProgress < 100) {
+      setRegScanProgress(0);
+    }
+    return () => clearInterval(timer);
+  }, [isRegScanning, regScanProgress]);
+
+  // Handle Biometric scanning for login
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoginScanning && loginScanProgress < 100) {
+      timer = setInterval(() => {
+        setLoginScanProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(timer);
+            setIsLoginScanning(false);
+            
+            // Log in using the registered fingerprint accounts
+            const fingerprintAccs = accounts.filter(acc => acc.hasFingerprint);
+            if (fingerprintAccs.length > 0) {
+              const matchedAcc = fingerprintAccs[0];
+              onLoginSuccess({
+                username: matchedAcc.username,
+                nama: matchedAcc.nama,
+                jabatan: matchedAcc.jabatan
+              });
+              onClose();
+            } else {
+              setLoginError('Tidak ada akun pengurus dengan sidik jari terdaftar. Silakan daftar pengurus baru dan aktifkan sidik jari.');
+            }
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 80);
+    } else if (!isLoginScanning && loginScanProgress < 100) {
+      setLoginScanProgress(0);
+    }
+    return () => clearInterval(timer);
+  }, [isLoginScanning, loginScanProgress, accounts, onLoginSuccess, onClose]);
 
   // Warga Request OTP Handler
   const handleRequestOTP = (e: React.FormEvent) => {
@@ -239,7 +310,8 @@ export default function ModalAuth({
       username: regUser.trim().toLowerCase(),
       password: regPass,
       nama: regNama.trim(),
-      jabatan: regJabatan
+      jabatan: regJabatan,
+      hasFingerprint: regHasFingerprint
     };
 
     onSignUpSuccess(newAcc);
@@ -252,6 +324,7 @@ export default function ModalAuth({
     setRegUser('');
     setRegPass('');
     setRegNama('');
+    setRegHasFingerprint(false);
     onClose();
   };
 
@@ -368,12 +441,19 @@ export default function ModalAuth({
                       <div className="relative">
                         <KeyRound className="absolute left-3 top-2.5 text-gray-400" size={14} />
                         <input
-                          type="password"
+                          type={showSecretPasscode ? "text" : "password"}
                           value={secretPasscode}
                           onChange={(e) => setSecretPasscode(e.target.value)}
                           placeholder="Masukkan Kode Keamanan Pengurus"
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 font-medium"
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-10 py-2 text-xs text-gray-800 focus:outline-hidden focus:ring-1 focus:ring-red-500 font-medium"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowSecretPasscode(!showSecretPasscode)}
+                          className="absolute right-3 top-2 text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                        >
+                          {showSecretPasscode ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -677,54 +757,109 @@ export default function ModalAuth({
                     </button>
                   </div>
 
-                  {wargaTab === 'login' ? (
-                    <form onSubmit={handleLoginSubmit} className="space-y-4">
-                      {loginError && (
-                        <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-xs font-medium">
-                          <ShieldAlert size={15} className="shrink-0 mt-0.5" />
-                          <span>{loginError}</span>
-                        </div>
-                      )}
+                   {wargaTab === 'login' ? (
+                    <div className="space-y-4">
+                      <form onSubmit={handleLoginSubmit} className="space-y-4">
+                        {loginError && (
+                          <div className="flex items-start gap-2 bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-xs font-medium">
+                            <ShieldAlert size={15} className="shrink-0 mt-0.5" />
+                            <span>{loginError}</span>
+                          </div>
+                        )}
 
-                      <div>
-                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                          Username Pengurus
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Username Pengurus
+                          </label>
+                          <div className="relative">
+                            <User className="absolute left-3.5 top-3 text-indigo-400" size={16} />
+                            <input
+                              type="text"
+                              value={loginUser}
+                              onChange={(e) => setLoginUser(e.target.value)}
+                              placeholder="Masukkan username"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                            Password
+                          </label>
+                          <div className="relative">
+                            <Lock className="absolute left-3.5 top-3 text-indigo-400" size={16} />
+                            <input
+                              type={showLoginPass ? "text" : "password"}
+                              value={loginPass}
+                              onChange={(e) => setLoginPass(e.target.value)}
+                              placeholder="••••••••"
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowLoginPass(!showLoginPass)}
+                              className="absolute right-3.5 top-3 text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                            >
+                              {showLoginPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2.5">
+                          <button
+                            type="submit"
+                            className="flex-1 bg-indigo-950 hover:bg-indigo-900 text-white text-xs font-bold py-3 rounded-xl transition-all cursor-pointer active:scale-98 shadow-md"
+                          >
+                            Masuk Sistem
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsLoginScanning(true);
+                              setLoginScanProgress(0);
+                              setLoginError('');
+                            }}
+                            disabled={isLoginScanning}
+                            className={`px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95 disabled:opacity-50 text-xs font-bold`}
+                            title="Masuk dengan Sidik Jari"
+                          >
+                            <Fingerprint size={16} className={isLoginScanning ? "animate-pulse" : ""} />
+                            <span>{isLoginScanning ? `${loginScanProgress}%` : "Sidik Jari"}</span>
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* Quick Login Section */}
+                      <div className="mt-4 border-t border-indigo-100 pt-4">
+                        <label className="block text-[10px] font-bold text-indigo-500 uppercase tracking-wider mb-2.5 text-center">
+                          ⚡ Masuk Cepat Sekali Klik (1-Klik)
                         </label>
-                        <div className="relative">
-                          <User className="absolute left-3.5 top-3 text-indigo-400" size={16} />
-                          <input
-                            type="text"
-                            value={loginUser}
-                            onChange={(e) => setLoginUser(e.target.value)}
-                            placeholder="Masukkan username"
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
-                          />
+                        <div className="grid grid-cols-2 gap-2">
+                          {accounts.map((acc) => (
+                            <button
+                              key={acc.username}
+                              type="button"
+                              onClick={() => handleQuickLogin(acc)}
+                              className="flex items-center gap-2 p-2 bg-indigo-50/40 hover:bg-indigo-100/60 border border-indigo-100/50 rounded-xl text-left transition-all cursor-pointer group active:scale-95"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-indigo-950 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                                {acc.nama.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-gray-800 truncate leading-tight group-hover:text-indigo-950">
+                                  {acc.nama}
+                                </p>
+                                <p className="text-[9px] text-gray-400 truncate font-semibold mt-0.5">
+                                  {acc.jabatan}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
                         </div>
                       </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-                          Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-3.5 top-3 text-indigo-400" size={16} />
-                          <input
-                            type="password"
-                            value={loginPass}
-                            onChange={(e) => setLoginPass(e.target.value)}
-                            placeholder="••••••••"
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full bg-indigo-950 hover:bg-indigo-900 text-white text-xs font-bold py-3 rounded-xl transition-all cursor-pointer active:scale-98 shadow-md"
-                      >
-                        Masuk Sistem Pengurus
-                      </button>
-                    </form>
+                    </div>
                   ) : (
                     <form onSubmit={handleSignUpSubmit} className="space-y-4">
                       {regError && (
@@ -773,13 +908,61 @@ export default function ModalAuth({
                         <div className="relative">
                           <Lock className="absolute left-3.5 top-3 text-indigo-400" size={16} />
                           <input
-                            type="password"
+                            type={showRegPass ? "text" : "password"}
                             value={regPass}
                             onChange={(e) => setRegPass(e.target.value)}
                             placeholder="Minimal 6 karakter"
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowRegPass(!showRegPass)}
+                            className="absolute right-3.5 top-3 text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                          >
+                            {showRegPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
                         </div>
+                      </div>
+
+                      {/* Fingerprint Registration Component */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Autentikasi Sidik Jari (Biometrik)
+                        </label>
+                        {regHasFingerprint ? (
+                          <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                            <div className="flex items-center gap-2 text-emerald-800 text-xs font-semibold">
+                              <CheckCircle2 size={16} className="text-emerald-600 animate-pulse" />
+                              <span>Sidik Jari Terdaftar!</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setRegHasFingerprint(false)}
+                              className="text-[10px] text-red-600 hover:underline font-bold cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsRegScanning(true);
+                              setRegScanProgress(0);
+                            }}
+                            disabled={isRegScanning}
+                            className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed text-xs font-bold transition-all cursor-pointer ${
+                              isRegScanning
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700'
+                                : 'bg-gray-50 hover:bg-gray-100 border-gray-300 text-gray-600'
+                            }`}
+                          >
+                            <Fingerprint size={16} className={isRegScanning ? 'animate-pulse text-indigo-600' : ''} />
+                            <span>
+                              {isRegScanning ? `Memindai Sidik Jari... ${regScanProgress}%` : 'Daftarkan Sidik Jari Anda'}
+                            </span>
+                          </button>
+                        )}
                       </div>
 
                       <div>
