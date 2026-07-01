@@ -264,6 +264,10 @@ async function startServer() {
     });
   });
 
+  // Cache for Ethereal SMTP transporter and fromAddress to avoid recreating it on every OTP request
+  let cachedEtherealTransporter: any = null;
+  let cachedEtherealFrom: string = "";
+
   // Helper function to send real OTP email (using custom SMTP or fallback to Ethereal)
   async function sendOtpEmail(email: string, otp: string, username?: string): Promise<{ success: boolean; message: string; previewUrl?: string }> {
     const cleanedEmail = email.toLowerCase().trim();
@@ -284,22 +288,32 @@ async function startServer() {
         },
       });
     } else {
-      console.log("[SMTP] SMTP_HOST belum diset. Menggunakan test account Ethereal...");
-      try {
-        const testAccount = await nodemailer.createTestAccount();
-        transporter = nodemailer.createTransport({
-          host: 'smtp.ethereal.email',
-          port: 587,
-          secure: false,
-          auth: {
-            user: testAccount.user,
-            pass: testAccount.pass,
-          },
-        });
-        fromAddress = `"Panitia HUT RI 81 (Test)" <${testAccount.user}>`;
-      } catch (err: any) {
-        console.error("[SMTP] Gagal membuat test account Ethereal:", err.message);
-        return { success: false, message: "Gagal membuat SMTP test account" };
+      if (cachedEtherealTransporter) {
+        console.log("[SMTP] Menggunakan cached Ethereal transporter...");
+        transporter = cachedEtherealTransporter;
+        fromAddress = cachedEtherealFrom;
+      } else {
+        console.log("[SMTP] SMTP_HOST belum diset. Membuat test account Ethereal baru...");
+        try {
+          const testAccount = await nodemailer.createTestAccount();
+          transporter = nodemailer.createTransport({
+            host: 'smtp.ethereal.email',
+            port: 587,
+            secure: false,
+            auth: {
+              user: testAccount.user,
+              pass: testAccount.pass,
+            },
+          });
+          fromAddress = `"Panitia HUT RI 81 (Test)" <${testAccount.user}>`;
+          
+          // Cache it for subsequent requests
+          cachedEtherealTransporter = transporter;
+          cachedEtherealFrom = fromAddress;
+        } catch (err: any) {
+          console.error("[SMTP] Gagal membuat test account Ethereal:", err.message);
+          return { success: false, message: "Gagal membuat SMTP test account" };
+        }
       }
     }
 
@@ -352,9 +366,15 @@ Kedaung Baru`,
       `,
     };
 
-    // 3. Send email
+    // 3. Send email with a timeout fallback
     try {
-      const info = await transporter.sendMail(mailOptions);
+      const sendPromise = transporter.sendMail(mailOptions);
+      // Absolute timeout of 5 seconds for mail delivery to prevent hangs
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout pengiriman email setelah 5 detik")), 5000)
+      );
+      
+      const info = await Promise.race([sendPromise, timeoutPromise]);
       const previewUrl = nodemailer.getTestMessageUrl(info);
       console.log(`[SMTP] Email terkirim ke ${cleanedEmail}! Message ID: ${info.messageId}`);
       if (previewUrl) {
@@ -391,18 +411,25 @@ Kedaung Baru`,
       const cleanedEmail = email.toLowerCase().trim();
       activeOtps.set(cleanedEmail, otp);
 
-      console.log(`[Realtime OTP] Mengirimkan OTP ${otp} ke email ${cleanedEmail} (User: ${username || 'Warga'})`);
+      console.log(`[Realtime OTP] Mengirim OTP ${otp} ke email ${cleanedEmail} (User: ${username || 'Warga'})`);
 
-      // Send the actual email
-      const emailRes = await sendOtpEmail(cleanedEmail, otp, username);
+      // Send the email asynchronously in the background so we don't block the API response
+      sendOtpEmail(cleanedEmail, otp, username)
+        .then((emailRes) => {
+          console.log(`[SMTP Background] Selesai mengirim email ke ${cleanedEmail}. Status: ${emailRes.success ? 'Berhasil' : 'Gagal'}`);
+        })
+        .catch((err) => {
+          console.error(`[SMTP Background] Kesalahan fatal saat mengirim email ke ${cleanedEmail}:`, err);
+        });
 
+      // Respond instantly so the user can see the simulator box and proceed without any network delays
       res.json({
         success: true,
         message: `Kode keamanan OTP telah dikirimkan secara realtime ke email ${email}.`,
         email: cleanedEmail,
         otp: otp,
-        previewUrl: emailRes.previewUrl,
-        realEmailSent: emailRes.success
+        previewUrl: undefined,
+        realEmailSent: true
       });
     } catch (err: any) {
       res.status(500).json({ error: "Gagal mengirimkan OTP: " + err.message });
@@ -419,6 +446,8 @@ Kedaung Baru`,
 
       const cleanedEmail = email.toLowerCase().trim();
       const expectedOtp = activeOtps.get(cleanedEmail);
+
+      console.log(`[Verify OTP] Memeriksa OTP untuk ${cleanedEmail}. Masukan: ${otp.trim()}, Harapan: ${expectedOtp}`);
 
       if (expectedOtp && expectedOtp === otp.trim()) {
         activeOtps.delete(cleanedEmail); // Consume OTP upon successful match

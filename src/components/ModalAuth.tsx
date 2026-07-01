@@ -1106,11 +1106,10 @@ export default function ModalAuth({
                           ) : (
                             <button
                               type="button"
-                              onClick={() => {
-                                setOtpTimer(60);
-                                setOtpSuccessMsg('Kode OTP baru telah dikirim ulang!');
+                              onClick={(e) => {
+                                handleRequestOTP(e);
                               }}
-                              className="text-[10px] text-red-600 hover:underline font-bold"
+                              className="text-[10px] text-red-600 hover:underline font-bold cursor-pointer"
                             >
                               Kirim Ulang OTP
                             </button>
