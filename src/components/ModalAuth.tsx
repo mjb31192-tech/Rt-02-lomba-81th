@@ -107,6 +107,11 @@ export default function ModalAuth({
   const [panitiaOtpSuccess, setPanitiaOtpSuccess] = useState('');
   const [panitiaOtpTimer, setPanitiaOtpTimer] = useState(0);
   const [serverOtp, setServerOtp] = useState('');
+  const [panitiaEtherealUrl, setPanitiaEtherealUrl] = useState('');
+  const [panitiaRealEmailSent, setPanitiaRealEmailSent] = useState(false);
+  const [wargaServerOtp, setWargaServerOtp] = useState('');
+  const [wargaEtherealUrl, setWargaEtherealUrl] = useState('');
+  const [wargaRealEmailSent, setWargaRealEmailSent] = useState(false);
   const [regEmail, setRegEmail] = useState('');
 
   // Handle OTP timer countdown
@@ -235,10 +240,12 @@ export default function ModalAuth({
   }, [loginScanProgress, isLoginScanning, accounts, loginUser, onLoginSuccess, onClose]);
 
   // Warga Request OTP Handler
-  const handleRequestOTP = (e: React.FormEvent) => {
+  const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
     setOtpSuccessMsg('');
+    setWargaEtherealUrl('');
+    setWargaServerOtp('');
 
     const contactVal = loginMethod === 'email' ? wargaEmail : wargaPhone;
     if (!contactVal.trim()) {
@@ -251,20 +258,72 @@ export default function ModalAuth({
       return;
     }
 
-    // Simulate sending OTP
-    setOtpSent(true);
-    setOtpTimer(60);
-    setOtpSuccessMsg(`Kode OTP 4-Digit berhasil dikirim ke ${contactVal}. Silakan cek kotak masuk Anda.`);
+    if (loginMethod === 'email') {
+      try {
+        const response = await fetch('/api/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: wargaEmail.trim(), 
+            username: wargaNama || 'Warga Kedaung Baru',
+            digits: 4
+          })
+        });
+        const resData = await response.json();
+        if (response.ok && resData.success) {
+          setOtpSent(true);
+          setWargaServerOtp(resData.otp);
+          setWargaEtherealUrl(resData.previewUrl || '');
+          setWargaRealEmailSent(resData.realEmailSent || false);
+          setOtpTimer(60);
+          setOtpSuccessMsg(`Kode OTP 4-Digit berhasil dikirim secara realtime ke email ${wargaEmail.trim()}. Silakan cek kotak masuk Anda.`);
+        } else {
+          setOtpError(resData.error || 'Gagal mengirimkan kode OTP ke email.');
+        }
+      } catch (err) {
+        setOtpError('Gagal menghubungi server untuk mengirim OTP.');
+      }
+    } else {
+      // Simulate phone OTP sending
+      setOtpSent(true);
+      setWargaServerOtp('1708'); // Fallback for phone simulation
+      setOtpTimer(60);
+      setOtpSuccessMsg(`[Simulasi No HP] Kode OTP 4-Digit berhasil dikirim ke nomor HP ${wargaPhone.trim()}. Silakan masukkan kode "1708" untuk masuk.`);
+    }
   };
 
   // Warga Verify OTP & Complete Login/Register
-  const handleVerifyOTP = (e: React.FormEvent) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setOtpError('');
 
     if (otpCode.trim().length !== 4) {
       setOtpError('Kode OTP harus terdiri dari 4 digit.');
       return;
+    }
+
+    if (loginMethod === 'email') {
+      try {
+        const response = await fetch('/api/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: wargaEmail.trim(), otp: otpCode })
+        });
+        const resData = await response.json();
+        if (!response.ok || !resData.success) {
+          setOtpError(resData.error || 'Kode OTP salah atau telah kedaluwarsa.');
+          return;
+        }
+      } catch (err) {
+        setOtpError('Gagal memverifikasi OTP di server.');
+        return;
+      }
+    } else {
+      // For phone, check if it matches the simulator or wargaServerOtp
+      if (otpCode.trim() !== '1708' && otpCode.trim() !== wargaServerOtp) {
+        setOtpError('Kode OTP salah. Gunakan kode "1708" atau OTP simulasi yang sesuai.');
+        return;
+      }
     }
 
     const finalNama = wargaTab === 'signup' ? wargaNama.trim() : `Warga_${loginMethod === 'email' ? wargaEmail.split('@')[0] : wargaPhone.slice(-4)}`;
@@ -310,6 +369,8 @@ export default function ModalAuth({
   const handleSendPanitiaOtp = async () => {
     setPanitiaOtpError('');
     setPanitiaOtpSuccess('');
+    setPanitiaEtherealUrl('');
+    setPanitiaRealEmailSent(false);
     try {
       const response = await fetch('/api/send-otp', {
         method: 'POST',
@@ -323,6 +384,8 @@ export default function ModalAuth({
       if (response.ok && resData.success) {
         setPanitiaOtpSent(true);
         setServerOtp(resData.otp);
+        setPanitiaEtherealUrl(resData.previewUrl || '');
+        setPanitiaRealEmailSent(resData.realEmailSent || false);
         setPanitiaOtpTimer(60);
         setPanitiaOtpSuccess(`Kode OTP 6-Digit berhasil dikirim secara realtime ke email ${puzzleEmail}.`);
       } else {
@@ -670,6 +733,18 @@ export default function ModalAuth({
                             <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
                             <span>{panitiaOtpSuccess}</span>
                           </div>
+                          
+                          {panitiaEtherealUrl && (
+                            <a
+                              href={panitiaEtherealUrl}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="mt-1 block text-center p-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-[9px] font-bold border border-indigo-200 transition-all cursor-pointer"
+                            >
+                              📥 BUKA KOTAK MASUK SIMULASI (ETHEREAL) &rarr;
+                            </a>
+                          )}
+
                           {/* Real-time Email simulator toast indicator */}
                           <div className="mt-1.5 p-2 bg-indigo-950 text-white rounded-lg font-mono text-[10px] border border-indigo-800 flex justify-between items-center animate-pulse">
                             <span>📧 EMAIL INBOX SIMULATOR:</span>
@@ -1050,8 +1125,26 @@ export default function ModalAuth({
                           placeholder="Masukkan 4 angka OTP (contoh: 1708)"
                           className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-center text-sm font-bold tracking-widest text-red-600 placeholder-gray-300 focus:outline-hidden focus:ring-2 focus:ring-red-500 font-mono"
                         />
+                        {loginMethod === 'email' && wargaEtherealUrl && (
+                          <a
+                            href={wargaEtherealUrl}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="mt-2 block text-center p-2 bg-red-50 text-red-700 hover:bg-red-100 border border-red-100 rounded-xl text-[10px] font-bold transition-all cursor-pointer"
+                          >
+                            📥 BUKA KOTAK MASUK SIMULASI (ETHEREAL) &rarr;
+                          </a>
+                        )}
+
+                        {loginMethod === 'email' && wargaServerOtp && (
+                          <div className="mt-2 p-2 bg-slate-900 text-white rounded-xl font-mono text-[10px] border border-slate-800 flex justify-between items-center animate-pulse">
+                            <span>📧 EMAIL INBOX SIMULATOR:</span>
+                            <span className="bg-yellow-400 text-black px-1.5 py-0.5 rounded font-black tracking-widest">{wargaServerOtp}</span>
+                          </div>
+                        )}
+
                         <p className="text-[9px] text-gray-400 text-center mt-2">
-                          💡 <em>Untuk kemudahan simulasi, Anda dapat memasukkan kode bebas/acak atau <strong>1708</strong>.</em>
+                          💡 <em>Untuk kemudahan simulasi, Anda dapat memasukkan kode <strong>{wargaServerOtp || '1708'}</strong>.</em>
                         </p>
                       </div>
 

@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { initializeApp as initializeClientApp } from "firebase/app";
 import { getFirestore as getClientFirestore, doc, getDoc, setDoc, setLogLevel } from "firebase/firestore";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 setLogLevel("error");
@@ -263,31 +264,145 @@ async function startServer() {
     });
   });
 
+  // Helper function to send real OTP email (using custom SMTP or fallback to Ethereal)
+  async function sendOtpEmail(email: string, otp: string, username?: string): Promise<{ success: boolean; message: string; previewUrl?: string }> {
+    const cleanedEmail = email.toLowerCase().trim();
+    
+    // 1. Setup transporter
+    let transporter;
+    let fromAddress = process.env.SMTP_FROM || '"Panitia HUT RI 81" <noreply@kedaungbaru.id>';
+    
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      console.log("[SMTP] Menggunakan konfigurasi SMTP kustom:", process.env.SMTP_HOST);
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    } else {
+      console.log("[SMTP] SMTP_HOST belum diset. Menggunakan test account Ethereal...");
+      try {
+        const testAccount = await nodemailer.createTestAccount();
+        transporter = nodemailer.createTransport({
+          host: 'smtp.ethereal.email',
+          port: 587,
+          secure: false,
+          auth: {
+            user: testAccount.user,
+            pass: testAccount.pass,
+          },
+        });
+        fromAddress = `"Panitia HUT RI 81 (Test)" <${testAccount.user}>`;
+      } catch (err: any) {
+        console.error("[SMTP] Gagal membuat test account Ethereal:", err.message);
+        return { success: false, message: "Gagal membuat SMTP test account" };
+      }
+    }
+
+    // 2. Draft email body (beautiful and patriotic)
+    const mailOptions = {
+      from: fromAddress,
+      to: cleanedEmail,
+      subject: `🇮🇩 KODE KEAMANAN OTP: ${otp} - PORTAL HUT RI KE-81 KEDAUNG BARU`,
+      text: `Halo ${username || 'Warga'},
+
+Kode Keamanan OTP Anda adalah: ${otp}
+
+Kode ini digunakan untuk memverifikasi identitas Anda pada portal Sistem Manajemen Lomba HUT RI ke-81 Kedaung Baru RT 002/003.
+
+Jangan bagikan kode OTP ini kepada siapapun demi keamanan akun Anda.
+
+Salam Merdeka,
+Panitia HUT RI Ke-81
+Kedaung Baru`,
+      html: `
+        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+          <div style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); padding: 30px; text-align: center; color: #ffffff;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: 1px;">PORTAL HUT RI KE-81</h1>
+            <p style="margin: 5px 0 0 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #fecaca;">RT 002/003 Kedaung Baru</p>
+          </div>
+          <div style="padding: 30px; color: #1e293b;">
+            <p style="font-size: 16px; line-height: 1.6; margin-top: 0;">Halo <strong>${username || 'Warga Kedaung Baru'}</strong>,</p>
+            <p style="font-size: 14px; line-height: 1.6; color: #475569;">Berikut adalah Kode Keamanan OTP Anda untuk memverifikasi identitas Anda pada sistem portal:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="display: inline-block; background-color: #f8fafc; border: 2px dashed #dc2626; padding: 15px 40px; border-radius: 12px; font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #b91c1c; font-family: monospace;">
+                ${otp}
+              </div>
+            </div>
+            
+            <p style="font-size: 12px; line-height: 1.6; color: #e11d48; font-weight: 600; background-color: #fff1f2; padding: 10px 15px; border-radius: 8px;">
+              ⚠️ PERINGATAN: Jangan pernah memberikan kode ini kepada siapapun. Panitia atau pengurus RT tidak pernah meminta kode keamanan Anda.
+            </p>
+            
+            <p style="font-size: 13px; line-height: 1.6; color: #64748b; margin-bottom: 0; margin-top: 25px;">
+              Hormat Kami,<br />
+              <strong>Panitia Pelaksana HUT RI 81</strong><br />
+              Kedaung Baru, RT.002 / RW.003
+            </p>
+          </div>
+          <div style="background-color: #f8fafc; padding: 15px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+            Pesan ini dikirimkan otomatis oleh sistem realtime. &copy; 2026 Kedaung Baru.
+          </div>
+        </div>
+      `,
+    };
+
+    // 3. Send email
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      console.log(`[SMTP] Email terkirim ke ${cleanedEmail}! Message ID: ${info.messageId}`);
+      if (previewUrl) {
+        console.log(`[SMTP] Preview URL Ethereal: ${previewUrl}`);
+      }
+      return { 
+        success: true, 
+        message: "Email berhasil dikirim.", 
+        previewUrl: previewUrl || undefined 
+      };
+    } catch (err: any) {
+      console.error("[SMTP] Gagal mengirim email:", err.message);
+      return { success: false, message: `Gagal mengirim email: ${err.message}` };
+    }
+  }
+
   // In-memory active OTP codes mapping email -> otp
   const activeOtps = new Map<string, string>();
 
   // Send real-time OTP to email
-  app.post("/api/send-otp", (req, res) => {
+  app.post("/api/send-otp", async (req, res) => {
     try {
-      const { email, username } = req.body;
+      const { email, username, digits } = req.body;
       if (!email) {
         return res.status(400).json({ error: "Email wajib diisi untuk pengiriman OTP." });
       }
 
-      // Generate a secure 6-digit code
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate a secure code (4-digit or 6-digit)
+      const isFourDigits = digits === 4;
+      const otp = isFourDigits 
+        ? Math.floor(1000 + Math.random() * 9000).toString()
+        : Math.floor(100000 + Math.random() * 900000).toString();
+        
       const cleanedEmail = email.toLowerCase().trim();
       activeOtps.set(cleanedEmail, otp);
 
-      console.log(`[Realtime OTP] Mengirimkan OTP ${otp} ke email ${cleanedEmail} (User: ${username || 'Pendaftar'})`);
+      console.log(`[Realtime OTP] Mengirimkan OTP ${otp} ke email ${cleanedEmail} (User: ${username || 'Warga'})`);
 
-      // We return the generated OTP in the response for direct client-side helper display, 
-      // ensuring high accessibility and testing ease if outbound SMTP is blocked in Cloud Run.
+      // Send the actual email
+      const emailRes = await sendOtpEmail(cleanedEmail, otp, username);
+
       res.json({
         success: true,
-        message: `Kode keamanan OTP telah dikirimkan ke email ${email}.`,
+        message: `Kode keamanan OTP telah dikirimkan secara realtime ke email ${email}.`,
         email: cleanedEmail,
-        otp: otp
+        otp: otp,
+        previewUrl: emailRes.previewUrl,
+        realEmailSent: emailRes.success
       });
     } catch (err: any) {
       res.status(500).json({ error: "Gagal mengirimkan OTP: " + err.message });
