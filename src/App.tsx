@@ -933,22 +933,36 @@ export default function App() {
           <div className="space-y-4">
             <div className="text-[10px] uppercase font-bold text-gray-400 px-3 tracking-widest">Menu Utama</div>
             <nav className="space-y-1">
-              {menuItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id as any)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                    activeTab === item.id
-                      ? 'bg-red-50 text-red-600 shadow-3xs border border-red-100/50'
-                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-                  }`}
-                >
-                  <span className={`${activeTab === item.id ? 'text-red-600' : 'text-gray-400'}`}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </button>
-              ))}
+              {menuItems.map(item => {
+                const isLocked = !currentUser && item.id !== 'dashboard';
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      if (isLocked) {
+                        setIsAuthModalOpen(true);
+                      } else {
+                        setActiveTab(item.id as any);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      activeTab === item.id
+                        ? 'bg-red-50 text-red-600 shadow-3xs border border-red-100/50'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={`${activeTab === item.id ? 'text-red-600' : 'text-gray-400'}`}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </div>
+                    {isLocked && (
+                      <Lock size={12} className="text-gray-400 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
             </nav>
           </div>
 
@@ -983,23 +997,36 @@ export default function App() {
                 </div>
 
                 <nav className="space-y-1.5">
-                  {menuItems.map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id as any);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-                        activeTab === item.id
-                          ? 'bg-red-600 text-white shadow-xs'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </button>
-                  ))}
+                  {menuItems.map(item => {
+                    const isLocked = !currentUser && item.id !== 'dashboard';
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          if (isLocked) {
+                            setIsMobileMenuOpen(false);
+                            setIsAuthModalOpen(true);
+                          } else {
+                            setActiveTab(item.id as any);
+                            setIsMobileMenuOpen(false);
+                          }
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                          activeTab === item.id
+                            ? 'bg-red-600 text-white shadow-xs'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {item.icon}
+                          <span>{item.label}</span>
+                        </div>
+                        {isLocked && (
+                          <Lock size={12} className="text-gray-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </nav>
               </div>
 
@@ -1053,9 +1080,9 @@ export default function App() {
         )}
 
         {/* 3. CORE CONTENT BODY */}
-        <main className="flex-1 p-5 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
+        <main className="flex-1 p-3.5 sm:p-5 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-4 sm:space-y-6">
           {/* A. HEADER AREA WITH TAB INDICATOR (Sleek Interface Style) */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 border border-gray-100 rounded-2xl shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 sm:p-6 border border-gray-100 rounded-2xl shadow-sm">
             <div>
               <span className="text-[10px] bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold uppercase tracking-wider border border-red-100/40">
                 Sistem Panitia Lapangan HUT RI ke-81
@@ -1093,6 +1120,8 @@ export default function App() {
                 currentUser={currentUser}
                 iuranKKList={iuranKK}
                 lombasList={lombas}
+                kasList={kas}
+                pesertasList={pesertas}
                 onOpenCheckIuran={() => setIsWargaIuranDetailOpen(true)}
                 onOpenUsulkanLomba={() => setIsPermintaanOpen(true)}
                 onOpenRaffle={() => setIsRaffleOpen(true)}
@@ -1133,7 +1162,13 @@ export default function App() {
                     currentUser={currentUser}
                   />
                   <button 
-                    onClick={() => setActiveTab('lomba')}
+                    onClick={() => {
+                      if (!currentUser) {
+                        setIsAuthModalOpen(true);
+                      } else {
+                        setActiveTab('lomba');
+                      }
+                    }}
                     className="w-full text-center text-xs font-bold text-red-600 bg-white border border-gray-100/80 hover:bg-gray-50 py-3 rounded-xl mt-3 transition-all cursor-pointer block"
                   >
                     Lihat Semua Perlombaan &rarr;
@@ -1147,7 +1182,13 @@ export default function App() {
                     isCompact={true}
                   />
                   <button 
-                    onClick={() => setActiveTab('log')}
+                    onClick={() => {
+                      if (!currentUser) {
+                        setIsAuthModalOpen(true);
+                      } else {
+                        setActiveTab('log');
+                      }
+                    }}
                     className="w-full text-center text-xs font-bold text-red-600 bg-white border border-gray-100/80 hover:bg-gray-50 py-3 rounded-xl mt-3 transition-all cursor-pointer block"
                   >
                     Buka Histori Lengkap &rarr;
@@ -1159,35 +1200,37 @@ export default function App() {
               <JajaranPanitia />
 
               {/* Maintenance & Reset Center */}
-              <div className="bg-white border border-red-100 rounded-2xl p-6 shadow-xs mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-red-50 text-red-600 rounded-xl">
-                    <Trash2 size={22} />
+              {isPengurus && (
+                <div className="bg-white border border-red-100 rounded-2xl p-6 shadow-xs mt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-red-50 text-red-600 rounded-xl">
+                      <Trash2 size={22} />
+                    </div>
+                    <div>
+                      <h3 className="font-display font-extrabold text-sm text-gray-800 uppercase tracking-wide">
+                        Pusat Manajemen &amp; Reset Data Panitia
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Bersihkan data lama / hapus seluruh aktivitas untuk memulai lembaran baru kepanitiaan RT.002/RW.003.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-display font-extrabold text-sm text-gray-800 uppercase tracking-wide">
-                      Pusat Manajemen &amp; Reset Data Panitia
-                    </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Bersihkan data lama / hapus seluruh aktivitas untuk memulai lembaran baru kepanitiaan RT.002/RW.003.
-                    </p>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button
+                      onClick={handleResetToDefault}
+                      className="px-3.5 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs"
+                    >
+                      Reset ke Template Awal
+                    </button>
+                    <button
+                      onClick={handleResetToEmpty}
+                      className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-xs"
+                    >
+                      Kosongkan Semua Data Lama
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <button
-                    onClick={handleResetToDefault}
-                    className="px-3.5 py-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-3xs"
-                  >
-                    Reset ke Template Awal
-                  </button>
-                  <button
-                    onClick={handleResetToEmpty}
-                    className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer active:scale-95 shadow-xs"
-                  >
-                    Kosongkan Semua Data Lama
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -1282,22 +1325,38 @@ export default function App() {
 
       {/* 4. STICKY BOTTOM NAVIGATION BAR (Mobile View) */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-100 flex items-center justify-around px-2 z-40 md:hidden shadow-lg">
-        {menuItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id as any)}
-            className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-all cursor-pointer ${
-              activeTab === item.id
-                ? 'text-red-600'
-                : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <div className={`p-1 rounded-lg ${activeTab === item.id ? 'bg-red-50 text-red-600' : ''}`}>
-              {item.icon}
-            </div>
-            <span className="mt-0.5 scale-90 xs:scale-100">{item.label}</span>
-          </button>
-        ))}
+        {menuItems.map(item => {
+          const isLocked = !currentUser && item.id !== 'dashboard';
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (isLocked) {
+                  setIsAuthModalOpen(true);
+                } else {
+                  setActiveTab(item.id as any);
+                }
+              }}
+              className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-[10px] font-bold transition-all cursor-pointer ${
+                activeTab === item.id
+                  ? 'text-red-600'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <div className="relative">
+                <div className={`p-1 rounded-lg ${activeTab === item.id ? 'bg-red-50 text-red-600' : ''}`}>
+                  {item.icon}
+                </div>
+                {isLocked && (
+                  <div className="absolute -top-1 -right-1 bg-red-600 text-white rounded-full p-0.5 border border-white">
+                    <Lock size={8} />
+                  </div>
+                )}
+              </div>
+              <span className="mt-0.5 scale-90 xs:scale-100">{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* 5. OVERLAY MODALS */}

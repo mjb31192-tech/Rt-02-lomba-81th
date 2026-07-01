@@ -240,20 +240,20 @@ export default function LombaList({
 
       {/* DYNAMIC SUB-TABS (Only on Lomba main page) */}
       {!isCompact && (
-        <div className="bg-gray-50/50 p-2 border-b border-gray-100 flex gap-1">
+        <div className="bg-gray-50/50 p-2 border-b border-gray-100 flex gap-1 overflow-x-auto scrollbar-none snap-x whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
             onClick={() => { setSubTab('lomba'); setSearch(''); }}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${subTab === 'lomba' ? 'bg-white text-red-600 shadow-3xs' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-3 py-2 sm:px-4 text-[11px] sm:text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shrink-0 snap-start ${subTab === 'lomba' ? 'bg-white text-red-600 shadow-3xs' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            <Award size={14} />
+            <Award size={13} className="shrink-0" />
             Daftar Perlombaan Aktif
           </button>
           <button
             onClick={() => { setSubTab('usulan'); setSearch(''); }}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 relative ${subTab === 'usulan' ? 'bg-white text-red-600 shadow-3xs' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-3 py-2 sm:px-4 text-[11px] sm:text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 relative shrink-0 snap-start ${subTab === 'usulan' ? 'bg-white text-red-600 shadow-3xs' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            <MessageSquare size={14} />
-            Aspirasi &amp; Usul Warga
+            <MessageSquare size={13} className="shrink-0" />
+            <span>Aspirasi &amp; Usul Warga</span>
             {permintaanLombaList.filter(u => u.status === 'Menunggu').length > 0 && (
               <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[8px] font-bold text-white">
                 {permintaanLombaList.filter(u => u.status === 'Menunggu').length}
@@ -262,9 +262,9 @@ export default function LombaList({
           </button>
           <button
             onClick={() => { setSubTab('ai'); setSearch(''); }}
-            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-2 ${subTab === 'ai' ? 'bg-white text-red-600 shadow-3xs font-extrabold text-red-600' : 'text-gray-500 hover:text-gray-700 font-semibold'}`}
+            className={`px-3 py-2 sm:px-4 text-[11px] sm:text-xs font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shrink-0 snap-start ${subTab === 'ai' ? 'bg-white text-red-600 shadow-3xs font-extrabold text-red-600' : 'text-gray-500 hover:text-gray-700 font-semibold'}`}
           >
-            <Sparkles size={14} className="text-red-500 animate-pulse" />
+            <Sparkles size={13} className="text-red-500 animate-pulse shrink-0" />
             Rekomendasi Lomba (Gemini AI)
           </button>
         </div>
@@ -509,7 +509,7 @@ export default function LombaList({
 
       {/* ----------------- TAB 3: AI RECOMMENDATIONS (GEMINI) ----------------- */}
       {subTab === 'ai' && (
-        <div className="p-5 space-y-6">
+        <div className="p-4 sm:p-5 space-y-4 sm:space-y-6">
           {/* Banner */}
           <div className="bg-linear-to-r from-red-500 to-amber-500 rounded-2xl p-5 text-white shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -642,7 +642,7 @@ export default function LombaList({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {aiResult.map((item, idx) => (
-                  <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-md transition-all flex flex-col justify-between hover:border-red-200 relative group">
+                  <div key={idx} className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 hover:shadow-md transition-all flex flex-col justify-between hover:border-red-200 relative group">
                     <div className="space-y-4">
                       {/* Name and category badge */}
                       <div className="flex items-start justify-between gap-3">
