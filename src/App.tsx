@@ -143,21 +143,34 @@ export default function App() {
 
   const isPengurus = !!currentUser && currentUser.jabatan !== 'Warga';
 
-  const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string; hasFingerprint?: boolean }[]>(() => {
+  const [accounts, setAccounts] = useState<{ username: string; password: string; nama: string; jabatan: string; email?: string; hasFingerprint?: boolean }[]>(() => {
     const saved = localStorage.getItem('hut81_accounts');
     let parsed = saved ? JSON.parse(saved) : null;
     if (!parsed) {
       parsed = [
-        { username: 'admin', password: 'SuperPanitia', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris' },
-        { username: 'sunardi', password: 'SuperPanitia', nama: 'Sunardi', jabatan: 'Ketua RT.002' },
-        { username: 'anto', password: 'SuperPanitia', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia' },
-        { username: 'ayeh', password: 'SuperPanitia', nama: 'Ayeh Patoni', jabatan: 'Bendahara' }
+        { username: 'admin', password: 'SuperPanitia', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris', email: 'ahmadmujib13214@gmail.com' },
+        { username: 'sunardi', password: 'SuperPanitia', nama: 'Sunardi', jabatan: 'Ketua RT.002', email: 'sunardi@gmail.com' },
+        { username: 'anto', password: 'SuperPanitia', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia', email: 'anto@gmail.com' },
+        { username: 'ayeh', password: 'SuperPanitia', nama: 'Ayeh Patoni', jabatan: 'Bendahara', email: 'ayeh@gmail.com' }
       ];
     } else {
       const defaultUsernames = ['admin', 'sunardi', 'anto', 'ayeh'];
+      const defaultEmails: Record<string, string> = {
+        admin: 'ahmadmujib13214@gmail.com',
+        sunardi: 'sunardi@gmail.com',
+        anto: 'anto@gmail.com',
+        ayeh: 'ayeh@gmail.com'
+      };
       parsed = parsed.map((acc: any) => {
-        if (defaultUsernames.includes(acc.username) && (acc.password === 'password' || acc.password === 'SuperPanitia')) {
-          return { ...acc, password: 'SuperPanitia' };
+        if (defaultUsernames.includes(acc.username)) {
+          const updated: any = { ...acc };
+          if (acc.password === 'password' || acc.password === 'SuperPanitia') {
+            updated.password = 'SuperPanitia';
+          }
+          if (!acc.email) {
+            updated.email = defaultEmails[acc.username];
+          }
+          return updated;
         }
         return acc;
       });
@@ -1375,7 +1388,6 @@ export default function App() {
             setIsWargaIuranDetailOpen(true);
           } else {
             logAktivitas('sistem', `Pengurus "${user.nama}" (${user.jabatan}) berhasil login ke sistem.`);
-            alert(`Selamat Datang, ${user.nama}! Anda masuk sebagai ${user.jabatan}.`);
           }
         }}
         accounts={accounts}

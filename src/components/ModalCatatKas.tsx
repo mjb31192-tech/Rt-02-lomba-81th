@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect, ChangeEvent } from 'react';
-import { X, Landmark, Plus, Trash2, Info, AlertTriangle, Calendar } from 'lucide-react';
+import { X, Landmark, Plus, Trash2, Info, AlertTriangle, Calendar, ShieldAlert } from 'lucide-react';
 import { Lomba, Kas } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -46,6 +46,9 @@ export default function ModalCatatKas({
   const [jumlahManual, setJumlahManual] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [bypassDuplicate, setBypassDuplicate] = useState(false);
 
   const isEditing = !!kasToEdit;
 
@@ -53,6 +56,9 @@ export default function ModalCatatKas({
     // Reset inputs when opened or type changed
     if (isOpen) {
       setIsSubmitting(false);
+      setFormError(null);
+      setDuplicateWarning(null);
+      setBypassDuplicate(false);
       if (isEditing && kasToEdit) {
         setTipe(kasToEdit.tipe);
         setKategori(kasToEdit.kategori);
@@ -132,6 +138,8 @@ export default function ModalCatatKas({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
+    setFormError(null);
+    setDuplicateWarning(null);
     
     const finalTanggal = tanggal || new Date().toISOString().split('T')[0];
     const finalJumlah = isEditing ? Number(jumlahManual) : computedTotal;
@@ -160,27 +168,18 @@ export default function ModalCatatKas({
       return matchTipe && matchKategori && matchJumlah && matchTanggal && matchDesc;
     });
 
-    if (isDuplicate) {
-      const confirmProceed = window.confirm(
-        '⚠️ Peringatan Transaksi Duplikat!\n\n' +
-        `Transaksi serupa sudah terdaftar di sistem:\n` +
-        `• Jenis: ${tipe.toUpperCase()}\n` +
-        `• Kategori: ${kategori}\n` +
-        `• Nominal: Rp ${finalJumlah.toLocaleString('id-ID')}\n` +
-        `• Tanggal: ${finalTanggal}\n` +
-        `• Keterangan: ${finalKeterangan}\n\n` +
-        'Apakah Anda yakin ini bukan transaksi duplikat dan ingin menyimpannya?'
+    if (isDuplicate && !bypassDuplicate) {
+      setDuplicateWarning(
+        `Ditemukan kemungkinan transaksi duplikat! Transaksi serupa dengan nominal Rp ${finalJumlah.toLocaleString('id-ID')} pada tanggal ${finalTanggal} dengan kategori "${kategori}" sudah tercatat di sistem.`
       );
-      if (!confirmProceed) {
-        return;
-      }
+      return;
     }
 
     setIsSubmitting(true);
 
     if (isEditing && kasToEdit) {
       if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
-        alert('Mohon lengkapi nominal transaksi dan keterangan!');
+        setFormError('Mohon lengkapi nominal transaksi dan keterangan!');
         setIsSubmitting(false);
         return;
       }
@@ -188,7 +187,7 @@ export default function ModalCatatKas({
     } else {
       if (tipe === 'pemasukan') {
         if (!jumlahManual || Number(jumlahManual) <= 0 || !keterangan) {
-          alert('Mohon lengkapi nominal pemasukan dan keterangan!');
+          setFormError('Mohon lengkapi nominal pemasukan dan keterangan!');
           setIsSubmitting(false);
           return;
         }
@@ -197,12 +196,12 @@ export default function ModalCatatKas({
         // Validating items
         const hasEmptyItem = items.some(item => !item.nama.trim() || item.harga <= 0);
         if (hasEmptyItem) {
-          alert('Mohon lengkapi nama dan harga untuk semua baris pengeluaran!');
+          setFormError('Mohon lengkapi nama dan harga untuk semua baris pengeluaran!');
           setIsSubmitting(false);
           return;
         }
         if (!keterangan) {
-          alert('Mohon isi keterangan/deskripsi pengeluaran!');
+          setFormError('Mohon isi keterangan/deskripsi pengeluaran!');
           setIsSubmitting(false);
           return;
         }
@@ -218,6 +217,7 @@ export default function ModalCatatKas({
     setLombaIdLink('');
     setTanggal('');
     setBuktiFoto('');
+    setBypassDuplicate(false);
     onClose();
   };
 
@@ -269,6 +269,53 @@ export default function ModalCatatKas({
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+              {formError && (
+                <div className="flex items-start gap-2.5 bg-red-50 text-red-600 p-3.5 rounded-xl border border-red-100 text-xs font-semibold">
+                  <ShieldAlert size={16} className="shrink-0 mt-0.5 text-red-500 animate-pulse" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              {duplicateWarning && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3.5 rounded-xl text-xs space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={16} />
+                    <div>
+                      <p className="font-bold text-amber-900 mb-0.5">⚠️ Duplikasi Data Terdeteksi</p>
+                      <p className="text-amber-800 font-medium leading-relaxed">{duplicateWarning}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBypassDuplicate(true);
+                        setDuplicateWarning(null);
+                        // Trigger submit with bypass
+                        setTimeout(() => {
+                          const submitBtn = document.getElementById('submit-kas-btn');
+                          if (submitBtn) {
+                            submitBtn.click();
+                          }
+                        }, 50);
+                      }}
+                      className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition-all active:scale-95 cursor-pointer shadow-xs"
+                    >
+                      Ya, Tetap Simpan Transaksi Ini
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDuplicateWarning(null);
+                        setBypassDuplicate(false);
+                      }}
+                      className="border border-amber-300 bg-white text-amber-700 font-bold px-3.5 py-2 rounded-xl text-xs hover:bg-amber-100/50 transition-all cursor-pointer"
+                    >
+                      Batalkan
+                    </button>
+                  </div>
+                </div>
+              )}
               
               {/* Switch Tipe */}
               <div>
@@ -482,6 +529,7 @@ export default function ModalCatatKas({
                 </button>
                 <button
                   type="submit"
+                  id="submit-kas-btn"
                   disabled={isSubmitting}
                   className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${tipe === 'pemasukan' ? 'bg-emerald-600 hover:bg-emerald-700 hover:shadow-emerald-100' : 'bg-red-600 hover:bg-red-700 hover:shadow-red-100'}`}
                 >

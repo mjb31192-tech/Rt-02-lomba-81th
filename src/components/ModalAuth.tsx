@@ -12,6 +12,7 @@ interface Account {
   password: string;
   nama: string;
   jabatan: string;
+  email?: string;
   hasFingerprint?: boolean;
 }
 
@@ -92,6 +93,22 @@ export default function ModalAuth({
   const [isLoginScanning, setIsLoginScanning] = useState(false);
   const [loginScanProgress, setLoginScanProgress] = useState(0);
 
+  // Real-time Puzzle CAPTCHA & OTP States
+  const [showPuzzle, setShowPuzzle] = useState(false);
+  const [puzzlePurpose, setPuzzlePurpose] = useState<'login' | 'signup' | null>(null);
+  const [puzzleEmail, setPuzzleEmail] = useState('');
+  const [puzzleXTarget, setPuzzleXTarget] = useState(150);
+  const [puzzleXCurrent, setPuzzleXCurrent] = useState(0);
+  const [puzzleSolved, setPuzzleSolved] = useState(false);
+  const [puzzleError, setPuzzleError] = useState('');
+  const [panitiaOtpSent, setPanitiaOtpSent] = useState(false);
+  const [panitiaOtpCode, setPanitiaOtpCode] = useState('');
+  const [panitiaOtpError, setPanitiaOtpError] = useState('');
+  const [panitiaOtpSuccess, setPanitiaOtpSuccess] = useState('');
+  const [panitiaOtpTimer, setPanitiaOtpTimer] = useState(0);
+  const [serverOtp, setServerOtp] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+
   // Handle OTP timer countdown
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -103,103 +120,119 @@ export default function ModalAuth({
     return () => clearInterval(interval);
   }, [otpTimer]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (panitiaOtpTimer > 0) {
+      interval = setInterval(() => {
+        setPanitiaOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [panitiaOtpTimer]);
+
   // Handle Biometric scanning simulation for general panitia gate
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isScanning && scanProgress < 100) {
+    if (isScanning) {
       timer = setInterval(() => {
         setScanProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(timer);
-            setIsScanning(false);
-            setPanitiaUnlocked(true);
-            setMode('panitia');
-            setShowPanitiaGate(false);
-            return 100;
-          }
-          return prev + 5;
+          const next = prev + 10;
+          return next >= 100 ? 100 : next;
         });
-      }, 50);
-    } else if (!isScanning && scanProgress < 100) {
+      }, 100);
+    } else {
       setScanProgress(0);
     }
     return () => clearInterval(timer);
-  }, [isScanning, scanProgress]);
+  }, [isScanning]);
+
+  useEffect(() => {
+    if (isScanning && scanProgress === 100) {
+      setIsScanning(false);
+      setPanitiaUnlocked(true);
+      setMode('panitia');
+      setShowPanitiaGate(false);
+    }
+  }, [scanProgress, isScanning]);
 
   // Handle registration biometrics scan animation
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isRegScanning && regScanProgress < 100) {
+    if (isRegScanning) {
       timer = setInterval(() => {
         setRegScanProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(timer);
-            setIsRegScanning(false);
-            setRegHasFingerprint(true);
-            return 100;
-          }
-          return prev + 10;
+          const next = prev + 10;
+          return next >= 100 ? 100 : next;
         });
-      }, 80);
-    } else if (!isRegScanning && regScanProgress < 100) {
+      }, 100);
+    } else {
       setRegScanProgress(0);
     }
     return () => clearInterval(timer);
-  }, [isRegScanning, regScanProgress]);
+  }, [isRegScanning]);
+
+  useEffect(() => {
+    if (isRegScanning && regScanProgress === 100) {
+      setIsRegScanning(false);
+      setRegHasFingerprint(true);
+    }
+  }, [regScanProgress, isRegScanning]);
 
   // Handle Biometric scanning for login
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (isLoginScanning && loginScanProgress < 100) {
+    if (isLoginScanning) {
       timer = setInterval(() => {
         setLoginScanProgress((prev) => {
-          if (prev >= 100) {
-            clearInterval(timer);
-            setIsLoginScanning(false);
-            
-            // Log in using the registered fingerprint accounts
-            let matchedAcc = null;
-            if (loginUser.trim()) {
-              matchedAcc = accounts.find(
-                (acc) => acc.username.toLowerCase() === loginUser.trim().toLowerCase() && acc.hasFingerprint
-              );
-              if (!matchedAcc) {
-                const userExists = accounts.some(acc => acc.username.toLowerCase() === loginUser.trim().toLowerCase());
-                if (userExists) {
-                  setLoginError(`Akun @${loginUser} belum mengaktifkan autentikasi sidik jari. Silakan masuk dengan password lalu aktifkan di Pengaturan Akun.`);
-                } else {
-                  setLoginError(`Username @${loginUser} tidak ditemukan.`);
-                }
-                return 100;
-              }
-            } else {
-              const fingerprintAccs = accounts.filter(acc => acc.hasFingerprint);
-              if (fingerprintAccs.length > 0) {
-                matchedAcc = fingerprintAccs[0];
-              } else {
-                setLoginError('Tidak ada akun pengurus dengan sidik jari terdaftar. Silakan masuk menggunakan username & password terlebih dahulu.');
-                return 100;
-              }
-            }
-
-            if (matchedAcc) {
-              onLoginSuccess({
-                username: matchedAcc.username,
-                nama: matchedAcc.nama,
-                jabatan: matchedAcc.jabatan
-              });
-              onClose();
-            }
-            return 100;
-          }
-          return prev + 10;
+          const next = prev + 10;
+          return next >= 100 ? 100 : next;
         });
-      }, 80);
-    } else if (!isLoginScanning && loginScanProgress < 100) {
+      }, 100);
+    } else {
       setLoginScanProgress(0);
     }
     return () => clearInterval(timer);
-  }, [isLoginScanning, loginScanProgress, accounts, loginUser, onLoginSuccess, onClose]);
+  }, [isLoginScanning]);
+
+  useEffect(() => {
+    if (isLoginScanning && loginScanProgress === 100) {
+      setIsLoginScanning(false);
+      
+      // Log in using the registered fingerprint accounts
+      let matchedAcc = null;
+      if (loginUser.trim()) {
+        matchedAcc = accounts.find(
+          (acc) => acc.username.toLowerCase() === loginUser.trim().toLowerCase() && acc.hasFingerprint
+        );
+        if (!matchedAcc) {
+          const userExists = accounts.some(acc => acc.username.toLowerCase() === loginUser.trim().toLowerCase());
+          if (userExists) {
+            setLoginError(`Akun @${loginUser} belum mengaktifkan autentikasi sidik jari. Silakan masuk dengan password lalu aktifkan di Pengaturan Akun.`);
+          } else {
+            setLoginError(`Username @${loginUser} tidak ditemukan.`);
+          }
+          return;
+        }
+      } else {
+        const fingerprintAccs = accounts.filter(acc => acc.hasFingerprint);
+        if (fingerprintAccs.length > 0) {
+          matchedAcc = fingerprintAccs[0];
+        } else {
+          setLoginError('Tidak ada akun pengurus dengan sidik jari terdaftar. Silakan masuk menggunakan username & password terlebih dahulu.');
+          return;
+        }
+      }
+
+      if (matchedAcc) {
+        onLoginSuccess({
+          username: matchedAcc.username,
+          nama: matchedAcc.nama,
+          jabatan: matchedAcc.jabatan
+        });
+        onClose();
+      }
+    }
+  }, [loginScanProgress, isLoginScanning, accounts, loginUser, onLoginSuccess, onClose]);
 
   // Warga Request OTP Handler
   const handleRequestOTP = (e: React.FormEvent) => {
@@ -273,6 +306,112 @@ export default function ModalAuth({
     }
   };
 
+  // Send real-time OTP to email
+  const handleSendPanitiaOtp = async () => {
+    setPanitiaOtpError('');
+    setPanitiaOtpSuccess('');
+    try {
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: puzzleEmail, 
+          username: puzzlePurpose === 'login' ? loginUser : regUser 
+        })
+      });
+      const resData = await response.json();
+      if (response.ok && resData.success) {
+        setPanitiaOtpSent(true);
+        setServerOtp(resData.otp);
+        setPanitiaOtpTimer(60);
+        setPanitiaOtpSuccess(`Kode OTP 6-Digit berhasil dikirim secara realtime ke email ${puzzleEmail}.`);
+      } else {
+        setPanitiaOtpError(resData.error || 'Gagal mengirimkan OTP.');
+      }
+    } catch (err: any) {
+      setPanitiaOtpError('Gagal menghubungi server untuk mengirim OTP.');
+    }
+  };
+
+  // Puzzle Slider validation handler
+  const handleVerifyPuzzle = () => {
+    // Check if slider is aligned correctly (with tolerance of ±5%)
+    if (Math.abs(puzzleXCurrent - puzzleXTarget) <= 5) {
+      setPuzzleSolved(true);
+      setPuzzleError('');
+      handleSendPanitiaOtp();
+    } else {
+      setPuzzleError('Gagal! Posisi puzzle tidak pas. Coba sejajarkan potongan merah-putih dengan pas.');
+    }
+  };
+
+  // OTP Verification for login/signup completion
+  const handleVerifyPanitiaOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPanitiaOtpError('');
+
+    if (panitiaOtpCode.trim().length !== 6) {
+      setPanitiaOtpError('Kode OTP harus terdiri dari 6 digit.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: puzzleEmail, otp: panitiaOtpCode })
+      });
+      const resData = await response.json();
+      
+      if (response.ok && resData.success) {
+        if (puzzlePurpose === 'login') {
+          const found = accounts.find(
+            (acc) => acc.username.toLowerCase() === loginUser.trim().toLowerCase()
+          );
+          if (found) {
+            onLoginSuccess({
+              username: found.username,
+              nama: found.nama,
+              jabatan: found.jabatan
+            });
+            // Reset
+            setLoginUser('');
+            setLoginPass('');
+            setShowPuzzle(false);
+            onClose();
+          }
+        } else if (puzzlePurpose === 'signup') {
+          const newAcc: Account = {
+            username: regUser.trim().toLowerCase(),
+            password: regPass,
+            nama: regNama.trim(),
+            jabatan: regJabatan,
+            email: regEmail.trim(),
+            hasFingerprint: regHasFingerprint
+          };
+          onSignUpSuccess(newAcc);
+          onLoginSuccess({
+            username: newAcc.username,
+            nama: newAcc.nama,
+            jabatan: newAcc.jabatan
+          });
+          // Reset
+          setRegUser('');
+          setRegPass('');
+          setRegNama('');
+          setRegEmail('');
+          setRegHasFingerprint(false);
+          setShowPuzzle(false);
+          onClose();
+        }
+      } else {
+        setPanitiaOtpError(resData.error || 'Kode OTP salah atau kedaluwarsa.');
+      }
+    } catch (err) {
+      setPanitiaOtpError('Gagal melakukan verifikasi OTP. Silakan hubungi admin.');
+    }
+  };
+
   // Panitia Login Submission
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,15 +427,18 @@ export default function ModalAuth({
     );
 
     if (found) {
-      onLoginSuccess({
-        username: found.username,
-        nama: found.nama,
-        jabatan: found.jabatan
-      });
-      // Reset
-      setLoginUser('');
-      setLoginPass('');
-      onClose();
+      // Valid credentials! Launch Puzzle verification & OTP
+      setPuzzleEmail(found.email || `${found.username}@gmail.com`);
+      setPuzzlePurpose('login');
+      setPuzzleXTarget(Math.floor(25 + Math.random() * 55)); // Target percentage between 25% and 80%
+      setPuzzleXCurrent(0);
+      setPuzzleSolved(false);
+      setPuzzleError('');
+      setPanitiaOtpSent(false);
+      setPanitiaOtpCode('');
+      setPanitiaOtpError('');
+      setPanitiaOtpSuccess('');
+      setShowPuzzle(true);
     } else {
       setLoginError('Username atau password pengurus salah.');
     }
@@ -307,13 +449,18 @@ export default function ModalAuth({
     e.preventDefault();
     setRegError('');
 
-    if (!regUser.trim() || !regPass.trim() || !regNama.trim()) {
-      setRegError('Seluruh kolom pendaftaran harus diisi.');
+    if (!regUser.trim() || !regPass.trim() || !regNama.trim() || !regEmail.trim()) {
+      setRegError('Seluruh kolom termasuk Email harus diisi.');
       return;
     }
 
     if (regUser.trim().length < 3) {
       setRegError('Username minimal 3 karakter.');
+      return;
+    }
+
+    if (regPass.trim().length < 6) {
+      setRegError('Password minimal 6 karakter.');
       return;
     }
 
@@ -326,26 +473,27 @@ export default function ModalAuth({
       return;
     }
 
-    const newAcc: Account = {
-      username: regUser.trim().toLowerCase(),
-      password: regPass,
-      nama: regNama.trim(),
-      jabatan: regJabatan,
-      hasFingerprint: regHasFingerprint
-    };
+    const emailExists = accounts.some(
+      (acc) => acc.email && acc.email.toLowerCase() === regEmail.trim().toLowerCase()
+    );
 
-    onSignUpSuccess(newAcc);
-    onLoginSuccess({
-      username: newAcc.username,
-      nama: newAcc.nama,
-      jabatan: newAcc.jabatan
-    });
+    if (emailExists) {
+      setRegError('Alamat email sudah terdaftar.');
+      return;
+    }
 
-    setRegUser('');
-    setRegPass('');
-    setRegNama('');
-    setRegHasFingerprint(false);
-    onClose();
+    // Valid inputs! Launch Puzzle verification & OTP
+    setPuzzleEmail(regEmail.trim());
+    setPuzzlePurpose('signup');
+    setPuzzleXTarget(Math.floor(25 + Math.random() * 55)); // Target percentage between 25% and 80%
+    setPuzzleXCurrent(0);
+    setPuzzleSolved(false);
+    setPuzzleError('');
+    setPanitiaOtpSent(false);
+    setPanitiaOtpCode('');
+    setPanitiaOtpError('');
+    setPanitiaOtpSuccess('');
+    setShowPuzzle(true);
   };
 
   const handleQuickLogin = (acc: Account) => {
@@ -407,7 +555,185 @@ export default function ModalAuth({
 
             {/* Core Body Container */}
             <div className="p-6">
-              {showPanitiaGate ? (
+              {showPuzzle ? (
+                <div className="space-y-5">
+                  {/* Puzzle Header */}
+                  <div className="text-center">
+                    <div className="inline-flex p-3 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-950 mb-2">
+                      <Unlock size={24} className="animate-bounce text-indigo-700" />
+                    </div>
+                    <h3 className="font-display font-black text-gray-800 text-sm uppercase tracking-wider">
+                      {puzzleSolved ? '📧 Verifikasi OTP Email' : '🇮🇩 CAPTCHA Bendera Merah Putih'}
+                    </h3>
+                    <p className="text-[10px] text-gray-400 font-medium max-w-xs mx-auto mt-1 leading-relaxed">
+                      {puzzleSolved 
+                        ? `Masukkan 6 digit kode keamanan yang dikirim realtime ke email ${puzzleEmail}`
+                        : 'Geser slider di bawah agar potongan bendera Merah Putih sejajar dengan sempurna.'}
+                    </p>
+                  </div>
+
+                  {/* Puzzle UI (Active when not yet solved) */}
+                  {!puzzleSolved ? (
+                    <div className="space-y-4">
+                      {puzzleError && (
+                        <div className="bg-red-50 text-red-600 p-2.5 rounded-xl border border-red-100 text-[10px] font-bold flex items-center gap-1.5">
+                          <ShieldAlert size={14} className="shrink-0" />
+                          <span>{puzzleError}</span>
+                        </div>
+                      )}
+
+                      {/* The Graphic Box (Flag Canvas) */}
+                      <div className="relative w-full h-32 bg-slate-100 rounded-2xl border border-gray-200 overflow-hidden select-none">
+                        {/* Background flag background */}
+                        <div className="absolute inset-0 flex flex-col">
+                          <div className="h-1/2 bg-red-600/90 flex items-end justify-center">
+                            <span className="text-[9px] font-bold text-white tracking-widest opacity-30 uppercase">PANITIA HUT RI 81</span>
+                          </div>
+                          <div className="h-1/2 bg-white flex items-start justify-center">
+                            <span className="text-[9px] font-bold text-gray-400 tracking-widest opacity-30 uppercase font-mono">KEDAUNG BARU</span>
+                          </div>
+                        </div>
+
+                        {/* Golden Shield emblem in the middle as decoration */}
+                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                          <Award size={64} className="text-indigo-950" />
+                        </div>
+
+                        {/* Missing target cutout (Gray dashed box) */}
+                        <div 
+                          className="absolute top-8 w-12 h-16 border-2 border-dashed border-red-500 bg-black/15 rounded-md flex items-center justify-center"
+                          style={{ left: `${puzzleXTarget}%` }}
+                        >
+                          <div className="text-[9px] text-white/50 font-black">TEMPEL</div>
+                        </div>
+
+                        {/* Active sliding piece (The red/white cutout piece) */}
+                        <div 
+                          className="absolute top-8 w-12 h-16 bg-gradient-to-b from-red-600 to-white border border-gray-300 shadow-xl rounded-md flex flex-col overflow-hidden cursor-ew-resize transition-transform duration-75 active:scale-105"
+                          style={{ left: `${puzzleXCurrent}%` }}
+                        >
+                          <div className="h-1/2 bg-red-600 border-b border-gray-100" />
+                          <div className="h-1/2 bg-white flex items-center justify-center">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sliding controller slider bar */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-gray-500">
+                          <span>GESER KANAN &rarr;</span>
+                          <span className="font-mono text-indigo-600">Posisi: {Math.round(puzzleXCurrent)}% / Target: {Math.round(puzzleXTarget)}%</span>
+                        </div>
+                        
+                        <input 
+                          type="range"
+                          min="0"
+                          max="80"
+                          step="1"
+                          value={puzzleXCurrent}
+                          onChange={(e) => setPuzzleXCurrent(parseInt(e.target.value))}
+                          className="w-full h-2.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-950 focus:outline-hidden"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowPuzzle(false)}
+                          className="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[11px] font-bold py-2.5 rounded-xl cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleVerifyPuzzle}
+                          className="flex-1 bg-indigo-950 hover:bg-indigo-900 text-white text-[11px] font-bold py-2.5 rounded-xl cursor-pointer active:scale-95 transition-all shadow-md"
+                        >
+                          Verifikasi Puzzle
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* OTP code entry screen */
+                    <form onSubmit={handleVerifyPanitiaOtp} className="space-y-4">
+                      {panitiaOtpError && (
+                        <div className="bg-red-50 text-red-600 p-2.5 rounded-xl border border-red-100 text-[10px] font-bold flex items-center gap-1.5">
+                          <ShieldAlert size={14} className="shrink-0" />
+                          <span>{panitiaOtpError}</span>
+                        </div>
+                      )}
+
+                      {panitiaOtpSuccess && (
+                        <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-100 text-[10px] font-bold flex flex-col gap-1 leading-relaxed">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                            <span>{panitiaOtpSuccess}</span>
+                          </div>
+                          {/* Real-time Email simulator toast indicator */}
+                          <div className="mt-1.5 p-2 bg-indigo-950 text-white rounded-lg font-mono text-[10px] border border-indigo-800 flex justify-between items-center animate-pulse">
+                            <span>📧 EMAIL INBOX SIMULATOR:</span>
+                            <span className="bg-yellow-400 text-black px-1.5 py-0.5 rounded font-black tracking-widest">{serverOtp}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 text-center">
+                          Kode Keamanan OTP 6-Digit
+                        </label>
+                        <div className="relative">
+                          <KeyRound className="absolute left-3.5 top-3 text-indigo-400" size={16} />
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={panitiaOtpCode}
+                            onChange={(e) => setPanitiaOtpCode(e.target.value.replace(/\D/g, ''))}
+                            placeholder="Masukkan 6 Angka OTP"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 text-center font-black tracking-widest focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-center">
+                        {panitiaOtpTimer > 0 ? (
+                          <span className="text-[10px] text-gray-400 font-bold flex items-center justify-center gap-1">
+                            <Timer size={12} />
+                            Kirim ulang dalam <span className="text-indigo-600">{panitiaOtpTimer} detik</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleSendPanitiaOtp}
+                            className="text-[10px] text-indigo-600 hover:underline font-bold cursor-pointer"
+                          >
+                            Kirim Ulang Kode OTP via Email
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPuzzle(false);
+                            setPuzzleSolved(false);
+                          }}
+                          className="flex-1 border border-gray-200 hover:bg-gray-50 text-gray-600 text-[11px] font-bold py-2.5 rounded-xl cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 bg-indigo-950 hover:bg-indigo-900 text-white text-[11px] font-bold py-2.5 rounded-xl cursor-pointer active:scale-95 transition-all shadow-md"
+                        >
+                          Konfirmasi & Masuk
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              ) : showPanitiaGate ? (
                 <div className="space-y-5 py-2">
                   <div className="text-center">
                     <div className="inline-flex p-3 rounded-full bg-red-50 border border-red-100 text-red-500 mb-2">
@@ -904,6 +1230,22 @@ export default function ModalAuth({
                             value={regNama}
                             onChange={(e) => setRegNama(e.target.value)}
                             placeholder="Contoh: Ahmad"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                          Email Aktif (untuk OTP Realtime)
+                        </label>
+                        <div className="relative">
+                          <Mail className="absolute left-3.5 top-3 text-indigo-400" size={16} />
+                          <input
+                            type="email"
+                            value={regEmail}
+                            onChange={(e) => setRegEmail(e.target.value)}
+                            placeholder="Contoh: panitia@gmail.com"
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
                           />
                         </div>

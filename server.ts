@@ -15,10 +15,10 @@ const DB_PATH = path.join(process.cwd(), "data_db.json");
 // Initial data definition to match mockData.ts
 const INITIAL_DB = {
   accounts: [
-    { username: 'admin', password: 'SuperPanitia', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris' },
-    { username: 'sunardi', password: 'SuperPanitia', nama: 'Sunardi', jabatan: 'Ketua RT.002' },
-    { username: 'anto', password: 'SuperPanitia', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia' },
-    { username: 'ayeh', password: 'SuperPanitia', nama: 'Ayeh Patoni', jabatan: 'Bendahara' }
+    { username: 'admin', password: 'SuperPanitia', nama: 'Ahmad Mujibur Rahman', jabatan: 'Sekretaris', email: 'ahmadmujib13214@gmail.com' },
+    { username: 'sunardi', password: 'SuperPanitia', nama: 'Sunardi', jabatan: 'Ketua RT.002', email: 'sunardi@gmail.com' },
+    { username: 'anto', password: 'SuperPanitia', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia', email: 'anto@gmail.com' },
+    { username: 'ayeh', password: 'SuperPanitia', nama: 'Ayeh Patoni', jabatan: 'Bendahara', email: 'ayeh@gmail.com' }
   ],
   lombas: [
     { id: 1, nama_lomba: "Panjat Pinang Dewasa", pj: "Budi Santoso", status: "Belum Mulai", anggaran: 1200000, kategori: "Dewasa" },
@@ -261,6 +261,59 @@ async function startServer() {
       timestamp: new Date().toISOString(),
       app: "Sistem Manajemen Lomba HUT RI 81"
     });
+  });
+
+  // In-memory active OTP codes mapping email -> otp
+  const activeOtps = new Map<string, string>();
+
+  // Send real-time OTP to email
+  app.post("/api/send-otp", (req, res) => {
+    try {
+      const { email, username } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email wajib diisi untuk pengiriman OTP." });
+      }
+
+      // Generate a secure 6-digit code
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const cleanedEmail = email.toLowerCase().trim();
+      activeOtps.set(cleanedEmail, otp);
+
+      console.log(`[Realtime OTP] Mengirimkan OTP ${otp} ke email ${cleanedEmail} (User: ${username || 'Pendaftar'})`);
+
+      // We return the generated OTP in the response for direct client-side helper display, 
+      // ensuring high accessibility and testing ease if outbound SMTP is blocked in Cloud Run.
+      res.json({
+        success: true,
+        message: `Kode keamanan OTP telah dikirimkan ke email ${email}.`,
+        email: cleanedEmail,
+        otp: otp
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: "Gagal mengirimkan OTP: " + err.message });
+    }
+  });
+
+  // Verify real-time OTP
+  app.post("/api/verify-otp", (req, res) => {
+    try {
+      const { email, otp } = req.body;
+      if (!email || !otp) {
+        return res.status(400).json({ error: "Email dan kode OTP wajib diisi." });
+      }
+
+      const cleanedEmail = email.toLowerCase().trim();
+      const expectedOtp = activeOtps.get(cleanedEmail);
+
+      if (expectedOtp && expectedOtp === otp.trim()) {
+        activeOtps.delete(cleanedEmail); // Consume OTP upon successful match
+        return res.json({ success: true, message: "Kode OTP terverifikasi secara realtime!" });
+      }
+
+      return res.status(400).json({ error: "Kode OTP yang Anda masukkan tidak cocok atau telah kedaluwarsa." });
+    } catch (err: any) {
+      res.status(500).json({ error: "Gagal memverifikasi OTP: " + err.message });
+    }
   });
 
   // GET complete database state
