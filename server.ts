@@ -5,9 +5,10 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { initializeApp as initializeClientApp } from "firebase/app";
-import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from "firebase/firestore";
+import { getFirestore as getClientFirestore, doc, getDoc, setDoc, setLogLevel } from "firebase/firestore";
 
 dotenv.config();
+setLogLevel("error");
 
 const DB_PATH = path.join(process.cwd(), "data_db.json");
 

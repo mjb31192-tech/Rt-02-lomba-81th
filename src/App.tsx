@@ -15,7 +15,8 @@ import {
   Unlock,
   LogIn,
   LogOut,
-  UserPlus
+  UserPlus,
+  Settings
 } from 'lucide-react';
 import {
   Lomba,
@@ -57,6 +58,7 @@ import ModalAuth from './components/ModalAuth';
 import ModalLaporanIuranMingguan from './components/ModalLaporanIuranMingguan';
 import ModalExportPdfLaporan from './components/ModalExportPdfLaporan';
 import ModalRaffleDoorprize from './components/ModalRaffleDoorprize';
+import ModalAccountSettings from './components/ModalAccountSettings';
 
 // Helper to generate a truly unique numerical ID to prevent duplicate keys in lists
 function getUniqueId(): number {
@@ -181,6 +183,7 @@ export default function App() {
   const [selectedReportForExport, setSelectedReportForExport] = useState<LaporanIuranMingguan | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedKKIdForModal, setSelectedKKIdForModal] = useState<number | ''>('');
+  const [isAccountSettingsOpen, setIsAccountSettingsOpen] = useState(false);
   
   // Custom Warga & Lomba edit states
   const [lombaToEdit, setLombaToEdit] = useState<Lomba | null>(null);
@@ -539,6 +542,41 @@ export default function App() {
     logAktivitas('iuran', `Laporan Iuran: Laporan ${reportToDelete.minggu_ke} dengan total Rp ${reportToDelete.total_jumlah.toLocaleString('id-ID')} telah dihapus.`);
   };
 
+  const handleUpdateAccount = (updated: {
+    username: string;
+    nama: string;
+    password?: string;
+    hasFingerprint?: boolean;
+  }) => {
+    setAccounts((prev) =>
+      prev.map((acc) => {
+        if (acc.username.toLowerCase() === updated.username.toLowerCase()) {
+          return {
+            ...acc,
+            nama: updated.nama,
+            password: updated.password !== undefined ? updated.password : acc.password,
+            hasFingerprint: updated.hasFingerprint !== undefined ? updated.hasFingerprint : acc.hasFingerprint,
+          };
+        }
+        return acc;
+      })
+    );
+
+    setCurrentUser((prev) => {
+      if (prev && prev.username.toLowerCase() === updated.username.toLowerCase()) {
+        const updatedUser = {
+          ...prev,
+          nama: updated.nama,
+        };
+        localStorage.setItem('hut81_current_user', JSON.stringify(updatedUser));
+        return updatedUser;
+      }
+      return prev;
+    });
+
+    logAktivitas('sistem', `Pengguna @${updated.username} memperbarui pengaturan akun (Nama: ${updated.nama}${updated.hasFingerprint ? ', Sidik Jari Aktif' : ''}).`);
+  };
+
   const handleToggleAbsensi = (pesertaId: number) => {
     if (!checkAuth()) return;
     let updatedStatus = false;
@@ -830,6 +868,13 @@ export default function App() {
                     <p className={`text-[9px] font-bold uppercase tracking-wider leading-none ${isPengurus ? 'text-emerald-600' : 'text-red-500'}`}>{currentUser.jabatan}</p>
                   </div>
                   <button
+                    onClick={() => setIsAccountSettingsOpen(true)}
+                    className="p-1 sm:p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                    title="Pengaturan Akun"
+                  >
+                    <Settings size={14} />
+                  </button>
+                  <button
                     onClick={() => {
                       if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.nama}?`)) {
                         logAktivitas('sistem', `Pengguna "${currentUser.nama}" (${currentUser.jabatan}) telah keluar dari sistem.`);
@@ -945,13 +990,23 @@ export default function App() {
                     <p className={`text-[9px] font-bold uppercase tracking-wider ${isPengurus ? 'text-emerald-600' : 'text-red-500'}`}>{currentUser.jabatan}</p>
                     <button
                       onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsAccountSettingsOpen(true);
+                      }}
+                      className="mt-2 w-full flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-bold py-1.5 rounded-lg transition-all cursor-pointer"
+                    >
+                      <Settings size={12} />
+                      <span>Pengaturan Akun</span>
+                    </button>
+                    <button
+                      onClick={() => {
                         if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.nama}?`)) {
                           logAktivitas('sistem', `Pengguna "${currentUser.nama}" (${currentUser.jabatan}) telah keluar.`);
                           setCurrentUser(null);
                           setIsMobileMenuOpen(false);
                         }
                       }}
-                      className="mt-2 w-full flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold py-1.5 rounded-lg transition-all"
+                      className="mt-1.5 w-full flex items-center justify-center gap-1 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold py-1.5 rounded-lg transition-all cursor-pointer"
                     >
                       <LogOut size={12} />
                       <span>Log Out Akun</span>
@@ -1328,6 +1383,14 @@ export default function App() {
         onClose={() => setIsWargaIuranDetailOpen(false)}
         currentUser={currentUser}
         iuranKKList={iuranKK}
+      />
+
+      <ModalAccountSettings
+        isOpen={isAccountSettingsOpen}
+        onClose={() => setIsAccountSettingsOpen(false)}
+        currentUser={currentUser}
+        accounts={accounts}
+        onUpdateAccount={handleUpdateAccount}
       />
 
       <ModalRaffleDoorprize
