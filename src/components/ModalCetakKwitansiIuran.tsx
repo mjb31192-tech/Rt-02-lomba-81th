@@ -40,10 +40,10 @@ function formatTerbilang(num: number): string {
 
 // Generate a deterministic and unique doorprize coupon code for each family
 export function getDoorprizeCode(kkId: number, rt: string): string {
-  const hash = (kkId * 31337 + 7919) % 9000 + 1000;
   // Format RT: remove whitespace, non-alphanumeric, pad to 2 digits if numeric
   const cleanRt = rt.replace(/\D/g, '').padStart(2, '0');
-  return `RT-${cleanRt}-DP-${hash}`;
+  const num = String((kkId * 13 + 7) % 100).padStart(2, '0');
+  return `RT-${cleanRt}-${num}`;
 }
 
 export default function ModalCetakKwitansiIuran({

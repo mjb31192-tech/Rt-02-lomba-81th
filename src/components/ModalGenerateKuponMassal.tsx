@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, Search, Sparkles, Ticket, QrCode, Check } from 'lucide-react';
+import { X, Printer, Search, Sparkles, Ticket, QrCode, Check, ChevronDown } from 'lucide-react';
 import { IuranKK, Peserta } from '../types';
 import { getDoorprizeCode } from './ModalCetakKwitansiIuran';
 import { motion } from 'motion/react';
@@ -23,14 +23,15 @@ export default function ModalGenerateKuponMassal({
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'lunas_only'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(true);
 
   if (!isOpen) return null;
 
   // Generate a deterministic and unique doorprize code for Peserta
   const getPesertaDoorprizeCode = (id: number, rt: string): string => {
-    const hash = (id * 17291 + 5449) % 9000 + 1000;
     const cleanRt = rt.replace(/\D/g, '').padStart(2, '0');
-    return `RT-${cleanRt}-JS-${hash}`; // Prepend with RT-XX
+    const num = String((id * 17 + 3) % 100).padStart(2, '0');
+    return `RT-${cleanRt}-${num}`;
   };
 
   // Process data based on source selection
@@ -214,7 +215,7 @@ export default function ModalGenerateKuponMassal({
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative w-full max-w-5xl bg-white border border-gray-100 rounded-3xl shadow-2xl flex flex-col max-h-[90vh] no-print overflow-hidden"
+        className="relative w-full max-w-5xl bg-white border border-gray-100 rounded-3xl shadow-2xl flex flex-col h-[90vh] md:h-auto max-h-[90vh] no-print overflow-hidden"
       >
         {/* Header */}
         <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-red-50 to-white">
@@ -243,7 +244,7 @@ export default function ModalGenerateKuponMassal({
         </div>
 
         {/* Configurations Area */}
-        <div className="p-4 bg-gray-50 border-b border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="p-3 bg-gray-50 border-b border-gray-150 grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Sumber Data Toggle */}
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Sumber Data Warga</label>
@@ -330,110 +331,150 @@ export default function ModalGenerateKuponMassal({
           </div>
         </div>
 
-        {/* Tickets Grid Display */}
-        <div className="flex-1 overflow-y-auto p-5 bg-gray-50/50">
-          {tickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
-              <Ticket size={48} className="stroke-[1.2] text-gray-300 animate-bounce" />
-              <div className="text-center">
-                <p className="text-sm font-bold text-gray-600">Tidak Ada Data Kupon</p>
-                <p className="text-xs text-gray-400 mt-1">Saring atau masukkan kueri pencarian yang berbeda.</p>
-              </div>
+        {/* Accordion Toggle Header (Dropdown Atas Bawah) - Fully Tap-Friendly on Mobile */}
+        <div 
+          onClick={() => setIsPreviewOpen(!isPreviewOpen)}
+          className="bg-slate-50/80 hover:bg-slate-100/90 border-b border-gray-150 px-5 py-3.5 flex items-center justify-between no-print select-none cursor-pointer transition-all duration-200 active:bg-gray-200"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-gray-800">
+                Preview Cetak Kupon
+              </span>
+              <span className="text-[10px] bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full font-black">
+                {tickets.length} Kupon
+              </span>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {tickets.map((ticket) => (
-                <div
-                  key={`${sourceType}-${ticket.id}`}
-                  className="bg-white border-2 border-dashed border-red-200 rounded-2xl flex hover:shadow-md transition-all duration-300 relative overflow-hidden group"
-                >
-                  {/* Left festive red sidebar banner */}
-                  <div className="w-1.5 bg-gradient-to-b from-red-600 to-red-400 shrink-0"></div>
-
-                  {/* Main Ticket Area */}
-                  <div className="flex-1 p-3.5 flex flex-col justify-between space-y-3.5 min-w-0">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between flex-wrap gap-1.5">
-                        <span className="text-[9px] bg-red-50 text-red-600 px-2 py-0.5 rounded-md font-extrabold uppercase tracking-widest border border-red-100/50">
-                          {ticket.subtitle}
-                        </span>
-                        <span className="text-[10px] font-mono font-semibold text-gray-400">
-                          No. #{String(ticket.index).padStart(3, '0')}
-                        </span>
-                      </div>
-
-                      <h4 className="font-display font-extrabold text-sm sm:text-base text-gray-900 truncate uppercase tracking-tight">
-                        {ticket.name}
-                      </h4>
-
-                      <div className="flex items-center gap-2.5 text-xs text-gray-500">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded font-bold">{ticket.rt}</span>
-                        <span className="text-gray-300">•</span>
-                        <span>Status: <strong className={ticket.status === 'Lunas' || ticket.status === 'Hadir Lapangan' ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>{ticket.status}</strong></span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-end justify-between border-t border-gray-100 pt-2.5">
-                      <div className="space-y-0.5">
-                        <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider block">KODE UNDIAN DOORPRIZE</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs text-red-600 font-black bg-red-50/50 px-2 py-0.5 rounded border border-red-100/30">
-                            {ticket.code}
-                          </span>
-                          <button
-                            onClick={() => handleCopyCode(ticket.code)}
-                            className="text-[10px] text-gray-400 hover:text-red-500 cursor-pointer"
-                            title="Copy code"
-                          >
-                            {copiedCode === ticket.code ? (
-                              <Check size={11} className="text-emerald-500 stroke-[3]" />
-                            ) : (
-                              <span className="text-[9px] font-bold hover:underline">Copy</span>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Barcode graphic simulation */}
-                      <div className="flex flex-col items-end shrink-0 select-none">
-                        <div className="flex items-baseline gap-0.5">
-                          {[1, 3, 1, 2, 4, 1, 3, 2, 1, 3, 2, 1, 4, 2].map((w, i) => (
-                            <div key={i} className="bg-gray-800" style={{ width: `${w}px`, height: '24px' }}></div>
-                          ))}
-                        </div>
-                        <span className="text-[8px] font-mono text-gray-400 mt-1 tracking-widest">{ticket.code.replace(/[^a-zA-Z0-9]/g, '')}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Perforated vertical separator line */}
-                  <div className="relative flex flex-col justify-between items-center py-2.5">
-                    <div className="w-4 h-4 bg-gray-50 rounded-full -mt-4.5 border border-red-100 border-t-transparent shadow-inner"></div>
-                    <div className="flex-1 border-r-2 border-dotted border-gray-200"></div>
-                    <div className="w-4 h-4 bg-gray-50 rounded-full -mb-4.5 border border-red-100 border-b-transparent shadow-inner"></div>
-                  </div>
-
-                  {/* Tear-off Stub (Struk Kupon) */}
-                  <div className="w-24 sm:w-28 bg-slate-50 p-3 flex flex-col justify-between items-center text-center shrink-0">
-                    <div className="space-y-1">
-                      <QrCode size={20} className="text-gray-400 mx-auto" />
-                      <span className="text-[8px] text-gray-400 uppercase font-black tracking-wider block">STRUK PANITIA</span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <span className="font-mono text-[10px] text-gray-900 font-extrabold bg-white border border-gray-150 px-1 rounded block truncate max-w-20">
-                        {ticket.code}
-                      </span>
-                      <span className="text-[8px] text-gray-400 font-bold uppercase">{ticket.rt}</span>
-                    </div>
-
-                    <span className="text-[7px] text-gray-400 uppercase tracking-widest block leading-none font-bold">SOBEK DI SINI</span>
-                  </div>
-                </div>
-              ))}
+            <p className="text-[10px] text-gray-500 font-medium">
+              {isPreviewOpen ? 'Ketuk untuk menyembunyikan preview' : 'Ketuk untuk menampilkan kupon siap cetak'}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-[9px] text-gray-400 font-semibold italic hidden md:inline">
+              *Menyembunyikan preview tidak mempengaruhi hasil cetakan A4
+            </span>
+            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-600 shadow-3xs hover:text-red-600 hover:border-red-200 transition-all">
+              <ChevronDown 
+                size={16} 
+                className={`transition-transform duration-300 ${isPreviewOpen ? 'rotate-180' : 'rotate-0'}`} 
+              />
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Tickets Grid Display */}
+        {isPreviewOpen ? (
+          <div className="flex-1 overflow-y-auto p-5 bg-gray-50/50">
+            {tickets.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400 space-y-3">
+                <Ticket size={48} className="stroke-[1.2] text-gray-300 animate-bounce" />
+                <div className="text-center">
+                  <p className="text-sm font-bold text-gray-600">Tidak Ada Data Kupon</p>
+                  <p className="text-xs text-gray-400 mt-1">Saring atau masukkan kueri pencarian yang berbeda.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {tickets.map((ticket) => (
+                  <div
+                    key={`${sourceType}-${ticket.id}`}
+                    className="bg-white border-2 border-dashed border-red-200 rounded-2xl flex hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+                  >
+                    {/* Left festive red sidebar banner */}
+                    <div className="w-1.5 bg-gradient-to-b from-red-600 to-red-400 shrink-0"></div>
+
+                    {/* Main Ticket Area */}
+                    <div className="flex-1 p-3.5 flex flex-col justify-between space-y-3.5 min-w-0">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between flex-wrap gap-1.5">
+                          <span className="text-[9px] bg-red-50 text-red-600 px-2 py-0.5 rounded-md font-extrabold uppercase tracking-widest border border-red-100/50">
+                            {ticket.subtitle}
+                          </span>
+                          <span className="text-[10px] font-mono font-semibold text-gray-400">
+                            No. #{String(ticket.index).padStart(3, '0')}
+                          </span>
+                        </div>
+
+                        <h4 className="font-display font-extrabold text-sm sm:text-base text-gray-900 truncate uppercase tracking-tight">
+                          {ticket.name}
+                        </h4>
+
+                        <div className="flex items-center gap-2.5 text-xs text-gray-500">
+                          <span className="bg-gray-100 px-2 py-0.5 rounded font-bold">{ticket.rt}</span>
+                          <span className="text-gray-300">•</span>
+                          <span>Status: <strong className={ticket.status === 'Lunas' || ticket.status === 'Hadir Lapangan' ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>{ticket.status}</strong></span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-end justify-between border-t border-gray-100 pt-2.5">
+                        <div className="space-y-0.5">
+                          <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider block">KODE UNDIAN DOORPRIZE</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs text-red-600 font-black bg-red-50/50 px-2 py-0.5 rounded border border-red-100/30">
+                              {ticket.code}
+                            </span>
+                            <button
+                              onClick={() => handleCopyCode(ticket.code)}
+                              className="text-[10px] text-gray-400 hover:text-red-500 cursor-pointer"
+                              title="Copy code"
+                            >
+                              {copiedCode === ticket.code ? (
+                                <Check size={11} className="text-emerald-500 stroke-[3]" />
+                              ) : (
+                                <span className="text-[9px] font-bold hover:underline">Copy</span>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Barcode graphic simulation */}
+                        <div className="flex flex-col items-end shrink-0 select-none">
+                          <div className="flex items-baseline gap-0.5">
+                            {[1, 3, 1, 2, 4, 1, 3, 2, 1, 3, 2, 1, 4, 2].map((w, i) => (
+                              <div key={i} className="bg-gray-800" style={{ width: `${w}px`, height: '24px' }}></div>
+                            ))}
+                          </div>
+                          <span className="text-[8px] font-mono text-gray-400 mt-1 tracking-widest">{ticket.code.replace(/[^a-zA-Z0-9]/g, '')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Perforated vertical separator line */}
+                    <div className="relative flex flex-col justify-between items-center py-2.5">
+                      <div className="w-4 h-4 bg-gray-50 rounded-full -mt-4.5 border border-red-100 border-t-transparent shadow-inner"></div>
+                      <div className="flex-1 border-r-2 border-dotted border-gray-200"></div>
+                      <div className="w-4 h-4 bg-gray-50 rounded-full -mb-4.5 border border-red-100 border-b-transparent shadow-inner"></div>
+                    </div>
+
+                    {/* Tear-off Stub (Struk Kupon) */}
+                    <div className="w-24 sm:w-28 bg-slate-50 p-3 flex flex-col justify-between items-center text-center shrink-0">
+                      <div className="space-y-1">
+                        <QrCode size={20} className="text-gray-400 mx-auto" />
+                        <span className="text-[8px] text-gray-400 uppercase font-black tracking-wider block">STRUK PANITIA</span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="font-mono text-[10px] text-gray-900 font-extrabold bg-white border border-gray-150 px-1 rounded block truncate max-w-20">
+                          {ticket.code}
+                        </span>
+                        <span className="text-[8px] text-gray-400 font-bold uppercase">{ticket.rt}</span>
+                      </div>
+
+                      <span className="text-[7px] text-gray-400 uppercase tracking-widest block leading-none font-bold">SOBEK DI SINI</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-12 bg-gray-50/50 text-center text-gray-500 no-print select-none">
+            <Ticket size={44} className="text-gray-300 mb-2 animate-bounce stroke-[1.2]" />
+            <p className="text-xs font-bold text-gray-700">Preview Kupon Sedang Disembunyikan</p>
+            <p className="text-[11px] text-gray-400 mt-1 max-w-sm">Klik tombol dropdown di atas ("Tampilkan Preview Kupon") untuk membuka daftar {tickets.length} kupon.</p>
+          </div>
+        )}
 
         {/* Bottom Footer */}
         <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50">
