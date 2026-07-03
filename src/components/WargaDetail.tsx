@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Peserta, Lomba } from '../types';
-import { Search, UserPlus, Phone, MapPin, Calendar, CheckCircle, XCircle, Trash2 } from 'lucide-react';
+import { Search, UserPlus, Phone, MapPin, Calendar, CheckCircle, XCircle, Trash2, Ticket } from 'lucide-react';
 
 interface WargaDetailProps {
   pesertas: Peserta[];
   lombas: Lomba[];
   onToggleAbsensi: (id: number) => void;
   onOpenPendaftaran: () => void;
+  onOpenKuponMassal: () => void;
   onDeletePeserta?: (id: number) => void;
   isPengurus?: boolean;
 }
@@ -16,6 +17,7 @@ export default function WargaDetail({
   lombas,
   onToggleAbsensi,
   onOpenPendaftaran,
+  onOpenKuponMassal,
   onDeletePeserta,
   isPengurus = false,
 }: WargaDetailProps) {
@@ -49,15 +51,25 @@ export default function WargaDetail({
             </p>
           </div>
 
-          {isPengurus && (
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={onOpenPendaftaran}
-              className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+              onClick={onOpenKuponMassal}
+              className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
             >
-              <UserPlus size={16} />
-              Daftar Peserta Baru
+              <Ticket size={16} />
+              Cetak Kupon Massal
             </button>
-          )}
+
+            {isPengurus && (
+              <button
+                onClick={onOpenPendaftaran}
+                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+              >
+                <UserPlus size={16} />
+                Daftar Peserta Baru
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Filters grid */}

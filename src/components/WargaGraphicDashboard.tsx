@@ -19,7 +19,8 @@ import {
   ChevronDown, 
   ChevronUp, 
   Clock, 
-  HelpCircle 
+  HelpCircle,
+  Ticket
 } from 'lucide-react';
 import { IuranKK, Lomba, Peserta, Kas } from '../types';
 
@@ -39,6 +40,7 @@ interface WargaGraphicDashboardProps {
   onOpenCheckIuran: () => void;
   onOpenUsulkanLomba: () => void;
   onOpenRaffle: () => void;
+  onOpenKuponMassal: () => void;
 }
 
 export default function WargaGraphicDashboard({
@@ -50,6 +52,7 @@ export default function WargaGraphicDashboard({
   onOpenCheckIuran,
   onOpenUsulkanLomba,
   onOpenRaffle,
+  onOpenKuponMassal,
 }: WargaGraphicDashboardProps) {
   
   // 1. Tab State
@@ -92,7 +95,7 @@ export default function WargaGraphicDashboard({
   const sisaKasRiil = totalPemasukanSeluruhnya - totalKasPengeluaran;
   
   // Target total budget HUT (Benchmark)
-  const targetBudgetHUT = 15000000; // Rp 15.000.000 target
+  const targetBudgetHUT = 7000000; // Rp 7.000.000 target
   const pencapaianTargetBudgetPercent = Math.round((totalPemasukanSeluruhnya / targetBudgetHUT) * 100);
 
   // Participant calculations
@@ -330,14 +333,14 @@ export default function WargaGraphicDashboard({
                 </div>
 
                 {/* Quick Actions buttons for Citizens */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div 
                     onClick={onOpenUsulkanLomba}
                     className="bg-slate-950/40 hover:bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between hover:border-red-500/40 transition-all cursor-pointer group active:scale-98"
                   >
                     <div className="space-y-1">
-                      <h4 className="text-xs font-bold text-slate-100 group-hover:text-red-400 transition-colors uppercase tracking-wider">Usulkan Lomba Baru</h4>
-                      <p className="text-[10px] text-slate-400">Sumbangkan aspirasi &amp; ide kreatif Anda</p>
+                      <h4 className="text-xs font-bold text-slate-100 group-hover:text-red-400 transition-colors uppercase tracking-wider">Usulkan Lomba</h4>
+                      <p className="text-[10px] text-slate-400">Sumbangkan ide kreatif Anda</p>
                     </div>
                     <div className="p-2.5 bg-red-600/20 text-red-500 rounded-xl group-hover:bg-red-600 group-hover:text-white transition-all shadow-md">
                       <ArrowUpRight size={16} />
@@ -345,12 +348,25 @@ export default function WargaGraphicDashboard({
                   </div>
 
                   <button
+                    onClick={onOpenKuponMassal}
+                    className="bg-slate-950/40 hover:bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between hover:border-red-500/40 transition-all cursor-pointer group text-left active:scale-98"
+                  >
+                    <div className="space-y-1">
+                      <h4 className="text-xs font-bold text-slate-100 group-hover:text-red-400 transition-colors uppercase tracking-wider">Kupon Massal</h4>
+                      <p className="text-[10px] text-slate-400">Generate e-ticket &amp; kupon warga</p>
+                    </div>
+                    <div className="p-2.5 bg-red-600/20 text-red-500 rounded-xl group-hover:bg-red-600 group-hover:text-white transition-all shadow-md">
+                      <Ticket size={16} />
+                    </div>
+                  </button>
+
+                  <button
                     onClick={onOpenRaffle}
                     className="bg-slate-950/40 hover:bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between hover:border-amber-500/40 transition-all cursor-pointer group text-left active:scale-98"
                   >
                     <div className="space-y-1">
                       <h4 className="text-xs font-bold text-slate-100 group-hover:text-amber-400 transition-colors uppercase tracking-wider">Undian Doorprize</h4>
-                      <p className="text-[10px] text-slate-400">Kocok kupon doorprize warga terverifikasi</p>
+                      <p className="text-[10px] text-slate-400">Kocok kupon terverifikasi</p>
                     </div>
                     <div className="p-2.5 bg-amber-600/20 text-amber-500 rounded-xl group-hover:bg-amber-500 group-hover:text-white transition-all shadow-md">
                       <Gift size={16} />
@@ -560,7 +576,7 @@ export default function WargaGraphicDashboard({
                   )}
                   {activeTooltip === 'target' && (
                     <p className="text-slate-200">
-                      <strong>Target Anggaran Ideal (Rp 15.000.000):</strong> Rencana target total pendanaan HUT-RI ke-81 RT.002 untuk menyelenggarakan perlombaan meriah, penyediaan piala, panggung kemerdekaan, dan konsumsi pesta rakyat warga.
+                      <strong>Target Anggaran Ideal (Rp 7.000.000):</strong> Rencana target total pendanaan HUT-RI ke-81 RT.002 untuk menyelenggarakan perlombaan meriah, penyediaan piala, panggung kemerdekaan, dan konsumsi pesta rakyat warga.
                     </p>
                   )}
                   {activeTooltip === 'masuk' && (
@@ -602,7 +618,7 @@ export default function WargaGraphicDashboard({
                   <input 
                     type="range" 
                     min="0" 
-                    max="5000000" 
+                    max="8000000" 
                     step="100000"
                     value={simulasiSponsor} 
                     onChange={(e) => setSimulasiSponsor(Number(e.target.value))}
@@ -610,13 +626,13 @@ export default function WargaGraphicDashboard({
                   />
                   <div className="flex gap-1">
                     <button 
-                      onClick={() => setSimulasiSponsor(prev => Math.min(prev + 200000, 5000000))}
+                      onClick={() => setSimulasiSponsor(prev => Math.min(prev + 200000, 8000000))}
                       className="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded-md hover:bg-slate-700 font-bold"
                     >
                       +200k
                     </button>
                     <button 
-                      onClick={() => setSimulasiSponsor(prev => Math.min(prev + 500000, 5000000))}
+                      onClick={() => setSimulasiSponsor(prev => Math.min(prev + 500000, 8000000))}
                       className="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded-md hover:bg-slate-700 font-bold"
                     >
                       +500k
@@ -639,7 +655,7 @@ export default function WargaGraphicDashboard({
                   <input 
                     type="range" 
                     min="0" 
-                    max="5000000" 
+                    max="8000000" 
                     step="100000"
                     value={simulasiBiaya} 
                     onChange={(e) => setSimulasiBiaya(Number(e.target.value))}
@@ -647,13 +663,13 @@ export default function WargaGraphicDashboard({
                   />
                   <div className="flex gap-1">
                     <button 
-                      onClick={() => setSimulasiBiaya(prev => Math.min(prev + 200000, 5000000))}
+                      onClick={() => setSimulasiBiaya(prev => Math.min(prev + 200000, 8000000))}
                       className="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded-md hover:bg-slate-700 font-bold"
                     >
                       +200k
                     </button>
                     <button 
-                      onClick={() => setSimulasiBiaya(prev => Math.min(prev + 500000, 5000000))}
+                      onClick={() => setSimulasiBiaya(prev => Math.min(prev + 500000, 8000000))}
                       className="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded-md hover:bg-slate-700 font-bold"
                     >
                       +500k

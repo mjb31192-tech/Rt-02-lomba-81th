@@ -59,6 +59,7 @@ import ModalLaporanIuranMingguan from './components/ModalLaporanIuranMingguan';
 import ModalExportPdfLaporan from './components/ModalExportPdfLaporan';
 import ModalRaffleDoorprize from './components/ModalRaffleDoorprize';
 import ModalAccountSettings from './components/ModalAccountSettings';
+import ModalGenerateKuponMassal from './components/ModalGenerateKuponMassal';
 
 // Helper to generate a truly unique numerical ID to prevent duplicate keys in lists
 function getUniqueId(): number {
@@ -202,6 +203,7 @@ export default function App() {
   const [lombaToEdit, setLombaToEdit] = useState<Lomba | null>(null);
   const [isWargaIuranDetailOpen, setIsWargaIuranDetailOpen] = useState(false);
   const [isRaffleOpen, setIsRaffleOpen] = useState(false);
+  const [isKuponMassalOpen, setIsKuponMassalOpen] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -1125,6 +1127,7 @@ export default function App() {
                 onOpenCheckIuran={() => setIsWargaIuranDetailOpen(true)}
                 onOpenUsulkanLomba={() => setIsPermintaanOpen(true)}
                 onOpenRaffle={() => setIsRaffleOpen(true)}
+                onOpenKuponMassal={() => setIsKuponMassalOpen(true)}
               />
 
               {/* Quick Actions Grid (Pengurus Only) */}
@@ -1306,6 +1309,7 @@ export default function App() {
                 lombas={lombas}
                 onToggleAbsensi={handleToggleAbsensi}
                 onOpenPendaftaran={() => setIsPendaftaranOpen(true)}
+                onOpenKuponMassal={() => setIsKuponMassalOpen(true)}
                 onDeletePeserta={handleDeletePeserta}
                 isPengurus={isPengurus}
               />
@@ -1476,6 +1480,13 @@ export default function App() {
         isOpen={isRaffleOpen}
         onClose={() => setIsRaffleOpen(false)}
         iuranKKList={iuranKK}
+      />
+
+      <ModalGenerateKuponMassal
+        isOpen={isKuponMassalOpen}
+        onClose={() => setIsKuponMassalOpen(false)}
+        iuranKKList={iuranKK}
+        pesertas={pesertas}
       />
     </div>
   );
