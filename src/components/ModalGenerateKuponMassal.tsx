@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { X, Printer, Search, Filter, Sparkles, Ticket, QrCode, Download, Check, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Printer, Search, Sparkles, Ticket, QrCode, Check } from 'lucide-react';
 import { IuranKK, Peserta } from '../types';
 import { getDoorprizeCode } from './ModalCetakKwitansiIuran';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 interface ModalGenerateKuponMassalProps {
   isOpen: boolean;
@@ -30,7 +30,7 @@ export default function ModalGenerateKuponMassal({
   const getPesertaDoorprizeCode = (id: number, rt: string): string => {
     const hash = (id * 17291 + 5449) % 9000 + 1000;
     const cleanRt = rt.replace(/\D/g, '').padStart(2, '0');
-    return `JS-${cleanRt}-${hash}`;
+    return `RT-${cleanRt}-JS-${hash}`; // Prepend with RT-XX
   };
 
   // Process data based on source selection
@@ -75,10 +75,14 @@ export default function ModalGenerateKuponMassal({
 
   const tickets = getTickets();
 
+  // Chunk tickets array into pages of 20 elements for printing
+  const ticketPages: any[][] = [];
+  for (let i = 0; i < tickets.length; i += 20) {
+    ticketPages.push(tickets.slice(i, i + 20));
+  }
+
   // Print function
   const handlePrint = () => {
-    // We will create a temporary iframe or just trigger window.print with custom media queries.
-    // To achieve the absolute best printable layout, we can trigger window.print() and let our print styles handle it.
     window.print();
   };
 
@@ -93,53 +97,113 @@ export default function ModalGenerateKuponMassal({
       id="modal-generate-kupon" 
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md overflow-y-auto"
     >
-      {/* Printable Style Sheet Block - Will hide everything except printable coupons */}
+      {/* Printable Style Sheet Block - Will handle screen vs print rendering and precise A4 grid division */}
       <style>{`
+        /* Screen view: hide print-area */
+        @media screen {
+          #print-area {
+            display: none !important;
+          }
+        }
+
+        /* Print view: hide everything except print-area */
         @media print {
+          /* Hide everything in root */
           body * {
             visibility: hidden;
+            background: none !important;
           }
+          
+          /* Show print-area only */
           #print-area, #print-area * {
-            visibility: visible;
+            visibility: visible !important;
           }
+
+          /* Ensure the overlay container has transparent background & covers full viewport */
+          #modal-generate-kupon {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 100% !important;
+            background: white !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            z-index: 99999 !important;
+          }
+
           #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 210mm !important;
             background: white !important;
             color: black !important;
             padding: 0 !important;
             margin: 0 !important;
           }
-          /* Grid printable coupons */
-          .print-grid {
+
+          /* 20 Coupons per A4 sheet layout grid */
+          .print-page {
+            page-break-after: always;
+            page-break-inside: avoid;
+            height: 297mm !important;
+            width: 210mm !important;
+            padding: 8mm 6mm 8mm 6mm !important;
+            box-sizing: border-box !important;
+            background: white !important;
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 15px !important;
-            padding: 10px !important;
+            grid-template-rows: repeat(10, 1fr) !important;
+            gap: 2mm 3mm !important;
+            overflow: hidden !important;
           }
+
+          .print-page:last-child {
+            page-break-after: avoid;
+          }
+
+          /* Micro-coupon design */
           .ticket-card-print {
-            border: 2px dashed #dc2626 !important;
+            border: 1px dashed #dc2626 !important;
             background: white !important;
             color: black !important;
-            page-break-inside: avoid !important;
             box-shadow: none !important;
             display: flex !important;
             flex-direction: row !important;
-            height: 120px !important;
+            height: 26mm !important;
+            max-height: 26mm !important;
+            min-height: 26mm !important;
+            box-sizing: border-box !important;
             overflow: hidden !important;
           }
+
           .ticket-main {
             border-right: 1px dashed #cccccc !important;
-            padding: 8px !important;
+            padding: 4px 6px !important;
             flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            min-width: 0 !important;
           }
+
           .ticket-stub {
-            width: 90px !important;
-            padding: 8px !important;
-            background: #fcfcfc !important;
+            width: 58px !important;
+            padding: 4px 2px !important;
+            background: #fafafa !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            text-align: center !important;
           }
+
           .no-print {
             display: none !important;
           }
@@ -166,7 +230,7 @@ export default function ModalGenerateKuponMassal({
                 </span>
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Cetak massal kupon doorprize &amp; tiket jalan sehat kolektif terintegrasi database
+                Cetak massal kupon doorprize &amp; tiket jalan sehat kolektif (Pas 20 kupon per lembar A4)
               </p>
             </div>
           </div>
@@ -250,7 +314,7 @@ export default function ModalGenerateKuponMassal({
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="text-red-500 animate-pulse" />
             <span className="text-xs text-gray-600 font-medium">
-              Ditemukan <strong className="text-red-600 font-bold">{tickets.length}</strong> kupon siap cetak kolektif.
+              Ditemukan <strong className="text-red-600 font-bold">{tickets.length}</strong> kupon ({ticketPages.length} lembar A4 siap cetak).
             </span>
           </div>
 
@@ -318,7 +382,7 @@ export default function ModalGenerateKuponMassal({
                           </span>
                           <button
                             onClick={() => handleCopyCode(ticket.code)}
-                            className="text-[10px] text-gray-400 hover:text-red-500"
+                            className="text-[10px] text-gray-400 hover:text-red-500 cursor-pointer"
                             title="Copy code"
                           >
                             {copiedCode === ticket.code ? (
@@ -374,7 +438,7 @@ export default function ModalGenerateKuponMassal({
         {/* Bottom Footer */}
         <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-50">
           <p className="text-[10px] text-gray-500 max-w-md">
-            💡 <strong>Saran Panitia:</strong> Cetak kupon di kertas tebal (Art Paper / Buffalo) ukuran A4. Gunting kupon mengikuti tanda perforasi putus-putus. Kumpulkan bagian stub "STRUK PANITIA" di dalam kotak undian jalan sehat saat hari H!
+            💡 <strong>Saran Panitia:</strong> Desain ini otomatis membagi tepat <strong>20 kupon per halaman A4</strong>. Kode kupon terhubung langsung dengan pencatatan Kwitansi &amp; Sistem Undian Doorprize utama. Potong kupon di batas garis putus-putus.
           </p>
           <button
             onClick={onClose}
@@ -386,82 +450,72 @@ export default function ModalGenerateKuponMassal({
       </motion.div>
 
       {/* =========================================================================
-          PRINT-ONLY AREA (This is hidden in normal browser view, but becomes visible 
-          in the Print preview via @media print stylesheet above)
+          PRINT-ONLY AREA
           ========================================================================= */}
-      <div id="print-area" className="hidden">
-        <div className="text-center mb-8 border-b-4 border-double border-red-600 pb-4">
-          <h1 className="text-xl font-bold uppercase text-red-600 tracking-wide">KUPON UNDIAN JALAN SEHAT &amp; DOORPRIZE</h1>
-          <p className="text-xs font-semibold text-gray-700">Dalam Rangka PHBN HUT RI Ke-81 RT.002 / RW.003 - Guyub Rukun Merdeka</p>
-          <p className="text-[10px] text-gray-500 mt-1">Dicetak secara kolektif tanggal {new Date().toLocaleDateString('id-ID')}</p>
-        </div>
-
-        <div className="print-grid">
-          {tickets.map((ticket) => (
-            <div
-              key={`print-${ticket.id}`}
-              className="ticket-card-print border-2 border-dashed border-red-600 flex flex-row h-32 overflow-hidden bg-white text-black"
-              style={{ contentVisibility: 'auto' }}
-            >
-              {/* Main Ticket Area */}
-              <div className="ticket-main flex-1 p-2.5 flex flex-col justify-between min-w-0" style={{ borderRight: '1px dashed #aaaaaa' }}>
-                <div className="flex justify-between items-start">
-                  <span className="text-[8px] font-extrabold bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
-                    {ticket.subtitle}
-                  </span>
-                  <span className="text-[8px] font-mono font-bold text-gray-500">
-                    No. #{String(ticket.index).padStart(3, '0')}
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-xs uppercase truncate text-gray-900" style={{ margin: '3px 0' }}>{ticket.name}</h3>
-                  <div className="flex gap-2 text-[9px] text-gray-500">
-                    <span>{ticket.rt}</span>
-                    <span>•</span>
-                    <span>Status: {ticket.status}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-end border-t border-gray-100 pt-1">
-                  <div className="flex flex-col">
-                    <span className="text-[6px] text-gray-400 font-bold block">KUPON DOORPRIZE</span>
-                    <span className="font-mono text-[10px] text-red-600 font-black">{ticket.code}</span>
+      <div id="print-area">
+        {ticketPages.map((pageTickets, pageIdx) => (
+          <div key={pageIdx} className="print-page">
+            {pageTickets.map((ticket) => (
+              <div
+                key={`print-${ticket.id}`}
+                className="ticket-card-print flex flex-row bg-white text-black"
+              >
+                {/* Main Ticket Area */}
+                <div className="ticket-main">
+                  <div className="flex justify-between items-center leading-none">
+                    <span className="text-[7px] font-extrabold bg-red-100 text-red-700 px-1 py-0.2 rounded uppercase">
+                      {ticket.subtitle}
+                    </span>
+                    <span className="text-[7px] font-mono text-gray-400">
+                      No. #{String(ticket.index).padStart(3, '0')}
+                    </span>
                   </div>
 
-                  {/* Stylized barcode */}
-                  <div className="flex flex-col items-end">
-                    <div className="flex items-baseline gap-0.5">
-                      {[1, 2, 1, 3, 1, 2, 1, 2, 1, 3, 1].map((w, i) => (
-                        <div key={i} className="bg-black" style={{ width: `${w}px`, height: '14px' }}></div>
-                      ))}
+                  <div className="my-0.5 min-w-0">
+                    <h3 className="font-extrabold text-[9px] uppercase truncate text-gray-900 leading-tight">
+                      {ticket.name}
+                    </h3>
+                    <div className="flex gap-1.5 text-[7px] text-gray-500 font-medium leading-none mt-0.5">
+                      <span className="bg-gray-100 px-1 rounded font-bold text-gray-800">{ticket.rt}</span>
+                      <span>•</span>
+                      <span className="truncate">Status: {ticket.status}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-end border-t border-gray-100 pt-0.5 leading-none">
+                    <div className="flex flex-col">
+                      <span className="text-[5px] text-gray-400 font-bold uppercase tracking-wider">KUPON DOORPRIZE</span>
+                      <span className="font-mono text-[8px] text-red-600 font-extrabold">{ticket.code}</span>
+                    </div>
+
+                    {/* Stylized barcode */}
+                    <div className="flex flex-col items-end opacity-80 shrink-0">
+                      <div className="flex items-baseline gap-[0.5px]">
+                        {[1, 2, 1, 1, 2, 1, 2, 1].map((w, i) => (
+                          <div key={i} className="bg-black" style={{ width: `${w}px`, height: '8px' }}></div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Separator dots for printed ticket */}
-              <div className="flex flex-col justify-between items-center py-1">
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-              </div>
+                {/* Coupon Stub */}
+                <div className="ticket-stub border-l border-dashed border-gray-200">
+                  <span className="text-[6px] text-gray-400 font-black tracking-wider leading-none">STRUK</span>
+                  
+                  <div className="my-0.5 min-w-0 w-full text-center">
+                    <span className="font-mono text-[8px] font-extrabold text-black block truncate leading-none">
+                      {ticket.code}
+                    </span>
+                    <span className="text-[6px] text-gray-500 font-bold block mt-0.5 leading-none">{ticket.rt}</span>
+                  </div>
 
-              {/* Coupon Stub */}
-              <div className="ticket-stub w-20 p-2.5 flex flex-col justify-between items-center text-center bg-gray-50 shrink-0">
-                <span className="text-[7px] text-gray-400 font-black tracking-wider block">STRUK</span>
-                
-                <div className="my-1">
-                  <span className="font-mono text-[9px] font-extrabold text-black block truncate w-16">
-                    {ticket.code}
-                  </span>
-                  <span className="text-[7px] text-gray-500 font-bold block">{ticket.rt}</span>
+                  <span className="text-[5px] text-gray-400 font-bold block uppercase border-t border-gray-200 pt-0.5 w-full leading-none scale-90">PANITIA</span>
                 </div>
-
-                <span className="text-[5px] text-gray-400 font-bold block uppercase border-t border-gray-200 pt-1 w-full">Gunting Disini</span>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

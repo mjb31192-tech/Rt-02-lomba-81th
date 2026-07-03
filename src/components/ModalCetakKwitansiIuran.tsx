@@ -43,7 +43,7 @@ export function getDoorprizeCode(kkId: number, rt: string): string {
   const hash = (kkId * 31337 + 7919) % 9000 + 1000;
   // Format RT: remove whitespace, non-alphanumeric, pad to 2 digits if numeric
   const cleanRt = rt.replace(/\D/g, '').padStart(2, '0');
-  return `DP-${cleanRt}-${hash}`;
+  return `RT-${cleanRt}-DP-${hash}`;
 }
 
 export default function ModalCetakKwitansiIuran({
