@@ -130,6 +130,12 @@ export default function ModalCetakKwitansiIuran({
               #printable-kwitansi-area, #printable-kwitansi-area * {
                 visibility: visible !important;
               }
+              #printable-lpj, #printable-lpj *,
+              #printable-a4-area, #printable-a4-area *,
+              #print-area, #print-area * {
+                visibility: hidden !important;
+                display: none !important;
+              }
               #printable-kwitansi-area {
                 position: absolute !important;
                 left: 0 !important;

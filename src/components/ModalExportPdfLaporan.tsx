@@ -168,7 +168,7 @@ export default function ModalExportPdfLaporan({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-start overflow-y-auto p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm print:bg-white print:p-0 print:overflow-visible">
+        <div className="fixed inset-0 z-50 flex flex-col justify-start overflow-y-auto p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm print:bg-white print:p-0 print:m-0 print:overflow-visible print:static print:inset-auto print:block">
           {/* Backdrop (hidden during print) */}
           <div className="fixed inset-0 pointer-events-none print:hidden" />
 
@@ -216,31 +216,100 @@ export default function ModalExportPdfLaporan({
           {/* Dynamic scoped print style to ensure perfect printable A4 preview and no clashes */}
           <style dangerouslySetInnerHTML={{ __html: `
             @media print {
+              @page {
+                size: A4 portrait;
+                margin: 10mm 8mm;
+              }
+
+              html, body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                overflow: visible !important;
+              }
+
               body * {
                 visibility: hidden !important;
               }
+
               #printable-a4-area, #printable-a4-area * {
                 visibility: visible !important;
               }
-              #printable-a4-area {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
+
+              /* Explicitly hide other print containers to avoid bleeding */
+              #printable-lpj, #printable-lpj *,
+              #printable-kwitansi-area, #printable-kwitansi-area *,
+              #print-area, #print-area * {
+                visibility: hidden !important;
+                display: none !important;
+              }
+
+              /* CRITICAL FIX: Reset ALL parent container positions from fixed/absolute to static flow.
+                 This prevents fixed header/card layers from repeating/overlaying across multi-page prints. */
+              .fixed, .absolute, #root, body > div, [role="dialog"], .backdrop-blur-sm, div[class*="fixed"] {
+                position: static !important;
+                inset: auto !important;
+                transform: none !important;
+                overflow: visible !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
                 width: 100% !important;
-                height: 100% !important;
                 margin: 0 !important;
-                padding: 1.5cm !important;
+                padding: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                backdrop-filter: none !important;
+                display: block !important;
+              }
+
+              #printable-a4-area {
+                position: static !important;
+                display: block !important;
+                float: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 background: white !important;
                 color: black !important;
                 box-shadow: none !important;
                 border: none !important;
                 overflow: visible !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: space-between !important;
               }
-              .print-hidden-element {
+
+              .print-hidden-element, .print\\:hidden, button {
                 display: none !important;
+                visibility: hidden !important;
+              }
+
+              table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                page-break-inside: auto !important;
+              }
+
+              tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+
+              thead {
+                display: table-header-group !important;
+              }
+
+              tfoot {
+                display: table-footer-group !important;
+              }
+
+              .signature-block {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
               }
             }
           `}} />
@@ -251,16 +320,16 @@ export default function ModalExportPdfLaporan({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="w-full max-w-[210mm] mx-auto bg-transparent p-0 sm:p-4 mb-12 flex justify-center print:p-0 print:mb-0 z-10"
+            className="w-full max-w-[210mm] mx-auto bg-transparent p-0 sm:p-4 mb-12 flex justify-center print:p-0 print:m-0 print:w-full print:max-w-none print:block print:static z-10"
           >
             {/* Printable Section */}
             <div 
               id="printable-a4-area" 
-              className="w-full sm:w-[210mm] sm:h-[297mm] bg-white p-8 sm:p-12 text-black shadow-2xl relative flex flex-col justify-between sm:overflow-hidden print:overflow-visible border border-gray-150 print:border-none print:shadow-none print:w-[210mm] print:h-[297mm]"
+              className="w-full sm:w-[210mm] sm:min-h-[297mm] bg-white p-5 sm:p-8 text-black shadow-2xl relative flex flex-col justify-between overflow-visible border border-gray-150 print:border-none print:shadow-none print:w-full print:h-auto print:p-0 print:block print:static"
               style={{ boxSizing: 'border-box' }}
             >
               {/* WATERMARK INDONESIA MERDEKA */}
-              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none print:hidden">
                 <span className="text-[80px] font-black uppercase text-red-600 rotate-45 tracking-widest">
                   HUT RI 81
                 </span>
@@ -268,18 +337,18 @@ export default function ModalExportPdfLaporan({
 
               <div>
                 {/* 1. KOP SURAT (LETTERHEAD) */}
-                <div className="flex items-center gap-5 pb-3 border-b-4 border-double border-black relative">
-                  <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs border border-red-700">
-                    <Landmark size={24} className="stroke-[2.5]" />
+                <div className="flex items-center gap-4 pb-2.5 border-b-4 border-double border-black relative">
+                  <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs border border-red-700">
+                    <Landmark size={20} className="stroke-[2.5]" />
                   </div>
-                  <div className="flex-1 text-center pr-10">
-                    <h2 className="font-display font-black text-xs sm:text-sm text-gray-950 uppercase tracking-wider leading-none">
+                  <div className="flex-1 text-center pr-8">
+                    <h2 className="font-display font-black text-xs text-gray-950 uppercase tracking-wider leading-none">
                       PANITIA HARI BESAR NASIONAL (PHBN)
                     </h2>
-                    <h1 className="font-display font-black text-base sm:text-lg text-red-600 uppercase tracking-widest mt-0.5 leading-none">
+                    <h1 className="font-display font-black text-sm sm:text-base text-red-600 uppercase tracking-widest mt-0.5 leading-none">
                       HUT REPUBLIK INDONESIA KE-81
                     </h1>
-                    <p className="text-[9px] text-gray-600 font-semibold tracking-wider uppercase mt-1 leading-none">
+                    <p className="text-[8.5px] text-gray-600 font-semibold tracking-wider uppercase mt-1 leading-none">
                       RUKUN TETANGGA 002/003 - KELURAHAN KEDAUNG BARU
                     </p>
                     <p className="text-[7px] text-gray-400 font-semibold tracking-widest uppercase mt-0.5 leading-none">
@@ -289,117 +358,200 @@ export default function ModalExportPdfLaporan({
                 </div>
 
                 {/* 2. SURAT KETERANGAN / JUDUL LAPORAN */}
-                <div className="text-center my-4">
-                  <h3 className="font-display font-black text-xs uppercase tracking-widest text-gray-900 border-b border-gray-300 pb-1 inline-block px-4">
+                <div className="text-center my-2.5">
+                  <h3 className="font-display font-black text-xs uppercase tracking-widest text-gray-900 border-b border-gray-300 pb-0.5 inline-block px-3">
                     LAPORAN PERTANGGUNGJAWABAN IURAN MINGGUAN
                   </h3>
-                  <p className="text-[8px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-0.5">
+                  <p className="text-[7.5px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-0.5">
                     NOMOR DOKUMEN: LP-IM/VIII/2026/REKAP-{report.id.toString().slice(-4)}
                   </p>
                 </div>
 
                 {/* 3. METADATA DOKUMEN */}
-                <div className="grid grid-cols-2 gap-y-1.5 gap-x-4 bg-gray-50 border border-gray-200 rounded-xl p-3 text-[11px] mb-4">
+                <div className="grid grid-cols-2 gap-y-1 gap-x-3 bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-[10px] mb-2.5">
                   <div>
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Periode Laporan</span>
+                    <span className="text-[8px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Periode Laporan</span>
                     <strong className="text-gray-800 font-bold">{report.minggu_ke}</strong>
                   </div>
                   <div>
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Tanggal Lapor</span>
+                    <span className="text-[8px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Tanggal Lapor</span>
                     <strong className="text-gray-800 font-mono">{report.tanggal_lapor}</strong>
                   </div>
                   <div>
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Rentang Tanggal Kegiatan</span>
+                    <span className="text-[8px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Rentang Tanggal Kegiatan</span>
                     <strong className="text-gray-800 font-mono">{report.tanggal_mulai} s.d {report.tanggal_selesai}</strong>
                   </div>
                   <div>
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Dilaporkan Oleh</span>
+                    <span className="text-[8px] text-gray-400 font-extrabold uppercase tracking-widest block leading-tight">Dilaporkan Oleh</span>
                     <strong className="text-gray-800 font-bold">{report.dilaporkan_oleh}</strong>
                   </div>
                 </div>
 
                 {/* 4. TOTAL REKAP & TERBILANG */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
-                  <div className="bg-red-50/70 px-3.5 py-2 border-b border-gray-200 flex items-center justify-between">
-                    <span className="text-[9px] text-red-800 font-black uppercase tracking-widest">
+                <div className="border border-gray-200 rounded-lg overflow-hidden mb-2.5">
+                  <div className="bg-red-50/70 px-3 py-1.5 border-b border-gray-200 flex items-center justify-between">
+                    <span className="text-[8.5px] text-red-800 font-black uppercase tracking-widest">
                       Jumlah Dana Penerimaan Kas Iuran
                     </span>
-                    <span className="text-[9px] text-red-600 font-mono font-bold">STATUS: TERKUMPUL &amp; DISERAHKAN</span>
+                    <span className="text-[8px] text-red-600 font-mono font-bold">STATUS: TERKUMPUL &amp; DISERAHKAN</span>
                   </div>
-                  <div className="p-3.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="p-2.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <h4 className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider">Rincian Nominal Kas:</h4>
-                      <p className="text-xl font-mono font-black text-red-600 mt-0.5">Rp {formattedTotal}</p>
+                      <h4 className="text-[8px] text-gray-400 font-extrabold uppercase tracking-wider">Rincian Nominal Kas:</h4>
+                      <p className="text-lg font-mono font-black text-red-600 leading-tight">Rp {formattedTotal}</p>
                     </div>
                     <div className="max-w-xs text-right">
-                      <h4 className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider">Terbilang (Sesuai Ejaan):</h4>
-                      <p className="text-[10px] font-bold text-gray-700 italic mt-0.5 leading-snug">
+                      <h4 className="text-[8px] text-gray-400 font-extrabold uppercase tracking-wider">Terbilang (Sesuai Ejaan):</h4>
+                      <p className="text-[9.5px] font-bold text-gray-700 italic mt-0.5 leading-snug">
                         "{formatTerbilang(report.total_jumlah)}"
                       </p>
                     </div>
                   </div>
-                  <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-150 text-[10px] text-gray-600">
+                  <div className="px-3 py-1 bg-gray-50 border-t border-gray-150 text-[9px] text-gray-600">
                     <strong className="font-semibold text-gray-700">Keterangan Catatan:</strong> {report.keterangan}
                   </div>
                 </div>
 
                 {/* 4.5. RINCIAN HASIL PENERIMAAN IURAN WARGA PERIODE MINGGUAN INI */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 p-3 bg-white">
-                  <div className="flex justify-between items-center pb-2 mb-2 border-b border-gray-200">
-                    <span className="text-[10px] font-black uppercase text-gray-900 tracking-wider">
+                <div className="border border-gray-200 rounded-lg overflow-hidden mb-2.5 p-2.5 bg-white">
+                  <div className="flex justify-between items-center pb-1.5 mb-2 border-b border-gray-200">
+                    <span className="text-[9.5px] font-black uppercase text-gray-900 tracking-wider">
                       DAFTAR WARGA YANG MEMBAYAR IURAN PERIODE MINGGUAN ({report.tanggal_mulai} s.d {report.tanggal_selesai})
                     </span>
-                    <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    <span className="text-[8.5px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-md">
                       {weeklyPayments.length} Transaksi Warga
                     </span>
                   </div>
 
                   {weeklyPayments.length > 0 ? (
-                    <table className="w-full border-collapse border border-gray-200 text-left font-sans text-[9px]">
-                      <thead>
-                        <tr className="bg-gray-100 text-gray-800">
-                          <th className="border border-gray-200 p-1 text-center w-6">No</th>
-                          <th className="border border-gray-200 p-1">Nama Kepala Keluarga (KK)</th>
-                          <th className="border border-gray-200 p-1 text-center w-10">RT</th>
-                          <th className="border border-gray-200 p-1 text-center w-24">Tanggal Bayar</th>
-                          <th className="border border-gray-200 p-1 text-right w-24">Nominal Bayar</th>
-                          <th className="border border-gray-200 p-1 text-center w-20">Status KK</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {weeklyPayments.map((pm, idx) => (
-                          <tr key={idx}>
-                            <td className="border border-gray-200 p-1 text-center font-mono text-gray-500">{idx + 1}</td>
-                            <td className="border border-gray-200 p-1 font-bold text-gray-900">{pm.nama_kk}</td>
-                            <td className="border border-gray-200 p-1 text-center">{pm.rt}</td>
-                            <td className="border border-gray-200 p-1 text-center font-mono">{pm.tanggal}</td>
-                            <td className="border border-gray-200 p-1 text-right font-mono font-bold text-emerald-700">
-                              Rp {pm.jumlah.toLocaleString('id-ID')}
-                            </td>
-                            <td className="border border-gray-200 p-1 text-center">
-                              <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[7px] uppercase tracking-wider ${
-                                pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {pm.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="bg-gray-50 font-bold">
-                          <td colSpan={4} className="border border-gray-200 p-1 text-right font-sans text-[9px]">
-                            TOTAL DANA TERKUMPUL PERIODE INI:
-                          </td>
-                          <td className="border border-gray-200 p-1 text-right font-mono text-emerald-700 font-black text-[9.5px]">
+                    weeklyPayments.length > 10 ? (
+                      /* COMPACT 2-COLUMN TABLE GRID FOR > 10 TRANSACTIONS (PREVENTS OVERSHEET) */
+                      <div className="space-y-1.5">
+                        <div className="grid grid-cols-2 gap-2 text-[8px] print:text-[8px]">
+                          {/* Table 1 (Left Half) */}
+                          <table className="w-full border-collapse border border-gray-200 text-left font-sans">
+                            <thead>
+                              <tr className="bg-gray-100 text-gray-800 font-bold">
+                                <th className="border border-gray-200 p-0.5 text-center w-5">No</th>
+                                <th className="border border-gray-200 p-0.5">Nama KK</th>
+                                <th className="border border-gray-200 p-0.5 text-center w-6">RT</th>
+                                <th className="border border-gray-200 p-0.5 text-right w-14">Nominal</th>
+                                <th className="border border-gray-200 p-0.5 text-center w-10">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {weeklyPayments.slice(0, Math.ceil(weeklyPayments.length / 2)).map((pm, idx) => (
+                                <tr key={idx} className="hover:bg-gray-50">
+                                  <td className="border border-gray-200 p-0.5 text-center font-mono text-gray-500">{idx + 1}</td>
+                                  <td className="border border-gray-200 p-0.5 font-bold text-gray-900 truncate max-w-[90px]">{pm.nama_kk}</td>
+                                  <td className="border border-gray-200 p-0.5 text-center text-[7.5px]">{pm.rt}</td>
+                                  <td className="border border-gray-200 p-0.5 text-right font-mono font-bold text-emerald-700">
+                                    Rp {pm.jumlah.toLocaleString('id-ID')}
+                                  </td>
+                                  <td className="border border-gray-200 p-0.5 text-center">
+                                    <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6px] uppercase ${
+                                      pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                      {pm.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+
+                          {/* Table 2 (Right Half) */}
+                          <table className="w-full border-collapse border border-gray-200 text-left font-sans">
+                            <thead>
+                              <tr className="bg-gray-100 text-gray-800 font-bold">
+                                <th className="border border-gray-200 p-0.5 text-center w-5">No</th>
+                                <th className="border border-gray-200 p-0.5">Nama KK</th>
+                                <th className="border border-gray-200 p-0.5 text-center w-6">RT</th>
+                                <th className="border border-gray-200 p-0.5 text-right w-14">Nominal</th>
+                                <th className="border border-gray-200 p-0.5 text-center w-10">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {weeklyPayments.slice(Math.ceil(weeklyPayments.length / 2)).map((pm, idx) => {
+                                const realIdx = Math.ceil(weeklyPayments.length / 2) + idx;
+                                return (
+                                  <tr key={realIdx} className="hover:bg-gray-50">
+                                    <td className="border border-gray-200 p-0.5 text-center font-mono text-gray-500">{realIdx + 1}</td>
+                                    <td className="border border-gray-200 p-0.5 font-bold text-gray-900 truncate max-w-[90px]">{pm.nama_kk}</td>
+                                    <td className="border border-gray-200 p-0.5 text-center text-[7.5px]">{pm.rt}</td>
+                                    <td className="border border-gray-200 p-0.5 text-right font-mono font-bold text-emerald-700">
+                                      Rp {pm.jumlah.toLocaleString('id-ID')}
+                                    </td>
+                                    <td className="border border-gray-200 p-0.5 text-center">
+                                      <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6px] uppercase ${
+                                        pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                      }`}>
+                                        {pm.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Total Footer Banner */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-md p-1 flex justify-between items-center text-[8px] font-bold">
+                          <span className="text-gray-700 uppercase tracking-wider">TOTAL DANA TERKUMPUL PERIODE INI ({weeklyPayments.length} KK):</span>
+                          <span className="font-mono text-emerald-700 font-black text-[9px]">
                             Rp {weeklyPayments.reduce((acc, c) => acc + c.jumlah, 0).toLocaleString('id-ID')}
-                          </td>
-                          <td className="border border-gray-200 p-1"></td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* SINGLE COLUMN TABLE FOR <= 10 TRANSACTIONS */
+                      <table className="w-full border-collapse border border-gray-200 text-left font-sans text-[8.5px]">
+                        <thead>
+                          <tr className="bg-gray-100 text-gray-800">
+                            <th className="border border-gray-200 p-1 text-center w-6">No</th>
+                            <th className="border border-gray-200 p-1">Nama Kepala Keluarga (KK)</th>
+                            <th className="border border-gray-200 p-1 text-center w-10">RT</th>
+                            <th className="border border-gray-200 p-1 text-center w-24">Tanggal Bayar</th>
+                            <th className="border border-gray-200 p-1 text-right w-24">Nominal Bayar</th>
+                            <th className="border border-gray-200 p-1 text-center w-20">Status KK</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {weeklyPayments.map((pm, idx) => (
+                            <tr key={idx}>
+                              <td className="border border-gray-200 p-1 text-center font-mono text-gray-500">{idx + 1}</td>
+                              <td className="border border-gray-200 p-1 font-bold text-gray-900">{pm.nama_kk}</td>
+                              <td className="border border-gray-200 p-1 text-center">{pm.rt}</td>
+                              <td className="border border-gray-200 p-1 text-center font-mono">{pm.tanggal}</td>
+                              <td className="border border-gray-200 p-1 text-right font-mono font-bold text-emerald-700">
+                                Rp {pm.jumlah.toLocaleString('id-ID')}
+                              </td>
+                              <td className="border border-gray-200 p-1 text-center">
+                                <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6.5px] uppercase tracking-wider ${
+                                  pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {pm.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-gray-50 font-bold">
+                            <td colSpan={4} className="border border-gray-200 p-1 text-right font-sans text-[8.5px]">
+                              TOTAL DANA TERKUMPUL PERIODE INI:
+                            </td>
+                            <td className="border border-gray-200 p-1 text-right font-mono text-emerald-700 font-black text-[9px]">
+                              Rp {weeklyPayments.reduce((acc, c) => acc + c.jumlah, 0).toLocaleString('id-ID')}
+                            </td>
+                            <td className="border border-gray-200 p-1"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )
                   ) : (
-                    <div className="py-3 text-center text-gray-400 italic text-[9px]">
+                    <div className="py-2 text-center text-gray-400 italic text-[8.5px]">
                       Tidak ada catatan transaksi pembayaran iuran warga pada rentang tanggal periode laporan ini ({report.tanggal_mulai} s.d {report.tanggal_selesai}).
                     </div>
                   )}
@@ -407,19 +559,19 @@ export default function ModalExportPdfLaporan({
 
                 {/* 5. DOCK FOTO BUKTI (DILAMPIRKAN) - Optimized height to prevent overflow */}
                 {report.bukti_foto && (
-                  <div className="border border-gray-200 rounded-xl p-3 bg-white flex flex-col items-center mb-2">
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest mb-1.5 text-center block">
+                  <div className="border border-gray-200 rounded-lg p-2 bg-white flex flex-col items-center mb-2">
+                    <span className="text-[8px] text-gray-400 font-extrabold uppercase tracking-widest mb-1 text-center block">
                       LAMPIRAN FISIK / BUKTI SERAH TERIMA &amp; PENYETORAN FOTO
                     </span>
-                    <div className="w-full max-h-[60mm] flex items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50/50 p-1 shadow-3xs">
+                    <div className="w-full max-h-[36mm] print:max-h-[28mm] flex items-center justify-center overflow-hidden rounded-lg border border-gray-100 bg-gray-50/50 p-1">
                       <img 
                         src={report.bukti_foto} 
                         alt="Bukti Serah Terima" 
-                        className="max-h-[52mm] object-contain rounded-md"
+                        className="max-h-[32mm] print:max-h-[26mm] object-contain rounded-md"
                         referrerPolicy="no-referrer"
                       />
                     </div>
-                    <span className="text-[8px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-1 text-center">
+                    <span className="text-[7.5px] text-gray-400 font-mono font-bold uppercase tracking-widest mt-0.5 text-center">
                       Dokumen Lampiran Sah (Diambil Secara Digital)
                     </span>
                   </div>
@@ -427,29 +579,29 @@ export default function ModalExportPdfLaporan({
               </div>
 
               {/* 6. SIGNATURE BLOCK (TANDA TANGAN) */}
-              <div className="mt-8 pt-6 border-t border-dashed border-gray-200 grid grid-cols-3 gap-4 text-center text-xs shrink-0">
+              <div className="mt-4 pt-4 border-t border-dashed border-gray-200 grid grid-cols-3 gap-3 text-center text-[11px] shrink-0 signature-block">
                 <div>
-                  <p className="text-gray-500 font-semibold mb-12">Dilaporkan Oleh /<br/>Yang Menyerahkan,</p>
-                  <div className="w-24 border-b border-gray-950 mx-auto"></div>
-                  <p className="font-bold text-gray-800 mt-1.5">{report.dilaporkan_oleh.split('(')[0].trim()}</p>
-                  <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Utusan RT / Bendahara Iuran</p>
+                  <p className="text-gray-500 font-semibold mb-8 text-[10px]">Dilaporkan Oleh /<br/>Yang Menyerahkan,</p>
+                  <div className="w-20 border-b border-gray-950 mx-auto"></div>
+                  <p className="font-bold text-gray-800 mt-1 text-[11px]">{report.dilaporkan_oleh.split('(')[0].trim()}</p>
+                  <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-wider">Utusan RT / Bendahara Iuran</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 font-semibold mb-12">Diterima Oleh<br/>(Bendahara),</p>
-                  <div className="w-24 border-b border-gray-950 mx-auto"></div>
-                  <p className="font-bold text-gray-800 mt-1.5">Ayeh Patoni</p>
-                  <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Bendahara Panitia</p>
+                  <p className="text-gray-500 font-semibold mb-8 text-[10px]">Diterima Oleh<br/>(Bendahara),</p>
+                  <div className="w-20 border-b border-gray-950 mx-auto"></div>
+                  <p className="font-bold text-gray-800 mt-1 text-[11px]">Ayeh Patoni</p>
+                  <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-wider">Bendahara Panitia</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 font-semibold mb-12">Mengetahui &amp;<br/>Menyetujui,</p>
-                  <div className="w-24 border-b border-gray-950 mx-auto"></div>
-                  <p className="font-bold text-gray-800 mt-1.5">Anto (Zhipo)</p>
-                  <p className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Ketua Panitia HUT RI-81</p>
+                  <p className="text-gray-500 font-semibold mb-8 text-[10px]">Mengetahui &amp;<br/>Menyetujui,</p>
+                  <div className="w-20 border-b border-gray-950 mx-auto"></div>
+                  <p className="font-bold text-gray-800 mt-1 text-[11px]">Anto (Zhipo)</p>
+                  <p className="text-[8px] text-gray-400 font-semibold uppercase tracking-wider">Ketua Panitia HUT RI-81</p>
                 </div>
               </div>
 
               {/* Legal Footnote UU ITE */}
-              <div className="mt-6 pt-4 border-t border-gray-150 text-justify text-[9px] text-gray-400 leading-relaxed shrink-0">
+              <div className="mt-3 pt-2 border-t border-gray-150 text-justify text-[8px] text-gray-400 leading-tight shrink-0">
                 <strong>Catatan Hukum Elektronik:</strong> Berdasarkan Undang Undang ITE no. 11 Tahun 2008 yang mengatur Dokumen Elektronik dan informasi lain di dalamnya sebagai alat bukti yang sah dan dapat di pertanggung jawabkan.
               </div>
 

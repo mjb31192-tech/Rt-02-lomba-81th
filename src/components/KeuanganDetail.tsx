@@ -724,26 +724,96 @@ export default function KeuanganDetail({
             {/* Dynamic style rule to make sure window.print() ONLY prints the LPJ preview */}
             <style dangerouslySetInnerHTML={{ __html: `
               @media print {
+                @page {
+                  size: A4 portrait;
+                  margin: 10mm 8mm;
+                }
+
+                html, body {
+                  background: #ffffff !important;
+                  color: #000000 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  width: 100% !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                }
+
                 body * {
                   visibility: hidden !important;
                 }
+
                 #printable-lpj, #printable-lpj * {
                   visibility: visible !important;
                 }
-                #printable-lpj {
-                  position: absolute !important;
-                  left: 0 !important;
-                  top: 0 !important;
+
+                #printable-a4-area, #printable-a4-area *,
+                #printable-kwitansi-area, #printable-kwitansi-area *,
+                #print-area, #print-area * {
+                  visibility: hidden !important;
+                  display: none !important;
+                }
+
+                .fixed, .absolute, #root, body > div, [role="dialog"], div[class*="fixed"] {
+                  position: static !important;
+                  inset: auto !important;
+                  transform: none !important;
+                  overflow: visible !important;
+                  height: auto !important;
+                  min-height: 0 !important;
+                  max-height: none !important;
                   width: 100% !important;
                   margin: 0 !important;
-                  padding: 24px !important;
+                  padding: 0 !important;
+                  background: transparent !important;
+                  box-shadow: none !important;
+                  backdrop-filter: none !important;
+                  display: block !important;
+                }
+
+                #printable-lpj {
+                  position: static !important;
+                  display: block !important;
+                  float: none !important;
+                  width: 100% !important;
+                  max-width: 100% !important;
+                  height: auto !important;
+                  min-height: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
                   background: white !important;
                   color: black !important;
                   font-family: 'Times New Roman', Times, serif !important;
+                  overflow: visible !important;
                 }
-                /* Hide screen-only indicators on print */
-                .print-hidden-element {
+
+                .print-hidden-element, .print\\:hidden, button {
                   display: none !important;
+                  visibility: hidden !important;
+                }
+
+                table {
+                  width: 100% !important;
+                  border-collapse: collapse !important;
+                  page-break-inside: auto !important;
+                }
+
+                tr {
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
+                }
+
+                thead {
+                  display: table-header-group !important;
+                }
+
+                tfoot {
+                  display: table-footer-group !important;
+                }
+
+                .signature-block {
+                  page-break-inside: avoid !important;
+                  break-inside: avoid !important;
                 }
               }
             `}} />
