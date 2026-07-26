@@ -34,6 +34,27 @@ export default function ModalGenerateKuponMassal({
     return `RT-${cleanRt}-${num}`;
   };
 
+  // Helper to split code into prefix (e.g., RT-02-) and suffix (e.g., 39)
+  const getCodeParts = (code: string) => {
+    const codeStr = code || '';
+    let prefix = '';
+    let suffix = '';
+    if (codeStr.includes('-')) {
+      const parts = codeStr.split('-');
+      suffix = parts.pop() || '';
+      prefix = parts.join('-') + '-';
+    } else {
+      if (codeStr.length > 2) {
+        suffix = codeStr.slice(-2);
+        prefix = codeStr.slice(0, -2);
+      } else {
+        suffix = codeStr;
+        prefix = '';
+      }
+    }
+    return { prefix, suffix };
+  };
+
   // Process data based on source selection
   const getTickets = () => {
     if (sourceType === 'kk') {
@@ -171,7 +192,7 @@ export default function ModalGenerateKuponMassal({
 
           /* Micro-coupon design */
           .ticket-card-print {
-            border: 1px dashed #dc2626 !important;
+            border: 1.5px dashed #dc2626 !important;
             background: white !important;
             color: black !important;
             box-shadow: none !important;
@@ -182,27 +203,233 @@ export default function ModalGenerateKuponMassal({
             min-height: 26mm !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
+            position: relative !important;
           }
 
           .ticket-main {
-            border-right: 1px dashed #cccccc !important;
-            padding: 4px 6px !important;
+            padding: 3px 6px !important;
             flex: 1 !important;
             display: flex !important;
-            flex-direction: column !important;
+            flex-direction: row !important;
             justify-content: space-between !important;
             min-width: 0 !important;
+            position: relative !important;
           }
 
           .ticket-stub {
             width: 58px !important;
-            padding: 4px 2px !important;
-            background: #fafafa !important;
+            padding: 3px 2px !important;
+            background: white !important;
             display: flex !important;
             flex-direction: column !important;
             justify-content: space-between !important;
             align-items: center !important;
             text-align: center !important;
+            border-left: 1px dashed #cccccc !important;
+          }
+
+          .print-col-left {
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            flex: 1 !important;
+            min-width: 0 !important;
+            z-index: 10 !important;
+          }
+
+          .print-badge {
+            background-color: #dc2626 !important;
+            color: white !important;
+            font-size: 5px !important;
+            font-weight: 900 !important;
+            padding: 1px 3px !important;
+            border-radius: 1px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            width: fit-content !important;
+            line-height: 1 !important;
+          }
+
+          .print-name {
+            font-size: 9px !important;
+            font-weight: 900 !important;
+            color: black !important;
+            text-transform: uppercase !important;
+            letter-spacing: -0.2px !important;
+            line-height: 1 !important;
+            margin-top: 2px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+          }
+
+          .print-detail {
+            font-size: 5.5px !important;
+            font-weight: 700 !important;
+            color: #4b5563 !important;
+            line-height: 1 !important;
+            margin-top: 1px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 2px !important;
+          }
+
+          .print-detail-dot {
+            width: 2px !important;
+            height: 2px !important;
+            background-color: #dc2626 !important;
+            border-radius: 50% !important;
+            display: inline-block !important;
+          }
+
+          .print-status-lunas {
+            color: #16a34a !important;
+            font-weight: 800 !important;
+          }
+
+          .print-status-mencicil {
+            color: #d97706 !important;
+            font-weight: 800 !important;
+          }
+
+          .print-divider-line {
+            border-top: 0.5px solid #e5e7eb !important;
+            margin: 2px 0 !important;
+            width: 100% !important;
+          }
+
+          .print-label-doorprize {
+            font-size: 4.5px !important;
+            font-weight: 800 !important;
+            color: #9ca3af !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.3px !important;
+            line-height: 1 !important;
+          }
+
+          .print-big-code {
+            font-size: 13.5px !important;
+            font-weight: 900 !important;
+            color: #dc2626 !important;
+            line-height: 1 !important;
+            letter-spacing: -0.3px !important;
+            margin-top: 1px !important;
+            font-family: monospace !important;
+          }
+
+          /* 81 logo layout */
+          .print-logo-col {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 58px !important;
+            border-left: 0.5px solid #f3f4f6 !important;
+            padding-left: 3px !important;
+            flex-shrink: 0 !important;
+            z-index: 10 !important;
+          }
+
+          .print-logo-row {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 2.5px !important;
+          }
+
+          .print-logo-svg {
+            width: 17px !important;
+            height: 17px !important;
+            color: #dc2626 !important;
+          }
+
+          .print-logo-text {
+            display: flex !important;
+            flex-direction: column !important;
+            font-size: 3.5px !important;
+            font-weight: 900 !important;
+            line-height: 0.95 !important;
+            color: black !important;
+            text-transform: uppercase !important;
+            letter-spacing: -0.1px !important;
+          }
+
+          .print-logo-subtext {
+            font-size: 3.2px !important;
+            color: #dc2626 !important;
+            font-weight: 800 !important;
+            text-align: center !important;
+            margin-top: 2.5px !important;
+            line-height: 1.1 !important;
+            width: 100% !important;
+            white-space: nowrap !important;
+          }
+
+          /* Stub classes */
+          .print-stub-badge {
+            background-color: #dc2626 !important;
+            color: white !important;
+            font-size: 5px !important;
+            font-weight: 900 !important;
+            padding: 1px 4px !important;
+            border-radius: 1px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            line-height: 1 !important;
+          }
+
+          .print-stub-code {
+            font-size: 8px !important;
+            font-weight: 900 !important;
+            color: black !important;
+            font-family: monospace !important;
+            line-height: 1 !important;
+            margin-top: 2px !important;
+          }
+
+          .print-stub-rt {
+            font-size: 5px !important;
+            font-weight: 700 !important;
+            color: #4b5563 !important;
+            line-height: 1 !important;
+            margin-top: 1px !important;
+          }
+
+          .print-stub-line {
+            width: 12px !important;
+            border-top: 0.5px solid #dc2626 !important;
+            margin: 2px auto !important;
+          }
+
+          .print-stub-footer {
+            font-size: 4.5px !important;
+            font-weight: 800 !important;
+            color: #9ca3af !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            line-height: 1 !important;
+          }
+
+          .print-flag-decor {
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: 32px !important;
+            height: 14px !important;
+            opacity: 0.25 !important;
+            pointer-events: none !important;
+            z-index: 1 !important;
+          }
+
+          .print-skyline-decor {
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 15px !important;
+            right: 15px !important;
+            height: 6px !important;
+            opacity: 0.08 !important;
+            pointer-events: none !important;
+            z-index: 1 !important;
           }
 
           .no-print {
@@ -377,99 +604,152 @@ export default function ModalGenerateKuponMassal({
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {tickets.map((ticket) => {
-                  const parts = ticket.code.split('-');
-                  const lastTwoDigits = parts.pop() || '';
-                  const rtPart = parts.join('-');
+                  const { prefix: codePrefix, suffix: codeSuffix } = getCodeParts(ticket.code);
                   return (
                     <div
                       key={`${sourceType}-${ticket.id}`}
-                      className="bg-white border-2 border-dashed border-red-200 rounded-2xl flex hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+                      className="bg-white border-2 border-dashed border-red-500 rounded-2xl flex hover:shadow-md transition-all duration-300 relative overflow-hidden group"
                     >
-                      {/* Left festive red sidebar banner */}
-                      <div className="w-1.5 bg-gradient-to-b from-red-600 to-red-400 shrink-0"></div>
+                      {/* Merah Putih waving flag decoration in bottom-left */}
+                      <div className="absolute bottom-0 left-0 w-24 h-12 pointer-events-none opacity-20 select-none overflow-hidden z-0">
+                        <svg viewBox="0 0 100 50" className="w-full h-full text-red-600" preserveAspectRatio="none" fill="currentColor">
+                          <path d="M0,25 Q25,15 50,25 T100,25 L100,50 L0,50 Z" />
+                          <path d="M0,32 Q25,22 50,32 T100,32 L100,50 L0,50 Z" fill="white" />
+                        </svg>
+                      </div>
+
+                      {/* Skyline silhouette decoration at the bottom of the card */}
+                      <div className="absolute bottom-0 left-12 right-12 h-6 pointer-events-none opacity-10 select-none overflow-hidden z-0">
+                        <svg viewBox="0 0 200 40" className="w-full h-full text-red-700" preserveAspectRatio="none" fill="currentColor">
+                          <path d="M0,40 L10,40 L10,25 L15,25 L15,40 L25,40 L25,15 L32,15 L32,40 L40,40 L40,30 L45,30 L45,40 L55,40 L60,10 L65,10 L65,40 L75,40 L75,20 L82,20 L82,40 L90,40 L93,5 L97,5 L97,40 L110,40 L110,25 L115,25 L115,40 L125,40 L128,0 L132,0 L132,40 L140,40 L140,30 L145,30 L145,40 L155,40 L160,15 L165,15 L165,40 L180,40 L180,25 L185,25 L185,40 L200,40 Z" />
+                        </svg>
+                      </div>
 
                       {/* Main Ticket Area */}
-                      <div className="flex-1 p-3.5 flex flex-col justify-between space-y-3.5 min-w-0">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between flex-wrap gap-1.5">
-                            <span className="text-[9px] bg-red-50 text-red-600 px-2 py-0.5 rounded-md font-extrabold uppercase tracking-widest border border-red-100/50">
-                              {ticket.subtitle}
-                            </span>
-                            <span className="text-[10px] font-mono font-semibold text-gray-400">
-                              No. #{String(ticket.index).padStart(3, '0')}
-                            </span>
+                      <div className="flex-1 p-3.5 flex flex-row justify-between min-w-0 z-10">
+                        {/* Left column: Name and Code */}
+                        <div className="flex-1 flex flex-col justify-between min-w-0 pr-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="bg-red-600 text-white font-extrabold text-[8px] sm:text-[9px] px-2 py-0.5 rounded-sm tracking-wider uppercase block w-fit shadow-3xs">
+                                {ticket.subtitle}
+                              </span>
+                              <span className="text-[10px] font-mono font-bold text-gray-400">
+                                #{String(ticket.index).padStart(3, '0')}
+                              </span>
+                            </div>
+
+                            <h4 className="font-display font-black text-base sm:text-lg text-gray-950 uppercase tracking-tight leading-none mt-2 truncate">
+                              {ticket.name}
+                            </h4>
+
+                            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-gray-500 font-bold mt-1.5 flex-wrap">
+                              <span>{ticket.rt}</span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                              <span className={ticket.status === 'Lunas' || ticket.status === 'Hadir Lapangan' ? 'text-emerald-600 font-extrabold' : 'text-amber-600 font-extrabold'}>
+                                {ticket.status}
+                              </span>
+                            </div>
                           </div>
 
-                          <h4 className="font-display font-extrabold text-sm sm:text-base text-gray-900 truncate uppercase tracking-tight">
-                            {ticket.name}
-                          </h4>
+                          <div className="border-t border-gray-200/80 my-2"></div>
 
-                          <div className="flex items-center gap-2.5 text-xs text-gray-500">
-                            <span className="bg-gray-100 px-2 py-0.5 rounded font-bold">{ticket.rt}</span>
-                            <span className="text-gray-300">•</span>
-                            <span>Status: <strong className={ticket.status === 'Lunas' || ticket.status === 'Hadir Lapangan' ? 'text-emerald-600 font-bold' : 'text-amber-600 font-bold'}>{ticket.status}</strong></span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-end justify-between border-t border-gray-100 pt-2.5 gap-2">
-                          <div className="space-y-1">
-                            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider block">KODE UNDIAN</span>
-                            <div className="flex items-center gap-1.5">
-                              <div className="flex items-center bg-red-50 border border-red-100 rounded-xl px-2.5 py-1 shadow-3xs">
-                                <span className="text-[10px] sm:text-xs font-mono text-red-600/70 font-bold tracking-tight">{rtPart}-</span>
-                                <span className="text-xl sm:text-2xl font-mono text-red-600 font-black tracking-tight leading-none px-0.5">{lastTwoDigits}</span>
-                              </div>
+                          <div>
+                            <span className="text-[8px] text-gray-400 font-black uppercase tracking-wider block">KUPON DOORPRIZE</span>
+                            <div className="flex items-baseline gap-[1px] mt-0.5 leading-none select-all">
+                              {codePrefix && (
+                                <span className="text-sm sm:text-base font-mono text-red-600/75 font-bold tracking-tight">
+                                  {codePrefix}
+                                </span>
+                              )}
+                              <span className="text-2xl sm:text-3xl font-mono text-red-600 font-black tracking-tighter leading-none">
+                                {codeSuffix}
+                              </span>
                               <button
                                 onClick={() => handleCopyCode(ticket.code)}
-                                className="text-[10px] text-gray-400 hover:text-red-500 cursor-pointer p-0.5"
+                                className="text-[10px] text-gray-400 hover:text-red-500 cursor-pointer p-0.5 shrink-0 ml-2 self-center"
                                 title="Copy code"
                               >
                                 {copiedCode === ticket.code ? (
                                   <Check size={11} className="text-emerald-500 stroke-[3]" />
                                 ) : (
-                                  <span className="text-[9px] font-bold hover:underline bg-gray-100/80 px-1 py-0.5 rounded">Copy</span>
+                                  <span className="text-[9px] font-bold hover:underline bg-gray-150 px-1 py-0.5 rounded">Copy</span>
                                 )}
                               </button>
                             </div>
                           </div>
+                        </div>
 
-                          {/* Barcode graphic simulation - hidden on mobile to avoid layout breaking */}
-                          <div className="hidden sm:flex flex-col items-end shrink-0 select-none">
-                            <div className="flex items-baseline gap-0.5">
-                              {[1, 3, 1, 2, 4, 1, 3, 2, 1, 3, 2, 1, 4, 2].map((w, i) => (
-                                <div key={i} className="bg-gray-800" style={{ width: `${w}px`, height: '24px' }}></div>
-                              ))}
+                        {/* Right column: HUT 81 Independence Logo & Branding */}
+                        <div className="flex flex-col items-center justify-center shrink-0 w-32 pl-3 border-l border-gray-150">
+                          <div className="flex items-center gap-1.5">
+                            {/* Independence 81st Logo */}
+                            <svg viewBox="0 0 100 100" className="w-9 h-9 text-red-600 shrink-0" fill="none">
+                              {/* Layer 1: Red Base */}
+                              <g stroke="currentColor" strokeWidth="11" strokeLinecap="round" strokeLinejoin="miter">
+                                <circle cx="32" cy="35" r="15" />
+                                <circle cx="32" cy="63" r="21" />
+                              </g>
+                              <path d="M44,35 L65,18 L65,85" stroke="currentColor" strokeWidth="11" strokeLinecap="butt" strokeLinejoin="miter" />
+
+                              {/* Layer 2: White Overlay */}
+                              <g stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="miter">
+                                <circle cx="32" cy="35" r="15" />
+                                <circle cx="32" cy="63" r="21" />
+                              </g>
+                              <path d="M44,35 L65,18 L65,85" stroke="white" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter" />
+
+                              {/* Layer 3: Red Top Center Line for 8 (to make it a 3-stripe ribbon) */}
+                              <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="miter">
+                                <circle cx="32" cy="35" r="15" />
+                                <circle cx="32" cy="63" r="21" />
+                              </g>
+                            </svg>
+                            
+                            <div className="flex flex-col text-[7px] font-sans font-black tracking-tight leading-none text-gray-950 uppercase shrink-0">
+                              <span>Indonesia</span>
+                              <span>Berdaulat</span>
+                              <span>Adil Dan</span>
+                              <span>Makmur</span>
                             </div>
-                            <span className="text-[8px] font-mono text-gray-400 mt-1 tracking-widest">{ticket.code.replace(/[^a-zA-Z0-9]/g, '')}</span>
+                          </div>
+                          
+                          <div className="text-[6px] text-center text-red-600 font-black uppercase tracking-tight leading-none mt-2 w-full">
+                            <div>17 AGUSTUS 1945 - 17 AGUSTUS 2026</div>
+                            <div className="text-[5px] tracking-widest opacity-90 mt-0.5">DIRGAHAYU REPUBLIK INDONESIA</div>
                           </div>
                         </div>
                       </div>
 
                       {/* Perforated vertical separator line */}
-                      <div className="relative flex flex-col justify-between items-center py-2.5">
-                        <div className="w-4 h-4 bg-gray-50 rounded-full -mt-4.5 border border-red-100 border-t-transparent shadow-inner"></div>
-                        <div className="flex-1 border-r-2 border-dotted border-gray-200"></div>
-                        <div className="w-4 h-4 bg-gray-50 rounded-full -mb-4.5 border border-red-100 border-b-transparent shadow-inner"></div>
+                      <div className="relative flex flex-col justify-between items-center py-2.5 z-10 shrink-0">
+                        <div className="w-3 h-3 bg-gray-150 rounded-full -mt-4 border border-red-100 border-t-transparent shadow-inner"></div>
+                        <div className="flex-1 border-r-2 border-dotted border-gray-300"></div>
+                        <div className="w-3 h-3 bg-gray-150 rounded-full -mb-4 border border-red-100 border-b-transparent shadow-inner"></div>
                       </div>
 
                       {/* Tear-off Stub (Struk Kupon) */}
-                      <div className="w-24 sm:w-28 bg-slate-50 p-3 flex flex-col justify-between items-center text-center shrink-0">
-                        <div className="space-y-1">
-                          <QrCode size={20} className="text-gray-400 mx-auto" />
-                          <span className="text-[8px] text-gray-400 uppercase font-black tracking-wider block">STRUK PANITIA</span>
-                        </div>
+                      <div className="w-24 sm:w-28 bg-white p-2.5 flex flex-col justify-between items-center text-center shrink-0 relative overflow-hidden z-10">
+                        <span className="bg-red-600 text-white font-extrabold text-[8px] sm:text-[9px] px-3 py-0.5 rounded-xs tracking-wider uppercase block w-fit shadow-3xs">
+                          STRUK
+                        </span>
 
-                        <div className="space-y-1 w-full px-1">
-                          <div className="bg-white border border-gray-200 rounded p-1 shadow-3xs">
-                            <span className="text-[8px] font-mono text-gray-400 block leading-none">{rtPart}</span>
-                            <span className="text-base font-mono text-gray-950 font-black block mt-0.5 leading-none">
-                              #{lastTwoDigits}
-                            </span>
+                        <div className="my-1.5 w-full">
+                          <div className="flex items-baseline justify-center leading-none">
+                            {codePrefix && (
+                              <span className="font-mono text-[9px] text-gray-500 font-bold">{codePrefix}</span>
+                            )}
+                            <span className="font-mono text-sm sm:text-base text-gray-900 font-black leading-none">{codeSuffix}</span>
                           </div>
-                          <span className="text-[8px] text-gray-400 font-bold uppercase">{ticket.rt}</span>
+                          <span className="text-[8px] text-gray-500 font-bold block mt-1.5 uppercase">
+                            {ticket.rt}
+                          </span>
                         </div>
 
-                        <span className="text-[7px] text-gray-400 uppercase tracking-widest block leading-none font-bold">SOBEK DI SINI</span>
+                        <div className="w-full">
+                          <div className="w-10 border-t border-red-500 mx-auto mb-1"></div>
+                          <span className="text-[8px] text-gray-400 font-black uppercase tracking-widest block leading-none">PANITIA</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -506,71 +786,128 @@ export default function ModalGenerateKuponMassal({
         {ticketPages.map((pageTickets, pageIdx) => (
           <div key={pageIdx} className="print-page">
             {pageTickets.map((ticket) => {
-              const parts = ticket.code.split('-');
-              const lastTwoDigits = parts.pop() || '';
-              const rtPart = parts.join('-');
+              const { prefix: codePrefix, suffix: codeSuffix } = getCodeParts(ticket.code);
               return (
                 <div
                   key={`print-${ticket.id}`}
                   className="ticket-card-print flex flex-row bg-white text-black"
                 >
+                  {/* Wavy flag and skyline decorations for printing */}
+                  <div className="print-flag-decor">
+                    <svg viewBox="0 0 100 50" className="w-full h-full text-red-600" preserveAspectRatio="none" fill="currentColor">
+                      <path d="M0,25 Q25,15 50,25 T100,25 L100,50 L0,50 Z" />
+                      <path d="M0,32 Q25,22 50,32 T100,32 L100,50 L0,50 Z" fill="white" />
+                    </svg>
+                  </div>
+
+                  <div className="print-skyline-decor">
+                    <svg viewBox="0 0 200 40" className="w-full h-full text-red-700" preserveAspectRatio="none" fill="currentColor">
+                      <path d="M0,40 L10,40 L10,25 L15,25 L15,40 L25,40 L25,15 L32,15 L32,40 L40,40 L40,30 L45,30 L45,40 L55,40 L60,10 L65,10 L65,40 L75,40 L75,20 L82,20 L82,40 L90,40 L93,5 L97,5 L97,40 L110,40 L110,25 L115,25 L115,40 L125,40 L128,0 L132,0 L132,40 L140,40 L140,30 L145,30 L145,40 L155,40 L160,15 L165,15 L165,40 L180,40 L180,25 L185,25 L185,40 L200,40 Z" />
+                    </svg>
+                  </div>
+
                   {/* Main Ticket Area */}
                   <div className="ticket-main">
-                    <div className="flex justify-between items-center leading-none">
-                      <span className="text-[7px] font-extrabold bg-red-100 text-red-700 px-1 py-0.2 rounded uppercase">
-                        {ticket.subtitle}
-                      </span>
-                      <span className="text-[7px] font-mono text-gray-400">
-                        No. #{String(ticket.index).padStart(3, '0')}
-                      </span>
-                    </div>
+                    {/* Left Column */}
+                    <div className="print-col-left">
+                      <div>
+                        <div className="flex justify-between items-center leading-none">
+                          <span className="print-badge">
+                            {ticket.subtitle}
+                          </span>
+                          <span className="text-[6px] font-mono text-gray-400 font-bold">
+                            #{String(ticket.index).padStart(3, '0')}
+                          </span>
+                        </div>
 
-                    <div className="my-0.5 min-w-0">
-                      <h3 className="font-extrabold text-[9px] uppercase truncate text-gray-900 leading-tight">
-                        {ticket.name}
-                      </h3>
-                      <div className="flex gap-1.5 text-[7px] text-gray-500 font-medium leading-none mt-0.5">
-                        <span className="bg-gray-100 px-1 rounded font-bold text-gray-800">{ticket.rt}</span>
-                        <span>•</span>
-                        <span className="truncate">Status: {ticket.status}</span>
-                      </div>
-                    </div>
+                        <h3 className="print-name">
+                          {ticket.name}
+                        </h3>
 
-                    <div className="flex justify-between items-end border-t border-gray-100 pt-0.5 leading-none">
-                      <div className="flex flex-col">
-                        <span className="text-[5px] text-gray-400 font-bold uppercase tracking-wider">KUPON DOORPRIZE</span>
-                        <div className="flex items-baseline leading-none">
-                          <span className="font-mono text-[7px] text-red-600 font-bold">{rtPart}-</span>
-                          <span className="font-mono text-[14px] text-red-600 font-black leading-none">{lastTwoDigits}</span>
+                        <div className="print-detail">
+                          <span>{ticket.rt}</span>
+                          <span className="print-detail-dot"></span>
+                          <span className={ticket.status === 'Lunas' || ticket.status === 'Hadir Lapangan' ? 'print-status-lunas' : 'print-status-mencicil'}>
+                            {ticket.status}
+                          </span>
                         </div>
                       </div>
 
-                      {/* Stylized barcode */}
-                      <div className="flex flex-col items-end opacity-80 shrink-0">
-                        <div className="flex items-baseline gap-[0.5px]">
-                          {[1, 2, 1, 1, 2, 1, 2, 1].map((w, i) => (
-                            <div key={i} className="bg-black" style={{ width: `${w}px`, height: '8px' }}></div>
-                          ))}
+                      <div className="print-divider-line"></div>
+
+                      <div>
+                        <span className="print-label-doorprize">KUPON DOORPRIZE</span>
+                        <div className="flex items-baseline leading-none mt-0.5">
+                          {codePrefix && (
+                            <span className="font-mono font-bold text-[#dc2626]" style={{ fontSize: '8px', letterSpacing: '-0.1px', marginRight: '0.5px' }}>
+                              {codePrefix}
+                            </span>
+                          )}
+                          <span className="font-mono text-[20px] text-[#dc2626] font-black leading-none animate-pulse" style={{ letterSpacing: '-0.4px' }}>
+                            {codeSuffix}
+                          </span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: HUT 81 Independence Logo & Slogan */}
+                    <div className="print-logo-col">
+                      <div className="print-logo-row">
+                        <svg viewBox="0 0 100 100" className="print-logo-svg" fill="none">
+                          {/* Layer 1: Red Base */}
+                          <g stroke="currentColor" strokeWidth="11" strokeLinecap="round" strokeLinejoin="miter">
+                            <circle cx="32" cy="35" r="15" />
+                            <circle cx="32" cy="63" r="21" />
+                          </g>
+                          <path d="M44,35 L65,18 L65,85" stroke="currentColor" strokeWidth="11" strokeLinecap="butt" strokeLinejoin="miter" />
+
+                          {/* Layer 2: White Overlay */}
+                          <g stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="miter">
+                            <circle cx="32" cy="35" r="15" />
+                            <circle cx="32" cy="63" r="21" />
+                          </g>
+                          <path d="M44,35 L65,18 L65,85" stroke="white" strokeWidth="4" strokeLinecap="butt" strokeLinejoin="miter" />
+
+                          {/* Layer 3: Red Top Center Line for 8 (to make it a 3-stripe ribbon) */}
+                          <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="miter">
+                            <circle cx="32" cy="35" r="15" />
+                            <circle cx="32" cy="63" r="21" />
+                          </g>
+                        </svg>
+                        
+                        <div className="print-logo-text">
+                          <span>Indonesia</span>
+                          <span>Berdaulat</span>
+                          <span>Adil Dan</span>
+                          <span>Makmur</span>
+                        </div>
+                      </div>
+                      
+                      <div className="print-logo-subtext">
+                        <div>17 AGUSTUS 1945 - 2026</div>
+                        <div className="opacity-95" style={{ fontSize: '2.8px', letterSpacing: '0.1px' }}>DIRGAHAYU REPUBLIK INDONESIA</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Coupon Stub */}
-                  <div className="ticket-stub border-l border-dashed border-gray-200">
-                    <span className="text-[6px] text-gray-400 font-black tracking-wider leading-none">STRUK</span>
+                  <div className="ticket-stub">
+                    <span className="print-stub-badge">STRUK</span>
                     
-                    <div className="my-0.5 min-w-0 w-full text-center">
-                      <div className="border border-gray-200 rounded px-1 py-0.5 bg-white">
-                        <span className="font-mono text-[5px] text-gray-400 block leading-none">{rtPart}</span>
-                        <span className="font-mono text-[11px] font-black text-black block mt-0.5 leading-none">
-                          #{lastTwoDigits}
-                        </span>
+                    <div className="w-full text-center">
+                      <div className="flex items-baseline justify-center leading-none mt-1">
+                        {codePrefix && (
+                          <span className="font-mono text-[6px] text-gray-500 font-bold">{codePrefix}</span>
+                        )}
+                        <span className="font-mono text-[13px] font-black text-black leading-none">{codeSuffix}</span>
                       </div>
-                      <span className="text-[6px] text-gray-500 font-bold block mt-0.5 leading-none">{ticket.rt}</span>
+                      <span className="print-stub-rt">{ticket.rt}</span>
                     </div>
 
-                    <span className="text-[5px] text-gray-400 font-bold block uppercase border-t border-gray-200 pt-0.5 w-full leading-none scale-90">PANITIA</span>
+                    <div className="w-full">
+                      <div className="print-stub-line"></div>
+                      <span className="print-stub-footer">PANITIA</span>
+                    </div>
                   </div>
                 </div>
               );

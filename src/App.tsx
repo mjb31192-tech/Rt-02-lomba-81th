@@ -1439,6 +1439,8 @@ export default function App() {
           setSelectedReportForExport(null);
         }}
         report={selectedReportForExport}
+        iuranKKList={iuranKK}
+        kasList={kas}
       />
 
       <ModalAuth

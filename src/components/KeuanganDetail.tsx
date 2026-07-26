@@ -71,6 +71,39 @@ export default function KeuanganDetail({
     return matchSearch && matchTipe;
   });
 
+  // Filter out individual citizen iuran entries from kasList for Section III of LPJ Akhir
+  // and replace them with the weekly financial report summaries (rekap)
+  const nonIuranKas = kasList.filter(k => 
+    !(k.kategori.toLowerCase() === 'iuran warga' || k.keterangan.toLowerCase().includes('iuran kk:'))
+  );
+
+  const rekapMingguanKas = (laporanMingguanList || []).map(rep => ({
+    id: `rekap-mingguan-${rep.id}`,
+    tanggal: rep.tanggal_lapor || rep.tanggal_selesai,
+    tipe: 'pemasukan' as const,
+    kategori: 'Iuran Warga (Rekap)',
+    keterangan: `Rekapitulasi Penarikan Iuran Warga - ${rep.minggu_ke} (${rep.tanggal_mulai} s.d ${rep.tanggal_selesai})`,
+    jumlah: rep.total_jumlah,
+  }));
+
+  const totalIuranFromKas = kasList
+    .filter(k => k.kategori.toLowerCase() === 'iuran warga' || k.keterangan.toLowerCase().includes('iuran kk:'))
+    .reduce((sum, curr) => sum + curr.jumlah, 0);
+
+  const fallbackRekapKas = (rekapMingguanKas.length === 0 && totalIuranFromKas > 0) ? [{
+    id: 'rekap-total-iuran-fallback',
+    tanggal: kasList.find(k => k.kategori.toLowerCase() === 'iuran warga' || k.keterangan.toLowerCase().includes('iuran kk:'))?.tanggal || new Date().toISOString().split('T')[0],
+    tipe: 'pemasukan' as const,
+    kategori: 'Iuran Warga (Rekap)',
+    keterangan: 'Total Rekapitulasi Penerimaan Iuran Warga (Akumulasi)',
+    jumlah: totalIuranFromKas,
+  }] : [];
+
+  const lpjLedgerKasList = [
+    ...nonIuranKas,
+    ...(rekapMingguanKas.length > 0 ? rekapMingguanKas : fallbackRekapKas)
+  ].sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+
   const filteredKKs = iuranKKList.filter(k => {
     const matchSearch = k.nama_kk.toLowerCase().includes(search.toLowerCase());
     const matchRt = rtFilter === 'all' || k.rt === rtFilter;
@@ -887,7 +920,7 @@ export default function KeuanganDetail({
                   <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px]">
                     <thead>
                       <tr className="bg-gray-100 text-gray-800">
-                        <th className="border border-gray-300 p-1.5 w-16">Tanggal</th>
+                        <th className="border border-gray-300 p-1.5 whitespace-nowrap">Tanggal</th>
                         <th className="border border-gray-300 p-1.5 w-12 text-center">Tipe</th>
                         <th className="border border-gray-300 p-1.5 w-24">Kategori</th>
                         <th className="border border-gray-300 p-1.5">Keterangan / Deskripsi Transaksi</th>
@@ -895,17 +928,97 @@ export default function KeuanganDetail({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {kasList.map(k => (
+                      {lpjLedgerKasList.map(k => (
                         <tr key={k.id}>
-                          <td className="border border-gray-300 p-1.5 font-mono">{k.tanggal}</td>
+                          <td className="border border-gray-300 p-1.5 font-mono whitespace-nowrap">{k.tanggal}</td>
                           <td className={`border border-gray-300 p-1.5 text-center font-bold ${k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
                             {k.tipe === 'pemasukan' ? 'MASUK' : 'KELUAR'}
                           </td>
                           <td className="border border-gray-300 p-1.5">{k.kategori}</td>
-                          <td className="border border-gray-300 p-1.5">{k.keterangan}</td>
-                          <td className="border border-gray-300 p-1.5 text-right font-mono">{formatRupiah(k.jumlah)}</td>
+                          <td className="border border-gray-300 p-1.5 font-medium">{k.keterangan}</td>
+                          <td className="border border-gray-300 p-1.5 text-right font-mono font-bold">{formatRupiah(k.jumlah)}</td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 6. Section IV: Detail Status & Update Terakhir Iuran Warga per KK */}
+                <div className="mb-8">
+                  <h4 className="font-bold text-gray-950 uppercase border-b border-gray-300 pb-1 mb-2 font-sans text-xs flex justify-between items-center">
+                    <span>IV. RINCIAN HASIL UPDATE TERAKHIR IURAN WARGA (PER KEPALA KELUARGA)</span>
+                    <span className="text-[10px] font-mono text-emerald-700 font-bold">Total Terkumpul: {formatRupiah(totalIuranTerkumpul)}</span>
+                  </h4>
+
+                  {/* Summary Ringkasan Iuran */}
+                  <div className="grid grid-cols-4 gap-2 mb-3 text-[10px] font-sans">
+                    <div className="p-2 bg-gray-50 border border-gray-200 rounded-xs text-center">
+                      <span className="text-gray-500 text-[8px] block uppercase font-bold">Total KK Registered</span>
+                      <strong className="text-gray-900 font-bold text-xs">{totalKK} KK</strong>
+                    </div>
+                    <div className="p-2 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xs text-center">
+                      <span className="text-emerald-700 text-[8px] block uppercase font-bold">Lunas (Rp 50rb)</span>
+                      <strong className="text-emerald-700 font-bold text-xs">{lunasCount} KK</strong>
+                    </div>
+                    <div className="p-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-xs text-center">
+                      <span className="text-amber-700 text-[8px] block uppercase font-bold">Mencicil / Angsur</span>
+                      <strong className="text-amber-700 font-bold text-xs">{mencicilCount} KK</strong>
+                    </div>
+                    <div className="p-2 bg-red-50 border border-red-200 text-red-900 rounded-xs text-center">
+                      <span className="text-red-700 text-[8px] block uppercase font-bold">Belum Bayar</span>
+                      <strong className="text-red-700 font-bold text-xs">{belumBayarCount} KK</strong>
+                    </div>
+                  </div>
+
+                  <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px]">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-800">
+                        <th className="border border-gray-300 p-1.5 w-7 text-center">No</th>
+                        <th className="border border-gray-300 p-1.5">Nama Kepala Keluarga (KK)</th>
+                        <th className="border border-gray-300 p-1.5 w-12 text-center">RT</th>
+                        <th className="border border-gray-300 p-1.5 w-20 text-center">Status</th>
+                        <th className="border border-gray-300 p-1.5 text-right w-20">Target</th>
+                        <th className="border border-gray-300 p-1.5 text-right w-20">Terbayar</th>
+                        <th className="border border-gray-300 p-1.5 text-right w-20">Sisa</th>
+                        <th className="border border-gray-300 p-1.5 w-28">Update / Angsuran Terakhir</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {iuranKKList.map((kk, idx) => {
+                        const sisa = Math.max(0, kk.target - kk.terbayar);
+                        const lastPayment = kk.riwayat && kk.riwayat.length > 0 ? kk.riwayat[kk.riwayat.length - 1] : null;
+                        return (
+                          <tr key={kk.id}>
+                            <td className="border border-gray-300 p-1.5 text-center font-mono text-gray-500">{idx + 1}</td>
+                            <td className="border border-gray-300 p-1.5 font-bold text-gray-900">{kk.nama_kk}</td>
+                            <td className="border border-gray-300 p-1.5 text-center font-medium">{kk.rt}</td>
+                            <td className="border border-gray-300 p-1.5 text-center">
+                              <span className={`px-1.5 py-0.5 rounded-xs font-bold text-[8px] uppercase tracking-wider ${
+                                kk.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' :
+                                kk.status === 'Mencicil' ? 'bg-amber-100 text-amber-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {kk.status}
+                              </span>
+                            </td>
+                            <td className="border border-gray-300 p-1.5 text-right font-mono">{formatRupiah(kk.target)}</td>
+                            <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700">{formatRupiah(kk.terbayar)}</td>
+                            <td className={`border border-gray-300 p-1.5 text-right font-mono ${sisa > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
+                              {sisa > 0 ? formatRupiah(sisa) : 'Rp 0'}
+                            </td>
+                            <td className="border border-gray-300 p-1.5 font-mono text-[9px] text-gray-700">
+                              {lastPayment ? (
+                                <div className="leading-tight">
+                                  <span className="font-semibold text-gray-900 whitespace-nowrap">{lastPayment.tanggal}</span>
+                                  <span className="text-emerald-700 ml-1 font-bold whitespace-nowrap">(+{formatRupiah(lastPayment.jumlah)})</span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 italic">Belum bayar</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

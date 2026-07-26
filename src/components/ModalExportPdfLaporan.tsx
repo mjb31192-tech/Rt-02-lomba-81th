@@ -1,11 +1,13 @@
 import { X, Printer, Landmark, FileText } from 'lucide-react';
-import { LaporanIuranMingguan } from '../types';
+import { LaporanIuranMingguan, IuranKK, Kas } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ModalExportPdfLaporanProps {
   isOpen: boolean;
   onClose: () => void;
   report: LaporanIuranMingguan | null;
+  iuranKKList?: IuranKK[];
+  kasList?: Kas[];
 }
 
 // Indonesian "Terbilang" helper for absolute professional quality
@@ -37,10 +39,52 @@ function formatTerbilang(num: number): string {
   return terbilang(num) + " Rupiah";
 }
 
+// Helper to parse various Indonesian / ISO date formats to Date object for filtering
+function parseDateString(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const str = dateStr.trim();
+  
+  // Format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  
+  // Format Indonesian e.g. "26 Juli 2026"
+  const monthMap: Record<string, number> = {
+    januari: 0, jan: 0,
+    februari: 1, feb: 1,
+    maret: 2, mar: 2,
+    april: 3, apr: 3,
+    mei: 4,
+    juni: 5, jun: 5,
+    juli: 6, jul: 6,
+    agustus: 7, ags: 7, agu: 7,
+    september: 8, sep: 8,
+    oktober: 9, okt: 9,
+    november: 10, nov: 10,
+    desember: 11, des: 11
+  };
+  const parts = str.split(/\s+/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const mStr = parts[1].toLowerCase();
+    const year = parseInt(parts[2], 10);
+    if (!isNaN(day) && !isNaN(year) && monthMap[mStr] !== undefined) {
+      return new Date(year, monthMap[mStr], day);
+    }
+  }
+  
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export default function ModalExportPdfLaporan({
   isOpen,
   onClose,
   report,
+  iuranKKList = [],
+  kasList = [],
 }: ModalExportPdfLaporanProps) {
   if (!report) return null;
 
@@ -52,6 +96,74 @@ export default function ModalExportPdfLaporan({
   };
 
   const formattedTotal = report.total_jumlah.toLocaleString('id-ID');
+
+  // Parse start and end date of weekly report
+  const startDate = parseDateString(report.tanggal_mulai);
+  const endDate = parseDateString(report.tanggal_selesai);
+  if (startDate) startDate.setHours(0, 0, 0, 0);
+  if (endDate) endDate.setHours(23, 59, 59, 999);
+
+  // Extract payments matching this weekly report period
+  interface WeeklyPaymentItem {
+    nama_kk: string;
+    rt: string;
+    tanggal: string;
+    jumlah: number;
+    status: string;
+  }
+
+  const weeklyPayments: WeeklyPaymentItem[] = [];
+
+  // 1. Gather payments from iuranKKList riwayat
+  iuranKKList.forEach(kk => {
+    if (kk.riwayat && Array.isArray(kk.riwayat)) {
+      kk.riwayat.forEach(r => {
+        const rDate = parseDateString(r.tanggal);
+        let isMatch = false;
+        if (rDate && startDate && endDate) {
+          isMatch = rDate >= startDate && rDate <= endDate;
+        } else {
+          isMatch = r.tanggal === report.tanggal_mulai || r.tanggal === report.tanggal_selesai;
+        }
+        if (isMatch) {
+          weeklyPayments.push({
+            nama_kk: kk.nama_kk,
+            rt: kk.rt,
+            tanggal: r.tanggal,
+            jumlah: r.jumlah,
+            status: kk.status,
+          });
+        }
+      });
+    }
+  });
+
+  // 2. Fallback check from kasList if riwayat was empty
+  if (weeklyPayments.length === 0 && kasList && kasList.length > 0) {
+    kasList.forEach(k => {
+      if (k.tipe === 'pemasukan' && (k.kategori === 'Iuran Warga' || k.keterangan.includes('Iuran KK:'))) {
+        const kDate = parseDateString(k.tanggal);
+        let isMatch = false;
+        if (kDate && startDate && endDate) {
+          isMatch = kDate >= startDate && kDate <= endDate;
+        } else {
+          isMatch = k.tanggal === report.tanggal_mulai || k.tanggal === report.tanggal_selesai;
+        }
+        if (isMatch) {
+          const matchName = k.keterangan.match(/Iuran KK:\s*([^(]+)(?:\(([^)]+)\))?/i);
+          const nama = matchName ? matchName[1].trim() : k.keterangan;
+          const rt = matchName && matchName[2] ? matchName[2].trim() : '-';
+          weeklyPayments.push({
+            nama_kk: nama,
+            rt: rt,
+            tanggal: k.tanggal,
+            jumlah: k.jumlah,
+            status: 'Lunas / Mencicil',
+          });
+        }
+      }
+    });
+  }
 
   return (
     <AnimatePresence>
@@ -229,6 +341,68 @@ export default function ModalExportPdfLaporan({
                   <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-150 text-[10px] text-gray-600">
                     <strong className="font-semibold text-gray-700">Keterangan Catatan:</strong> {report.keterangan}
                   </div>
+                </div>
+
+                {/* 4.5. RINCIAN HASIL PENERIMAAN IURAN WARGA PERIODE MINGGUAN INI */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden mb-4 p-3 bg-white">
+                  <div className="flex justify-between items-center pb-2 mb-2 border-b border-gray-200">
+                    <span className="text-[10px] font-black uppercase text-gray-900 tracking-wider">
+                      DAFTAR WARGA YANG MEMBAYAR IURAN PERIODE MINGGUAN ({report.tanggal_mulai} s.d {report.tanggal_selesai})
+                    </span>
+                    <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      {weeklyPayments.length} Transaksi Warga
+                    </span>
+                  </div>
+
+                  {weeklyPayments.length > 0 ? (
+                    <table className="w-full border-collapse border border-gray-200 text-left font-sans text-[9px]">
+                      <thead>
+                        <tr className="bg-gray-100 text-gray-800">
+                          <th className="border border-gray-200 p-1 text-center w-6">No</th>
+                          <th className="border border-gray-200 p-1">Nama Kepala Keluarga (KK)</th>
+                          <th className="border border-gray-200 p-1 text-center w-10">RT</th>
+                          <th className="border border-gray-200 p-1 text-center w-24">Tanggal Bayar</th>
+                          <th className="border border-gray-200 p-1 text-right w-24">Nominal Bayar</th>
+                          <th className="border border-gray-200 p-1 text-center w-20">Status KK</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {weeklyPayments.map((pm, idx) => (
+                          <tr key={idx}>
+                            <td className="border border-gray-200 p-1 text-center font-mono text-gray-500">{idx + 1}</td>
+                            <td className="border border-gray-200 p-1 font-bold text-gray-900">{pm.nama_kk}</td>
+                            <td className="border border-gray-200 p-1 text-center">{pm.rt}</td>
+                            <td className="border border-gray-200 p-1 text-center font-mono">{pm.tanggal}</td>
+                            <td className="border border-gray-200 p-1 text-right font-mono font-bold text-emerald-700">
+                              Rp {pm.jumlah.toLocaleString('id-ID')}
+                            </td>
+                            <td className="border border-gray-200 p-1 text-center">
+                              <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[7px] uppercase tracking-wider ${
+                                pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {pm.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50 font-bold">
+                          <td colSpan={4} className="border border-gray-200 p-1 text-right font-sans text-[9px]">
+                            TOTAL DANA TERKUMPUL PERIODE INI:
+                          </td>
+                          <td className="border border-gray-200 p-1 text-right font-mono text-emerald-700 font-black text-[9.5px]">
+                            Rp {weeklyPayments.reduce((acc, c) => acc + c.jumlah, 0).toLocaleString('id-ID')}
+                          </td>
+                          <td className="border border-gray-200 p-1"></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  ) : (
+                    <div className="py-3 text-center text-gray-400 italic text-[9px]">
+                      Tidak ada catatan transaksi pembayaran iuran warga pada rentang tanggal periode laporan ini ({report.tanggal_mulai} s.d {report.tanggal_selesai}).
+                    </div>
+                  )}
                 </div>
 
                 {/* 5. DOCK FOTO BUKTI (DILAMPIRKAN) - Optimized height to prevent overflow */}
