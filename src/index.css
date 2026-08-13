@@ -11,24 +11,45 @@
   /* Hide scrollbars & page headers/footers in browsers */
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 5mm;
   }
   
-  body {
-    background: white !important;
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
     margin: 0 !important;
     padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Hide everything under root by default during print */
-  body * {
-    visibility: hidden;
+  /* Hide non-printable layout elements during print so they occupy 0px height */
+  header, nav, footer, .no-print, .print-hidden-element, [role="banner"], [role="navigation"] {
+    display: none !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 
-  .no-print, .print-hidden-element {
-    display: none !important;
+  /* Keep root and main container as visible transparent blocks during print */
+  #root, main {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   table {

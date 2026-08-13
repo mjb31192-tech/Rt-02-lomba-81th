@@ -130,21 +130,21 @@ export default function ModalGenerateKuponMassal({
 
         /* Print view: hide everything except print-area */
         @media print {
-          /* Hide everything in root */
-          body * {
-            visibility: hidden;
-            background: none !important;
+          header, main, nav, footer, .no-print {
+            display: none !important;
+            height: 0 !important;
+            overflow: hidden !important;
           }
           
           /* Show print-area only */
           #print-area, #print-area * {
             visibility: visible !important;
           }
-          #printable-lpj, #printable-lpj *,
-          #printable-a4-area, #printable-a4-area *,
-          #printable-kwitansi-area, #printable-kwitansi-area * {
-            visibility: hidden !important;
+          #printable-lpj,
+          #printable-a4-area,
+          #printable-kwitansi-area {
             display: none !important;
+            height: 0 !important;
           }
 
           /* Ensure the overlay container has transparent background & covers full viewport */

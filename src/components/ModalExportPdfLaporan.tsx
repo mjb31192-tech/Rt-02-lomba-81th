@@ -39,6 +39,29 @@ function formatTerbilang(num: number): string {
   return terbilang(num) + " Rupiah";
 }
 
+// Short date format helper for tables (e.g., "21 Jun 26")
+function formatShortDate(str: string): string {
+  if (!str) return '-';
+  const clean = str.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
+    const [y, m, d] = clean.split('-');
+    return `${d}/${m}/${y.slice(-2)}`;
+  }
+  return clean
+    .replace(/januari/i, 'Jan')
+    .replace(/februari/i, 'Feb')
+    .replace(/maret/i, 'Mar')
+    .replace(/april/i, 'Apr')
+    .replace(/mei/i, 'Mei')
+    .replace(/juni/i, 'Jun')
+    .replace(/juli/i, 'Jul')
+    .replace(/agustus/i, 'Ags')
+    .replace(/september/i, 'Sep')
+    .replace(/oktober/i, 'Okt')
+    .replace(/november/i, 'Nov')
+    .replace(/desember/i, 'Des');
+}
+
 // Helper to parse various Indonesian / ISO date formats to Date object for filtering
 function parseDateString(dateStr: string): Date | null {
   if (!dateStr) return null;
@@ -168,44 +191,45 @@ export default function ModalExportPdfLaporan({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-start overflow-y-auto p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm print:bg-white print:p-0 print:m-0 print:overflow-visible print:static print:inset-auto print:block">
+        <div id="modal-export-pdf-root" className="fixed inset-0 z-50 flex flex-col justify-start overflow-y-auto p-2 sm:p-6 bg-slate-950/85 backdrop-blur-md print:bg-white print:p-0 print:m-0 print:overflow-visible print:static print:inset-auto print:block">
           {/* Backdrop (hidden during print) */}
           <div className="fixed inset-0 pointer-events-none print:hidden" />
 
-          {/* Sticky Header Toolbar - Hidden during printing */}
+          {/* Sticky Header Toolbar - Mobile Friendly & Hidden during printing */}
           <motion.div 
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
-            className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-between px-5 py-4 mb-6 shrink-0 print:hidden z-10"
+            className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 flex items-center justify-between px-3.5 py-3 sm:px-5 sm:py-4 mb-3 sm:mb-6 shrink-0 print:hidden z-10 gap-2"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-red-50 text-red-600">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <div className="p-2 rounded-xl bg-red-50 text-red-600 shrink-0">
                 <FileText size={18} />
               </div>
-              <div>
-                <h3 className="font-display font-black text-gray-800 text-sm uppercase tracking-wider">
+              <div className="min-w-0">
+                <h3 className="font-display font-black text-gray-800 text-xs sm:text-sm uppercase tracking-wider truncate">
                   Cetak / Ekspor PDF A4
                 </h3>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5">
+                <p className="text-[9px] sm:text-[10px] text-gray-400 font-semibold uppercase tracking-widest mt-0.5 truncate hidden sm:block">
                   Pratinjau Lembar Laporan Pertanggungjawaban
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handlePrint}
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer hover:shadow-md hover:shadow-red-100"
+                className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer hover:shadow-md hover:shadow-red-100"
               >
                 <Printer size={14} />
-                Cetak / PDF (A4)
+                <span className="hidden sm:inline">Cetak / PDF (A4)</span>
+                <span className="sm:hidden">Cetak</span>
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="p-2.5 bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                className="p-2 sm:p-2.5 bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
                 title="Tutup Pratinjau"
               >
                 <X size={16} />
@@ -218,7 +242,7 @@ export default function ModalExportPdfLaporan({
             @media print {
               @page {
                 size: A4 portrait;
-                margin: 10mm 8mm;
+                margin: 5mm 5mm;
               }
 
               html, body {
@@ -228,28 +252,54 @@ export default function ModalExportPdfLaporan({
                 padding: 0 !important;
                 width: 100% !important;
                 height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
                 overflow: visible !important;
               }
 
-              body * {
-                visibility: hidden !important;
-              }
-
-              #printable-a4-area, #printable-a4-area * {
-                visibility: visible !important;
-              }
-
-              /* Explicitly hide other print containers to avoid bleeding */
-              #printable-lpj, #printable-lpj *,
-              #printable-kwitansi-area, #printable-kwitansi-area *,
-              #print-area, #print-area * {
-                visibility: hidden !important;
+              /* Hide non-printable layout elements from document flow so they occupy 0px height */
+              header, nav, footer, .no-print, [role="banner"], [role="navigation"] {
                 display: none !important;
+                height: 0 !important;
+                width: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
               }
 
-              /* CRITICAL FIX: Reset ALL parent container positions from fixed/absolute to static flow.
-                 This prevents fixed header/card layers from repeating/overlaying across multi-page prints. */
-              .fixed, .absolute, #root, body > div, [role="dialog"], .backdrop-blur-sm, div[class*="fixed"] {
+              /* Keep root and main container as visible transparent blocks during print */
+              #root, main {
+                display: block !important;
+                position: static !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+              }
+
+              .print-hidden-element, .print\\:hidden, button, .pointer-events-none {
+                display: none !important;
+                height: 0 !important;
+                width: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+              }
+
+              #printable-lpj, #printable-kwitansi-area, #print-area {
+                display: none !important;
+                height: 0 !important;
+                width: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+              }
+
+              /* Reset parent containers */
+              #root, #root > div, [role="dialog"], .backdrop-blur-sm, div[class*="fixed"] {
                 position: static !important;
                 inset: auto !important;
                 transform: none !important;
@@ -263,29 +313,47 @@ export default function ModalExportPdfLaporan({
                 background: transparent !important;
                 box-shadow: none !important;
                 backdrop-filter: none !important;
+              }
+
+              #modal-export-pdf-root {
                 display: block !important;
+                position: static !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
               }
 
               #printable-a4-area {
-                position: static !important;
                 display: block !important;
+                visibility: visible !important;
+                position: static !important;
                 float: none !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 height: auto !important;
                 min-height: 0 !important;
+                max-height: none !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                background: white !important;
-                color: black !important;
+                background: #ffffff !important;
+                color: #000000 !important;
                 box-shadow: none !important;
                 border: none !important;
                 overflow: visible !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
               }
 
-              .print-hidden-element, .print\\:hidden, button {
-                display: none !important;
-                visibility: hidden !important;
+              #printable-a4-area * {
+                visibility: visible !important;
+              }
+
+              .print-2-col-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 6px !important;
               }
 
               table {
@@ -312,7 +380,7 @@ export default function ModalExportPdfLaporan({
                 break-inside: avoid !important;
               }
             }
-          `}} />
+          ` }} />
 
           {/* A4 Sheet Container */}
           <motion.div 
@@ -320,12 +388,12 @@ export default function ModalExportPdfLaporan({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="w-full max-w-[210mm] mx-auto bg-transparent p-0 sm:p-4 mb-12 flex justify-center print:p-0 print:m-0 print:w-full print:max-w-none print:block print:static z-10"
+            className="w-full max-w-[210mm] mx-auto bg-transparent p-0 sm:p-2 mb-6 sm:mb-12 flex justify-center print:p-0 print:m-0 print:w-full print:max-w-none print:block print:static z-10"
           >
             {/* Printable Section */}
             <div 
               id="printable-a4-area" 
-              className="w-full sm:w-[210mm] sm:min-h-[297mm] bg-white p-5 sm:p-8 text-black shadow-2xl relative flex flex-col justify-between overflow-visible border border-gray-150 print:border-none print:shadow-none print:w-full print:h-auto print:p-0 print:block print:static"
+              className="w-full sm:w-[210mm] min-h-0 sm:min-h-[297mm] print:min-h-0 print:h-auto bg-white p-3.5 sm:p-7 text-black shadow-2xl relative flex flex-col justify-between overflow-visible border border-gray-150 print:border-none print:shadow-none print:w-full print:h-auto print:p-0 print:block print:static"
               style={{ boxSizing: 'border-box' }}
             >
               {/* WATERMARK INDONESIA MERDEKA */}
@@ -427,73 +495,79 @@ export default function ModalExportPdfLaporan({
                     weeklyPayments.length > 10 ? (
                       /* COMPACT 2-COLUMN TABLE GRID FOR > 10 TRANSACTIONS (PREVENTS OVERSHEET) */
                       <div className="space-y-1.5">
-                        <div className="grid grid-cols-2 gap-2 text-[8px] print:text-[8px]">
-                          {/* Table 1 (Left Half) */}
-                          <table className="w-full border-collapse border border-gray-200 text-left font-sans">
-                            <thead>
-                              <tr className="bg-gray-100 text-gray-800 font-bold">
-                                <th className="border border-gray-200 p-0.5 text-center w-5">No</th>
-                                <th className="border border-gray-200 p-0.5">Nama KK</th>
-                                <th className="border border-gray-200 p-0.5 text-center w-6">RT</th>
-                                <th className="border border-gray-200 p-0.5 text-right w-14">Nominal</th>
-                                <th className="border border-gray-200 p-0.5 text-center w-10">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {weeklyPayments.slice(0, Math.ceil(weeklyPayments.length / 2)).map((pm, idx) => (
-                                <tr key={idx} className="hover:bg-gray-50">
-                                  <td className="border border-gray-200 p-0.5 text-center font-mono text-gray-500">{idx + 1}</td>
-                                  <td className="border border-gray-200 p-0.5 font-bold text-gray-900 truncate max-w-[90px]">{pm.nama_kk}</td>
-                                  <td className="border border-gray-200 p-0.5 text-center text-[7.5px]">{pm.rt}</td>
-                                  <td className="border border-gray-200 p-0.5 text-right font-mono font-bold text-emerald-700">
-                                    Rp {pm.jumlah.toLocaleString('id-ID')}
-                                  </td>
-                                  <td className="border border-gray-200 p-0.5 text-center">
-                                    <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6px] uppercase ${
-                                      pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                    }`}>
-                                      {pm.status}
-                                    </span>
-                                  </td>
+                        <div className="overflow-x-auto print:overflow-visible">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[8px] print:text-[8px] print-2-col-grid">
+                            {/* Table 1 (Left Half) */}
+                            <table className="w-full border-collapse border border-gray-200 text-left font-sans">
+                              <thead>
+                                <tr className="bg-gray-100 text-gray-800 font-bold">
+                                  <th className="border border-gray-200 p-0.5 text-center w-5">No</th>
+                                  <th className="border border-gray-200 p-0.5">Nama KK</th>
+                                  <th className="border border-gray-200 p-0.5 text-center w-5">RT</th>
+                                  <th className="border border-gray-200 p-0.5 text-center w-12">Tgl / Waktu</th>
+                                  <th className="border border-gray-200 p-0.5 text-right w-12">Nominal</th>
+                                  <th className="border border-gray-200 p-0.5 text-center w-8">Status</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-
-                          {/* Table 2 (Right Half) */}
-                          <table className="w-full border-collapse border border-gray-200 text-left font-sans">
-                            <thead>
-                              <tr className="bg-gray-100 text-gray-800 font-bold">
-                                <th className="border border-gray-200 p-0.5 text-center w-5">No</th>
-                                <th className="border border-gray-200 p-0.5">Nama KK</th>
-                                <th className="border border-gray-200 p-0.5 text-center w-6">RT</th>
-                                <th className="border border-gray-200 p-0.5 text-right w-14">Nominal</th>
-                                <th className="border border-gray-200 p-0.5 text-center w-10">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {weeklyPayments.slice(Math.ceil(weeklyPayments.length / 2)).map((pm, idx) => {
-                                const realIdx = Math.ceil(weeklyPayments.length / 2) + idx;
-                                return (
-                                  <tr key={realIdx} className="hover:bg-gray-50">
-                                    <td className="border border-gray-200 p-0.5 text-center font-mono text-gray-500">{realIdx + 1}</td>
-                                    <td className="border border-gray-200 p-0.5 font-bold text-gray-900 truncate max-w-[90px]">{pm.nama_kk}</td>
-                                    <td className="border border-gray-200 p-0.5 text-center text-[7.5px]">{pm.rt}</td>
-                                    <td className="border border-gray-200 p-0.5 text-right font-mono font-bold text-emerald-700">
+                              </thead>
+                              <tbody>
+                                {weeklyPayments.slice(0, Math.ceil(weeklyPayments.length / 2)).map((pm, idx) => (
+                                  <tr key={idx} className="hover:bg-gray-50">
+                                    <td className="border border-gray-200 p-0.5 text-center font-mono text-gray-500 text-[7px]">{idx + 1}</td>
+                                    <td className="border border-gray-200 p-0.5 font-bold text-gray-900 truncate max-w-[70px] text-[7.5px]">{pm.nama_kk}</td>
+                                    <td className="border border-gray-200 p-0.5 text-center text-[7px]">{pm.rt}</td>
+                                    <td className="border border-gray-200 p-0.5 text-center font-mono text-[6.5px] text-gray-600 whitespace-nowrap">{formatShortDate(pm.tanggal)}</td>
+                                    <td className="border border-gray-200 p-0.5 text-right font-mono font-bold text-emerald-700 text-[7.5px] whitespace-nowrap">
                                       Rp {pm.jumlah.toLocaleString('id-ID')}
                                     </td>
                                     <td className="border border-gray-200 p-0.5 text-center">
-                                      <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6px] uppercase ${
+                                      <span className={`px-0.5 py-0.2 rounded-xs font-extrabold text-[5.5px] uppercase ${
                                         pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                                       }`}>
                                         {pm.status}
                                       </span>
                                     </td>
                                   </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                ))}
+                              </tbody>
+                            </table>
+
+                            {/* Table 2 (Right Half) */}
+                            <table className="w-full border-collapse border border-gray-200 text-left font-sans">
+                              <thead>
+                                <tr className="bg-gray-100 text-gray-800 font-bold">
+                                  <th className="border border-gray-200 p-0.5 text-center w-5">No</th>
+                                  <th className="border border-gray-200 p-0.5">Nama KK</th>
+                                  <th className="border border-gray-200 p-0.5 text-center w-5">RT</th>
+                                  <th className="border border-gray-200 p-0.5 text-center w-12">Tgl / Waktu</th>
+                                  <th className="border border-gray-200 p-0.5 text-right w-12">Nominal</th>
+                                  <th className="border border-gray-200 p-0.5 text-center w-8">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {weeklyPayments.slice(Math.ceil(weeklyPayments.length / 2)).map((pm, idx) => {
+                                  const realIdx = Math.ceil(weeklyPayments.length / 2) + idx;
+                                  return (
+                                    <tr key={realIdx} className="hover:bg-gray-50">
+                                      <td className="border border-gray-200 p-0.5 text-center font-mono text-gray-500 text-[7px]">{realIdx + 1}</td>
+                                      <td className="border border-gray-200 p-0.5 font-bold text-gray-900 truncate max-w-[70px] text-[7.5px]">{pm.nama_kk}</td>
+                                      <td className="border border-gray-200 p-0.5 text-center text-[7px]">{pm.rt}</td>
+                                      <td className="border border-gray-200 p-0.5 text-center font-mono text-[6.5px] text-gray-600 whitespace-nowrap">{formatShortDate(pm.tanggal)}</td>
+                                      <td className="border border-gray-200 p-0.5 text-right font-mono font-bold text-emerald-700 text-[7.5px] whitespace-nowrap">
+                                        Rp {pm.jumlah.toLocaleString('id-ID')}
+                                      </td>
+                                      <td className="border border-gray-200 p-0.5 text-center">
+                                        <span className={`px-0.5 py-0.2 rounded-xs font-extrabold text-[5.5px] uppercase ${
+                                          pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                        }`}>
+                                          {pm.status}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
 
                         {/* Total Footer Banner */}
@@ -506,49 +580,51 @@ export default function ModalExportPdfLaporan({
                       </div>
                     ) : (
                       /* SINGLE COLUMN TABLE FOR <= 10 TRANSACTIONS */
-                      <table className="w-full border-collapse border border-gray-200 text-left font-sans text-[8.5px]">
-                        <thead>
-                          <tr className="bg-gray-100 text-gray-800">
-                            <th className="border border-gray-200 p-1 text-center w-6">No</th>
-                            <th className="border border-gray-200 p-1">Nama Kepala Keluarga (KK)</th>
-                            <th className="border border-gray-200 p-1 text-center w-10">RT</th>
-                            <th className="border border-gray-200 p-1 text-center w-24">Tanggal Bayar</th>
-                            <th className="border border-gray-200 p-1 text-right w-24">Nominal Bayar</th>
-                            <th className="border border-gray-200 p-1 text-center w-20">Status KK</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {weeklyPayments.map((pm, idx) => (
-                            <tr key={idx}>
-                              <td className="border border-gray-200 p-1 text-center font-mono text-gray-500">{idx + 1}</td>
-                              <td className="border border-gray-200 p-1 font-bold text-gray-900">{pm.nama_kk}</td>
-                              <td className="border border-gray-200 p-1 text-center">{pm.rt}</td>
-                              <td className="border border-gray-200 p-1 text-center font-mono">{pm.tanggal}</td>
-                              <td className="border border-gray-200 p-1 text-right font-mono font-bold text-emerald-700">
-                                Rp {pm.jumlah.toLocaleString('id-ID')}
-                              </td>
-                              <td className="border border-gray-200 p-1 text-center">
-                                <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6.5px] uppercase tracking-wider ${
-                                  pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                }`}>
-                                  {pm.status}
-                                </span>
-                              </td>
+                      <div className="overflow-x-auto print:overflow-visible">
+                        <table className="w-full border-collapse border border-gray-200 text-left font-sans text-[8.5px]">
+                          <thead>
+                            <tr className="bg-gray-100 text-gray-800">
+                              <th className="border border-gray-200 p-1 text-center w-6">No</th>
+                              <th className="border border-gray-200 p-1">Nama Kepala Keluarga (KK)</th>
+                              <th className="border border-gray-200 p-1 text-center w-10">RT</th>
+                              <th className="border border-gray-200 p-1 text-center w-24">Tanggal / Waktu Bayar</th>
+                              <th className="border border-gray-200 p-1 text-right w-24">Nominal Bayar</th>
+                              <th className="border border-gray-200 p-1 text-center w-20">Status KK</th>
                             </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-gray-50 font-bold">
-                            <td colSpan={4} className="border border-gray-200 p-1 text-right font-sans text-[8.5px]">
-                              TOTAL DANA TERKUMPUL PERIODE INI:
-                            </td>
-                            <td className="border border-gray-200 p-1 text-right font-mono text-emerald-700 font-black text-[9px]">
-                              Rp {weeklyPayments.reduce((acc, c) => acc + c.jumlah, 0).toLocaleString('id-ID')}
-                            </td>
-                            <td className="border border-gray-200 p-1"></td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {weeklyPayments.map((pm, idx) => (
+                              <tr key={idx}>
+                                <td className="border border-gray-200 p-1 text-center font-mono text-gray-500">{idx + 1}</td>
+                                <td className="border border-gray-200 p-1 font-bold text-gray-900">{pm.nama_kk}</td>
+                                <td className="border border-gray-200 p-1 text-center">{pm.rt}</td>
+                                <td className="border border-gray-200 p-1 text-center font-mono">{formatShortDate(pm.tanggal)}</td>
+                                <td className="border border-gray-200 p-1 text-right font-mono font-bold text-emerald-700">
+                                  Rp {pm.jumlah.toLocaleString('id-ID')}
+                                </td>
+                                <td className="border border-gray-200 p-1 text-center">
+                                  <span className={`px-1 py-0.2 rounded-xs font-extrabold text-[6.5px] uppercase tracking-wider ${
+                                    pm.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    {pm.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-gray-50 font-bold">
+                              <td colSpan={4} className="border border-gray-200 p-1 text-right font-sans text-[8.5px]">
+                                TOTAL DANA TERKUMPUL PERIODE INI:
+                              </td>
+                              <td className="border border-gray-200 p-1 text-right font-mono text-emerald-700 font-black text-[9px]">
+                                Rp {weeklyPayments.reduce((acc, c) => acc + c.jumlah, 0).toLocaleString('id-ID')}
+                              </td>
+                              <td className="border border-gray-200 p-1"></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
                     )
                   ) : (
                     <div className="py-2 text-center text-gray-400 italic text-[8.5px]">

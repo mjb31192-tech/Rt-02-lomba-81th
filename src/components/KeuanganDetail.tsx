@@ -325,101 +325,129 @@ export default function KeuanganDetail({
               </div>
             </div>
 
-            <div className="divide-y divide-gray-100">
-              {filteredKas.length === 0 ? (
-                <div className="p-8 text-center text-gray-400 text-xs font-medium">
-                  Belum ada transaksi keuangan yang cocok dengan pencarian Anda.
-                </div>
-              ) : (
-                filteredKas.map((k) => (
-                  <div key={k.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 transition-all animate-fade-in">
-                    <div className="flex items-center gap-3.5">
-                      <div className={`p-2.5 rounded-xl shrink-0 border ${k.tipe === 'pemasukan' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-600'}`}>
-                        {k.tipe === 'pemasukan' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs text-gray-800 leading-normal">{k.keterangan}</h4>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[10px] text-gray-400 font-bold px-2 py-0.5 bg-gray-100 rounded-md">
-                            {k.kategori}
-                          </span>
-                          <span className="text-[10px] text-gray-400 flex items-center gap-1 font-medium font-mono">
-                            <Calendar size={10} />
+            {/* Jurnal Table with Explicit Debit (Kas Masuk) & Kredit (Kas Keluar) Columns */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[650px]">
+                <thead>
+                  <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] uppercase font-bold text-gray-500 tracking-wider">
+                    <th className="p-3.5 w-32">Tanggal</th>
+                    <th className="p-3.5 w-36">Kategori</th>
+                    <th className="p-3.5">Keterangan Transaksi</th>
+                    <th className="p-3.5 text-right text-emerald-700 w-44">Debit (Kas Masuk)</th>
+                    <th className="p-3.5 text-right text-red-600 w-44">Kredit (Kas Keluar)</th>
+                    <th className="p-3.5 text-center w-24">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-xs">
+                  {filteredKas.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-gray-400 font-medium">
+                        Belum ada transaksi keuangan yang cocok dengan pencarian Anda.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredKas.map((k) => (
+                      <tr key={k.id} className="hover:bg-gray-50/60 transition-all">
+                        <td className="p-3.5 font-mono text-gray-600 whitespace-nowrap align-top">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <Calendar size={12} className="text-gray-400 shrink-0" />
                             {k.tanggal}
                           </span>
+                        </td>
+                        <td className="p-3.5 align-top">
+                          <span className="text-[10px] text-gray-600 font-bold px-2 py-0.5 bg-gray-100 rounded-md whitespace-nowrap inline-block">
+                            {k.kategori}
+                          </span>
+                        </td>
+                        <td className="p-3.5 align-top">
+                          <div className="font-bold text-gray-800 leading-snug">{k.keterangan}</div>
                           {k.bukti_foto && (
                             <button
                               type="button"
                               onClick={() => setSelectedProofPhoto(k.bukti_foto)}
-                              className="inline-flex items-center gap-1 text-[9px] bg-red-50 text-red-600 border border-red-100 font-bold px-1.5 py-0.5 rounded hover:bg-red-100 transition-all cursor-pointer"
+                              className="mt-1.5 inline-flex items-center gap-1 text-[9px] bg-red-50 text-red-600 border border-red-100 font-bold px-2 py-0.5 rounded-md hover:bg-red-100 transition-all cursor-pointer"
                             >
                               <Camera size={10} />
-                              Lihat Bukti
+                              Lihat Bukti Foto
                             </button>
                           )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="text-right">
-                        <span className={`font-bold font-mono text-xs sm:text-sm ${k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {k.tipe === 'pemasukan' ? '+' : '-'}&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}
-                        </span>
-                        <span className="block text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
-                          {k.tipe}
-                        </span>
-                      </div>
-
-                      {isPengurus ? (
-                        <div className="flex items-center gap-1.5">
-                          {onEditKasClick && (
-                            <button
-                              onClick={() => onEditKasClick(k)}
-                              className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
-                              title="Revisi / Edit Transaksi"
-                            >
-                              <Edit size={13} />
-                            </button>
+                        </td>
+                        <td className="p-3.5 text-right font-mono font-bold text-emerald-600 whitespace-nowrap align-top">
+                          {k.tipe === 'pemasukan' ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs sm:text-sm text-emerald-600">+&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
+                              <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
+                                DEBIT (MASUK)
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-300 font-normal">-</span>
                           )}
-
-                          {onDeleteKas && (
-                            <button
-                              onClick={() => onDeleteKas(k.id)}
-                              className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
-                              title="Hapus Transaksi"
-                            >
-                              <Trash2 size={13} />
-                            </button>
+                        </td>
+                        <td className="p-3.5 text-right font-mono font-bold text-red-500 whitespace-nowrap align-top">
+                          {k.tipe === 'pengeluaran' ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-xs sm:text-sm text-red-500">-&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
+                              <span className="text-[8px] bg-red-50 text-red-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
+                                KREDIT (KELUAR)
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-300 font-normal">-</span>
                           )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => {
-                              alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk mengedit transaksi keuangan.");
-                            }}
-                            className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
-                            title="Login untuk Edit"
-                          >
-                            <Edit size={13} />
-                          </button>
+                        </td>
+                        <td className="p-3.5 text-center align-top">
+                          {isPengurus ? (
+                            <div className="flex items-center justify-center gap-1.5">
+                              {onEditKasClick && (
+                                <button
+                                  onClick={() => onEditKasClick(k)}
+                                  className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                                  title="Revisi / Edit Transaksi"
+                                >
+                                  <Edit size={13} />
+                                </button>
+                              )}
 
-                          <button
-                            onClick={() => {
-                              alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk menghapus transaksi keuangan.");
-                            }}
-                            className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
-                            title="Login untuk Hapus"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
+                              {onDeleteKas && (
+                                <button
+                                  onClick={() => onDeleteKas(k.id)}
+                                  className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => {
+                                  alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk mengedit transaksi keuangan.");
+                                }}
+                                className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
+                                title="Login untuk Edit"
+                              >
+                                <Edit size={13} />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk menghapus transaksi keuangan.");
+                                }}
+                                className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
+                                title="Login untuk Hapus"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -726,7 +754,7 @@ export default function KeuanganDetail({
               @media print {
                 @page {
                   size: A4 portrait;
-                  margin: 10mm 8mm;
+                  margin: 5mm 5mm;
                 }
 
                 html, body {
@@ -736,22 +764,36 @@ export default function KeuanganDetail({
                   padding: 0 !important;
                   width: 100% !important;
                   height: auto !important;
+                  min-height: 0 !important;
                   overflow: visible !important;
                 }
 
-                body * {
-                  visibility: hidden !important;
-                }
-
-                #printable-lpj, #printable-lpj * {
-                  visibility: visible !important;
-                }
-
-                #printable-a4-area, #printable-a4-area *,
-                #printable-kwitansi-area, #printable-kwitansi-area *,
-                #print-area, #print-area * {
-                  visibility: hidden !important;
+                /* Hide main page layout elements from DOM flow so they take 0px height */
+                header, nav, footer, .no-print, [role="banner"], [role="navigation"] {
                   display: none !important;
+                  height: 0 !important;
+                  width: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow: hidden !important;
+                }
+
+                .print-hidden-element, .print\\:hidden, button, .pointer-events-none {
+                  display: none !important;
+                  height: 0 !important;
+                  width: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow: hidden !important;
+                }
+
+                #printable-a4-area, #printable-kwitansi-area, #print-area {
+                  display: none !important;
+                  height: 0 !important;
+                  width: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow: hidden !important;
                 }
 
                 .fixed, .absolute, #root, body > div, [role="dialog"], div[class*="fixed"] {
@@ -768,12 +810,12 @@ export default function KeuanganDetail({
                   background: transparent !important;
                   box-shadow: none !important;
                   backdrop-filter: none !important;
-                  display: block !important;
                 }
 
                 #printable-lpj {
-                  position: static !important;
                   display: block !important;
+                  visibility: visible !important;
+                  position: static !important;
                   float: none !important;
                   width: 100% !important;
                   max-width: 100% !important;
@@ -787,9 +829,8 @@ export default function KeuanganDetail({
                   overflow: visible !important;
                 }
 
-                .print-hidden-element, .print\\:hidden, button {
-                  display: none !important;
-                  visibility: hidden !important;
+                #printable-lpj * {
+                  visibility: visible !important;
                 }
 
                 table {
@@ -816,7 +857,7 @@ export default function KeuanganDetail({
                   break-inside: avoid !important;
                 }
               }
-            `}} />
+            ` }} />
 
             {/* Actions Panel */}
             <div className="bg-red-50/50 border border-red-100 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -984,8 +1025,9 @@ export default function KeuanganDetail({
 
                 {/* 5. Section III: Detailed Ledger of Transactions */}
                 <div className="mb-8">
-                  <h4 className="font-bold text-gray-950 uppercase border-b border-gray-300 pb-1 mb-2 font-sans text-xs">
-                    III. HISTORI BUKU JURNAL KAS MASUK DAN KELUAR
+                  <h4 className="font-bold text-gray-950 uppercase border-b border-gray-300 pb-1 mb-2 font-sans text-xs flex items-center justify-between">
+                    <span>III. HISTORI BUKU JURNAL KAS MASUK DAN KELUAR</span>
+                    <span className="text-[9px] font-mono text-gray-500 font-bold uppercase">(Kolom Debit Kas Masuk &amp; Kredit Kas Keluar)</span>
                   </h4>
                   <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px]">
                     <thead>
@@ -994,7 +1036,8 @@ export default function KeuanganDetail({
                         <th className="border border-gray-300 p-1.5 w-12 text-center">Tipe</th>
                         <th className="border border-gray-300 p-1.5 w-24">Kategori</th>
                         <th className="border border-gray-300 p-1.5">Keterangan / Deskripsi Transaksi</th>
-                        <th className="border border-gray-300 p-1.5 text-right w-24">Jumlah (Nominal)</th>
+                        <th className="border border-gray-300 p-1.5 text-right w-28 text-emerald-700">Debit (Kas Masuk)</th>
+                        <th className="border border-gray-300 p-1.5 text-right w-28 text-red-600">Kredit (Kas Keluar)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -1006,7 +1049,12 @@ export default function KeuanganDetail({
                           </td>
                           <td className="border border-gray-300 p-1.5">{k.kategori}</td>
                           <td className="border border-gray-300 p-1.5 font-medium">{k.keterangan}</td>
-                          <td className="border border-gray-300 p-1.5 text-right font-mono font-bold">{formatRupiah(k.jumlah)}</td>
+                          <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700">
+                            {k.tipe === 'pemasukan' ? formatRupiah(k.jumlah) : '-'}
+                          </td>
+                          <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-red-600">
+                            {k.tipe === 'pengeluaran' ? formatRupiah(k.jumlah) : '-'}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

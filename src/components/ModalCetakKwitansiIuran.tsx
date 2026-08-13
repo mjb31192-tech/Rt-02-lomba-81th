@@ -124,17 +124,19 @@ export default function ModalCetakKwitansiIuran({
                 margin: 0 !important;
                 padding: 0 !important;
               }
-              body * {
-                visibility: hidden !important;
+              header, main, nav, footer, .no-print {
+                display: none !important;
+                height: 0 !important;
+                overflow: hidden !important;
               }
               #printable-kwitansi-area, #printable-kwitansi-area * {
                 visibility: visible !important;
               }
-              #printable-lpj, #printable-lpj *,
-              #printable-a4-area, #printable-a4-area *,
-              #print-area, #print-area * {
-                visibility: hidden !important;
+              #printable-lpj,
+              #printable-a4-area,
+              #print-area {
                 display: none !important;
+                height: 0 !important;
               }
               #printable-kwitansi-area {
                 position: absolute !important;
