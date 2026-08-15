@@ -21,39 +21,13 @@ const INITIAL_DB = {
     { username: 'anto', password: 'SuperPanitia', nama: 'Anto / Zhipo', jabatan: 'Ketua Panitia', email: 'anto@gmail.com' },
     { username: 'ayeh', password: 'SuperPanitia', nama: 'Ayeh Patoni', jabatan: 'Bendahara', email: 'ayeh@gmail.com' }
   ],
-  lombas: [
-    { id: 1, nama_lomba: "Panjat Pinang Dewasa", pj: "Budi Santoso", status: "Belum Mulai", anggaran: 1200000, kategori: "Dewasa" },
-    { id: 2, nama_lomba: "Tarik Tambang Antar RT", pj: "Hendra Wijaya", status: "Berjalan", anggaran: 350000, kategori: "Dewasa" },
-    { id: 3, nama_lomba: "Balap Karung Helm", pj: "Siti Aminah", status: "Berjalan", anggaran: 200000, kategori: "Anak-anak" },
-    { id: 4, nama_lomba: "Makan Kerupuk Kolosal", pj: "Agus Setiawan", status: "Selesai", anggaran: 150000, kategori: "Anak-anak", pemenang_1: "Rian RT 01", pemenang_2: "Susi RT 03", pemenang_3: "Adit RT 02" },
-    { id: 5, nama_lomba: "Lomba Menghias Gapura RT", pj: "Rahmat Hidayat", status: "Berjalan", anggaran: 2000000, kategori: "Umum" },
-    { id: 6, nama_lomba: "Jalan Sehat HUT RI", pj: "Dedi Kurniawan", status: "Belum Mulai", anggaran: 1500000, kategori: "Umum" },
-    { id: 7, nama_lomba: "Mewarnai Kemerdekaan", pj: "Lani Lestari", status: "Selesai", anggaran: 300000, kategori: "Anak-anak", pemenang_1: "Kiki RT 04", pemenang_2: "Dina RT 01", pemenang_3: "Fino RT 02" },
-    { id: 8, nama_lomba: "Estafet Kelereng Ibu-ibu", pj: "Sri Wahyuni", status: "Belum Mulai", anggaran: 150000, kategori: "Ibu-ibu" }
-  ],
-  pesertas: [
-    { id: 1, nama_peserta: "Ahmad Fauzi", no_telp: "081234567890", rt: "RT 01", lomba_id: 1, absensi: true, waktu_daftar: "2026-06-20 14:30:00" },
-    { id: 2, nama_peserta: "Bambang Pamungkas", no_telp: "082198765432", rt: "RT 02", lomba_id: 1, absensi: false, waktu_daftar: "2026-06-20 15:12:00" },
-    { id: 3, nama_peserta: "Cici Paramida", no_telp: "087711223344", rt: "RT 03", lomba_id: 3, absensi: true, waktu_daftar: "2026-06-21 09:45:00" },
-    { id: 4, nama_peserta: "Dedi Kusnandar", no_telp: "085644556677", rt: "RT 04", lomba_id: 2, absensi: true, waktu_daftar: "2026-06-21 10:20:00" },
-    { id: 5, nama_peserta: "Eka Prasetya", no_telp: "089988776655", rt: "RT 01", lomba_id: 2, absensi: true, waktu_daftar: "2026-06-22 11:05:00" },
-    { id: 6, nama_peserta: "Fatimah Azzahra", no_telp: "081322334455", rt: "RT 03", lomba_id: 4, absensi: true, waktu_daftar: "2026-06-22 13:50:00" },
-    { id: 7, nama_peserta: "Guntur Bumi", no_telp: "081288990011", rt: "RT 02", lomba_id: 4, absensi: true, waktu_daftar: "2026-06-23 08:15:00" }
-  ],
+  lombas: [] as any[],
+  pesertas: [] as any[],
   kas: [
     { id: 1, tipe: "pemasukan", kategori: "Iuran Warga", jumlah: 5000000, keterangan: "Iuran sukarela warga RT 01 - RT 04", tanggal: "2026-06-10" },
-    { id: 2, tipe: "pemasukan", kategori: "Sponsorship", jumlah: 2500000, keterangan: "Sponsor Toko Kelontong Utama", tanggal: "2026-06-15" },
-    { id: 3, tipe: "pengeluaran", kategori: "Peralatan Lomba", jumlah: 150000, keterangan: "Beli tali tambang & kapur lapangan", tanggal: "2026-06-18" },
-    { id: 4, tipe: "pengeluaran", kategori: "Konsumsi", jumlah: 450000, keterangan: "Snack rapat koordinasi panitia ke-2", tanggal: "2026-06-20" },
-    { id: 5, tipe: "pengeluaran", kategori: "Hadiah", jumlah: 600000, keterangan: "Pembelian piala dan kado makan kerupuk & mewarnai", tanggal: "2026-06-22" }
+    { id: 2, tipe: "pemasukan", kategori: "Sponsorship", jumlah: 2500000, keterangan: "Sponsor Toko Kelontong Utama", tanggal: "2026-06-15" }
   ],
-  aktivitas: [
-    { id: 1, tipe: "kas", keterangan: "Pemasukan dana iuran warga terkumpul sebesar Rp 5.000.000", waktu: "4 hari yang lalu" },
-    { id: 2, tipe: "pendaftaran", keterangan: "Fatimah Azzahra (RT 03) mendaftar sebagai peserta Makan Kerupuk", waktu: "2 hari yang lalu" },
-    { id: 3, tipe: "kas", keterangan: "Catat pengeluaran Rp 600.000 untuk pembelian piala dan kado", waktu: "Kemarin" },
-    { id: 4, tipe: "skor", keterangan: "Rian RT 01 dinyatakan sebagai Juara 1 lomba Makan Kerupuk Kolosal", waktu: "10 jam yang lalu" },
-    { id: 5, tipe: "absensi", keterangan: "Ahmad Fauzi (RT 01) telah melakukan absensi kehadiran Panjat Pinang", waktu: "2 jam yang lalu" }
-  ],
+  aktivitas: [] as any[],
   iuranKK: [
     { id: 1, nama_kk: "Pak Joko Widodo", rt: "RT 01", target: 50000, terbayar: 50000, status: "Lunas", riwayat: [{ id: 101, tanggal: "2026-06-12", jumlah: 50000 }] },
     { id: 2, nama_kk: "Pak Susilo Bambang", rt: "RT 02", target: 50000, terbayar: 20000, status: "Mencicil", riwayat: [{ id: 102, tanggal: "2026-06-15", jumlah: 20000 }] },
@@ -64,13 +38,8 @@ const INITIAL_DB = {
     { id: 7, nama_kk: "Pak Ridwan Kamil", rt: "RT 02", target: 50000, terbayar: 0, status: "Belum Bayar", riwayat: [] },
     { id: 8, nama_kk: "Pak Sandiaga Uno", rt: "RT 04", target: 50000, terbayar: 50000, status: "Lunas", riwayat: [{ id: 107, tanggal: "2026-06-16", jumlah: 50000 }] }
   ],
-  permintaanLomba: [
-    { id: 1, nama_lomba: "Catur Cepat Bapak-bapak", pengusul: "Pak Ahmad", rt: "RT 03", kategori: "Bapak-bapak", estimasi_biaya: 250000, jumlah_pendukung: 18, status: "Menunggu" },
-    { id: 2, nama_lomba: "Lomba Mewarnai Balita", pengusul: "Ibu Rina", rt: "RT 01", kategori: "Anak-anak", estimasi_biaya: 150000, jumlah_pendukung: 12, status: "Menunggu" },
-    { id: 3, nama_lomba: "Estafet Air Ibu-ibu", pengusul: "Ibu Hartati", rt: "RT 04", kategori: "Ibu-ibu", estimasi_biaya: 200000, jumlah_pendukung: 25, status: "Menunggu" },
-    { id: 4, nama_lomba: "E-Sport Mobile Legends Remaja", pengusul: "Adit", rt: "RT 02", kategori: "Umum", estimasi_biaya: 500000, jumlah_pendukung: 31, status: "Menunggu" }
-  ],
-  laporanIuranMingguan: []
+  permintaanLomba: [] as any[],
+  laporanIuranMingguan: [] as any[]
 };
 
 // --- FIREBASE CLIENT SETUP ---
@@ -116,51 +85,155 @@ function sanitizeDatabase(data: typeof INITIAL_DB): typeof INITIAL_DB {
     return k;
   });
 
+  const MOCK_PESERTA_NAMES = [
+    "Ahmad Fauzi",
+    "Bambang Pamungkas",
+    "Cici Paramida",
+    "Dedi Kusnandar",
+    "Eka Prasetya",
+    "Fatimah Azzahra",
+    "Guntur Bumi"
+  ];
+
+  const MOCK_LOMBA_NAMES = [
+    "Panjat Pinang Dewasa",
+    "Tarik Tambang Antar RT",
+    "Balap Karung Helm",
+    "Makan Kerupuk Kolosal",
+    "Lomba Menghias Gapura RT",
+    "Jalan Sehat HUT RI",
+    "Mewarnai Kemerdekaan",
+    "Estafet Kelereng Ibu-ibu"
+  ];
+
+  const MOCK_REQ_NAMES = [
+    "Catur Cepat Bapak-bapak",
+    "Lomba Mewarnai Balita",
+    "Estafet Air Ibu-ibu",
+    "E-Sport Mobile Legends Remaja"
+  ];
+
+  const sanitizedPesertas = (data.pesertas || []).filter((p: any) => {
+    if (!p || !p.nama_peserta) return false;
+    return !MOCK_PESERTA_NAMES.includes(p.nama_peserta);
+  });
+
+  const sanitizedLombas = (data.lombas || []).filter((l: any) => {
+    if (!l || !l.nama_lomba) return false;
+    return !MOCK_LOMBA_NAMES.includes(l.nama_lomba);
+  });
+
+  const sanitizedAktivitas = (data.aktivitas || []).filter((a: any) => {
+    if (!a || !a.keterangan) return false;
+    return !a.keterangan.includes('Panjat Pinang') && !a.keterangan.includes('Makan Kerupuk');
+  });
+
+  const sanitizedPermintaan = (data.permintaanLomba || []).filter((pl: any) => {
+    if (!pl || !pl.nama_lomba) return false;
+    return !MOCK_REQ_NAMES.includes(pl.nama_lomba);
+  });
+
   return {
     accounts: (data.accounts && data.accounts.length > 0) ? data.accounts : INITIAL_DB.accounts,
-    lombas: (data.lombas && data.lombas.length > 0) ? data.lombas : INITIAL_DB.lombas,
-    pesertas: (data.pesertas && data.pesertas.length > 0) ? data.pesertas : INITIAL_DB.pesertas,
-    kas: sanitizedKas,
-    aktivitas: data.aktivitas || INITIAL_DB.aktivitas,
-    iuranKK: (data.iuranKK && data.iuranKK.length > 0) ? data.iuranKK : INITIAL_DB.iuranKK,
-    permintaanLomba: data.permintaanLomba || INITIAL_DB.permintaanLomba,
-    laporanIuranMingguan: data.laporanIuranMingguan || []
+    lombas: sanitizedLombas,
+    pesertas: sanitizedPesertas,
+    kas: Array.isArray(sanitizedKas) ? sanitizedKas : [],
+    aktivitas: sanitizedAktivitas,
+    iuranKK: Array.isArray(data.iuranKK) ? data.iuranKK : (INITIAL_DB.iuranKK || []),
+    permintaanLomba: sanitizedPermintaan,
+    laporanIuranMingguan: Array.isArray(data.laporanIuranMingguan) ? data.laporanIuranMingguan : []
   };
 }
 
-// Helper to save partitioned documents to Firestore (bypasses 1MB single-document limit)
-async function saveDatabaseToFirestore(rawD: typeof INITIAL_DB) {
-  if (!firestoreDb) return;
-  const data = sanitizeDatabase(rawD);
-  try {
-    const collKeys = [
-      { key: "accounts", items: data.accounts || [] },
-      { key: "lombas", items: data.lombas || [] },
-      { key: "pesertas", items: data.pesertas || [] },
-      { key: "kas", items: data.kas || [] },
-      { key: "aktivitas", items: data.aktivitas || [] },
-      { key: "iuranKK", items: data.iuranKK || [] },
-      { key: "permintaanLomba", items: data.permintaanLomba || [] },
-      { key: "laporanIuranMingguan", items: data.laporanIuranMingguan || [] }
-    ];
+// Track Firestore quota cooldown and partition cache to minimize write operations
+let firestoreQuotaCooldownUntil = 0;
+const partitionHashCache: Record<string, string> = {};
+let firestoreDebounceTimer: NodeJS.Timeout | null = null;
 
+// Helper to save partitioned documents to Firestore (with dirty checking, debouncing, and quota protection)
+async function saveDatabaseToFirestore(rawD: typeof INITIAL_DB, immediate = false) {
+  if (!firestoreDb) return;
+
+  // Check if we are currently in quota cooldown
+  if (Date.now() < firestoreQuotaCooldownUntil) {
+    return;
+  }
+
+  const data = sanitizeDatabase(rawD);
+  const collKeys = [
+    { key: "accounts", items: data.accounts || [] },
+    { key: "lombas", items: data.lombas || [] },
+    { key: "pesertas", items: data.pesertas || [] },
+    { key: "kas", items: data.kas || [] },
+    { key: "aktivitas", items: data.aktivitas || [] },
+    { key: "iuranKK", items: data.iuranKK || [] },
+    { key: "permintaanLomba", items: data.permintaanLomba || [] },
+    { key: "laporanIuranMingguan", items: data.laporanIuranMingguan || [] }
+  ];
+
+  // Filter only partitions that have actually changed since last save
+  const changedPartitions = collKeys.filter(c => {
+    const serialized = JSON.stringify(c.items);
+    if (partitionHashCache[c.key] === serialized) {
+      return false;
+    }
+    return true;
+  });
+
+  if (changedPartitions.length === 0) {
+    return;
+  }
+
+  try {
     const results = await Promise.allSettled(
-      collKeys.map(c => 
-        setDoc(doc(firestoreDb, "global_state", c.key), { 
+      changedPartitions.map(async c => {
+        const serialized = JSON.stringify(c.items);
+        await setDoc(doc(firestoreDb, "global_state", c.key), { 
           items: c.items,
           updatedAt: new Date().toISOString() 
-        })
-      )
+        });
+        partitionHashCache[c.key] = serialized;
+      })
     );
-    const failed = results.filter(r => r.status === "rejected");
-    if (failed.length > 0) {
+
+    let quotaExceeded = false;
+    const failed = results.filter((r: any) => {
+      if (r.status === "rejected") {
+        const errMsg = String(r.reason?.message || r.reason || "");
+        if (errMsg.includes("resource-exhausted") || errMsg.includes("Quota limit exceeded") || errMsg.includes("quota")) {
+          quotaExceeded = true;
+        }
+        return true;
+      }
+      return false;
+    });
+
+    if (quotaExceeded) {
+      firestoreQuotaCooldownUntil = Date.now() + 15 * 60 * 1000; // 15 minutes cooldown
+      console.warn("[Firestore] Batas kuota gratis tercapai (resource-exhausted). Penyimpanan dialihkan sepenuhnya ke penyimpanan server lokal & memori container (data tetap aman tersimpan).");
+    } else if (failed.length > 0) {
       console.warn(`[Firestore] ${failed.length} partisi gagal disimpan ke Firestore:`, failed);
     } else {
-      console.log("[Firestore] Semua partisi data berhasil disimpan secara permanen ke Firestore!");
+      console.log(`[Firestore] ${changedPartitions.length} partisi data yang berubah berhasil disimpan ke Firestore.`);
     }
-  } catch (error) {
-    console.error("[Firestore] Gagal menyimpan partisi ke Firestore:", error);
+  } catch (error: any) {
+    const errMsg = String(error?.message || error || "");
+    if (errMsg.includes("resource-exhausted") || errMsg.includes("Quota limit exceeded") || errMsg.includes("quota")) {
+      firestoreQuotaCooldownUntil = Date.now() + 15 * 60 * 1000;
+      console.warn("[Firestore] Batas kuota gratis tercapai. Penyimpanan aman via disk lokal server.");
+    } else {
+      console.error("[Firestore] Gagal menyimpan partisi ke Firestore:", error);
+    }
   }
+}
+
+function scheduleFirestoreSave(data: typeof INITIAL_DB) {
+  if (firestoreDebounceTimer) {
+    clearTimeout(firestoreDebounceTimer);
+  }
+  firestoreDebounceTimer = setTimeout(() => {
+    saveDatabaseToFirestore(data).catch(() => {});
+  }, 3000);
 }
 
 // Load database state from Firestore or JSON fallback on startup
@@ -204,7 +277,7 @@ async function initializeDatabase() {
         const key = collKeys[idx];
         if (res.status === "fulfilled" && res.value.exists()) {
           const docData = res.value.data();
-          if (docData && Array.isArray(docData.items) && docData.items.length > 0) {
+          if (docData && Array.isArray(docData.items)) {
             (loadedData as any)[key] = docData.items;
             foundAnyPartition = true;
           }
@@ -213,15 +286,21 @@ async function initializeDatabase() {
 
       if (foundAnyPartition) {
         memoryDB = sanitizeDatabase({
-          accounts: loadedData.accounts || memoryDB.accounts || INITIAL_DB.accounts,
-          lombas: loadedData.lombas || memoryDB.lombas || INITIAL_DB.lombas,
-          pesertas: loadedData.pesertas || memoryDB.pesertas || INITIAL_DB.pesertas,
-          kas: loadedData.kas || memoryDB.kas || INITIAL_DB.kas,
-          aktivitas: loadedData.aktivitas || memoryDB.aktivitas || INITIAL_DB.aktivitas,
-          iuranKK: loadedData.iuranKK || memoryDB.iuranKK || INITIAL_DB.iuranKK,
-          permintaanLomba: loadedData.permintaanLomba || memoryDB.permintaanLomba || INITIAL_DB.permintaanLomba,
-          laporanIuranMingguan: loadedData.laporanIuranMingguan || memoryDB.laporanIuranMingguan || INITIAL_DB.laporanIuranMingguan
+          accounts: loadedData.accounts ?? memoryDB.accounts ?? INITIAL_DB.accounts,
+          lombas: loadedData.lombas ?? memoryDB.lombas ?? [],
+          pesertas: loadedData.pesertas ?? memoryDB.pesertas ?? [],
+          kas: loadedData.kas ?? memoryDB.kas ?? INITIAL_DB.kas,
+          aktivitas: loadedData.aktivitas ?? memoryDB.aktivitas ?? [],
+          iuranKK: loadedData.iuranKK ?? memoryDB.iuranKK ?? INITIAL_DB.iuranKK,
+          permintaanLomba: loadedData.permintaanLomba ?? memoryDB.permintaanLomba ?? [],
+          laporanIuranMingguan: loadedData.laporanIuranMingguan ?? memoryDB.laporanIuranMingguan ?? []
         });
+
+        // Initialize partition cache so we don't redundantly rewrite unchanged data
+        collKeys.forEach(k => {
+          partitionHashCache[k] = JSON.stringify((memoryDB as any)[k] || []);
+        });
+
         console.log("Data partisi berhasil dimuat dan disinkronkan dari Firestore.");
         fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
         return;
@@ -236,11 +315,10 @@ async function initializeDatabase() {
         memoryDB = sanitizeDatabase({ ...INITIAL_DB, ...legacyData });
         console.log("Data legasi berhasil dimuat dari Firestore.");
       } else {
-        console.log("Belum ada data di Firestore. Melakukan inisialisasi awal ke partisi Firestore...");
+        console.log("Belum ada data di Firestore. Menggunakan basis data lokal.");
       }
 
-      // Sync the current state to the partitioned Firestore documents
-      await saveDatabaseToFirestore(memoryDB);
+      // Save initial cache
       fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
       return;
     } catch (error) {
@@ -261,16 +339,16 @@ async function saveDatabase(data: typeof INITIAL_DB) {
   const sanitized = sanitizeDatabase(data);
   memoryDB = sanitized;
 
-  // Save to local JSON as fallback/backup
+  // Save to local JSON as fallback/backup immediately
   try {
     fs.writeFileSync(DB_PATH, JSON.stringify(sanitized, null, 2), "utf8");
   } catch (error) {
     console.error("Gagal menulis cadangan lokal database JSON:", error);
   }
 
-  // Save to Firestore for durable persistence
+  // Debounced, dirty-checked save to Firestore (safely handles quota limits)
   if (firestoreDb) {
-    await saveDatabaseToFirestore(sanitized);
+    scheduleFirestoreSave(sanitized);
   }
 }
 

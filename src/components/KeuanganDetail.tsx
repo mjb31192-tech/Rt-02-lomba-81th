@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba, LaporanIuranMingguan } from '../types';
 import ModalCetakKwitansiIuran from './ModalCetakKwitansiIuran';
-import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Clock, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale, Building2, Factory, HandHeart } from 'lucide-react';
+import { parseKeterangan, formatRupiah } from '../utils/formatters';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Clock, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale, Building2, Factory, HandHeart, ChevronDown, ChevronUp, Layers, Table as TableIcon, Package } from 'lucide-react';
 
 interface KeuanganDetailProps {
   kasList: Kas[];
@@ -47,6 +48,12 @@ export default function KeuanganDetail({
   const [selectedProofPhoto, setSelectedProofPhoto] = useState<string | null>(null);
   const [selectedReceiptKK, setSelectedReceiptKK] = useState<IuranKK | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [expandedTransactions, setExpandedTransactions] = useState<Record<number, boolean>>({});
+  const [jurnalViewMode, setJurnalViewMode] = useState<'cards' | 'table'>('cards');
+
+  const toggleExpand = (id: number) => {
+    setExpandedTransactions(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   // Calculate KK contribution summary
   const totalKK = iuranKKList.length;
@@ -338,59 +345,259 @@ export default function KeuanganDetail({
         {/* ----------------- SUB-TAB 1: JURNAL UMUM ----------------- */}
         {subTab === 'jurnal' && (
           <div>
-            <div className="p-4 bg-white border-b border-gray-100 flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
+            <div className="p-4 bg-white border-b border-gray-100 flex flex-col md:flex-row gap-3 items-center justify-between">
+              <div className="relative flex-1 w-full">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Cari keterangan belanja, PT / Pabrik, PIC, atau jam..."
+                  placeholder="Cari keterangan belanja, barang, PT / Pabrik, PIC..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500"
                 />
               </div>
 
-              <div className="w-full md:w-56">
-                <select
-                  value={tipeFilter}
-                  onChange={e => setTipeFilter(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-hidden bg-white text-gray-700 font-medium"
-                >
-                  <option value="all">Semua Transaksi</option>
-                  <option value="pemasukan">Uang Masuk / Debit (+)</option>
-                  <option value="pengeluaran">Pengeluaran / Kredit (-)</option>
-                  <option value="donasi_perusahaan">🏢 Donasi PT / Pabrik</option>
-                  <option value="iuran_warga">👥 Iuran Warga</option>
-                </select>
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="w-full md:w-52">
+                  <select
+                    value={tipeFilter}
+                    onChange={e => setTipeFilter(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-hidden text-gray-700 font-medium"
+                  >
+                    <option value="all">Semua Transaksi</option>
+                    <option value="pemasukan">Uang Masuk / Debit (+)</option>
+                    <option value="pengeluaran">Pengeluaran / Kredit (-)</option>
+                    <option value="donasi_perusahaan">🏢 Donasi PT / Pabrik</option>
+                    <option value="iuran_warga">👥 Iuran Warga</option>
+                  </select>
+                </div>
+
+                {/* View Switcher Toggle */}
+                <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setJurnalViewMode('cards')}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      jurnalViewMode === 'cards' ? 'bg-white text-red-600 shadow-3xs' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    title="Tampilan Kartu Ringkas & Mobile-Friendly"
+                  >
+                    <Layers size={13} />
+                    <span className="hidden sm:inline">Kartu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setJurnalViewMode('table')}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      jurnalViewMode === 'table' ? 'bg-white text-red-600 shadow-3xs' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                    title="Tampilan Tabel Lengkap Akuntansi"
+                  >
+                    <TableIcon size={13} />
+                    <span className="hidden sm:inline">Tabel</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Jurnal Table with Explicit Debit (Kas Masuk) & Kredit (Kas Keluar) Columns */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[720px]">
-                <thead>
-                  <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] uppercase font-bold text-gray-500 tracking-wider">
-                    <th className="p-3.5 w-36">Tanggal &amp; Waktu</th>
-                    <th className="p-3.5 w-40">Kategori</th>
-                    <th className="p-3.5">Keterangan Transaksi &amp; Entitas</th>
-                    <th className="p-3.5 text-right text-emerald-700 w-44">Debit (Kas Masuk)</th>
-                    <th className="p-3.5 text-right text-red-600 w-44">Kredit (Kas Keluar)</th>
-                    <th className="p-3.5 text-center w-24">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-xs">
-                  {filteredKas.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-8 text-center text-gray-400 font-medium">
-                        Belum ada transaksi keuangan yang cocok dengan pencarian Anda.
-                      </td>
+            {filteredKas.length === 0 ? (
+              <div className="p-12 text-center text-gray-400 font-medium text-xs">
+                Belum ada transaksi keuangan yang cocok dengan pencarian Anda.
+              </div>
+            ) : jurnalViewMode === 'cards' ? (
+              /* ================= 1. MODERN MOBILE-FRIENDLY CARDS VIEW ================= */
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-gray-50/40">
+                {filteredKas.map((k) => {
+                  const isCompany = k.kategori.toLowerCase().includes('perusahaan') ||
+                                    k.kategori.toLowerCase().includes('pabrik') ||
+                                    k.kategori.toLowerCase().includes('csr') ||
+                                    !!k.donatur_info?.nama_perusahaan;
+                  const parsed = parseKeterangan(k.keterangan);
+                  const isExpanded = !!expandedTransactions[k.id];
+
+                  return (
+                    <div 
+                      key={k.id}
+                      className="bg-white border border-gray-150/90 rounded-2xl p-4 shadow-3xs hover:shadow-xs hover:border-gray-300 transition-all flex flex-col justify-between space-y-3"
+                    >
+                      {/* Top Bar: Date, Time, Category badge, In/Out Pill */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-700 bg-gray-100/90 px-2 py-0.5 rounded-md font-mono">
+                            <Calendar size={11} className="text-gray-400" />
+                            {k.tanggal}
+                          </span>
+                          {k.jam && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100/70">
+                              <Clock size={10} className="text-blue-500" />
+                              {k.jam} WIB
+                            </span>
+                          )}
+                          {isCompany ? (
+                            <span className="text-[10px] text-amber-800 font-bold px-2 py-0.5 bg-amber-50 border border-amber-200/80 rounded-md inline-flex items-center gap-1">
+                              <Building2 size={11} className="text-amber-600" />
+                              {k.kategori}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-gray-600 font-semibold px-2 py-0.5 bg-gray-50 border border-gray-200/60 rounded-md">
+                              {k.kategori}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Debit/Kredit indicator tag */}
+                        <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md font-sans tracking-wide shrink-0 ${
+                          k.tipe === 'pemasukan' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          {k.tipe === 'pemasukan' ? 'DEBIT (MASUK)' : 'KREDIT (KELUAR)'}
+                        </span>
+                      </div>
+
+                      {/* Title & Item Breakdown */}
+                      <div className="space-y-2">
+                        <h4 className="font-bold text-gray-900 text-sm leading-snug">
+                          {parsed.title}
+                        </h4>
+
+                        {/* Structured Donor Info if available */}
+                        {k.donatur_info?.nama_perusahaan && (
+                          <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 text-xs text-amber-950 space-y-1">
+                            <div className="flex items-center gap-1.5 font-bold">
+                              <Factory size={13} className="text-amber-700 shrink-0" />
+                              <span>Instansi / Pabrik: {k.donatur_info.nama_perusahaan}</span>
+                            </div>
+                            {k.donatur_info.sifat_donasi && (
+                              <p className="text-[11px] text-amber-800">
+                                Sifat: <span className="font-medium italic">{k.donatur_info.sifat_donasi}</span>
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Modern Expandable Rincian Items Badge */}
+                        {parsed.hasRincian && (
+                          <div className="mt-2 bg-slate-50 border border-slate-200/70 rounded-xl p-2.5 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-slate-700 inline-flex items-center gap-1.5">
+                                <Package size={13} className="text-slate-500" />
+                                {parsed.items.length} Rincian Barang Belanja
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => toggleExpand(k.id)}
+                                className="text-[11px] font-bold text-red-600 hover:text-red-700 inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                {isExpanded ? (
+                                  <>Sembunyikan <ChevronUp size={13} /></>
+                                ) : (
+                                  <>Lihat Rincian <ChevronDown size={13} /></>
+                                )}
+                              </button>
+                            </div>
+
+                            {/* Collapsible item list */}
+                            {isExpanded && (
+                              <div className="pt-2 border-t border-slate-200/60 space-y-1.5 text-xs">
+                                {parsed.items.map((it, idx) => (
+                                  <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 text-slate-800">
+                                    <div className="min-w-0 pr-2">
+                                      <p className="font-semibold text-gray-900 truncate">• {it.name}</p>
+                                      {it.qty > 1 && (
+                                        <p className="text-[10px] text-gray-500 font-mono">
+                                          {it.qty} item @ {formatRupiah(it.unitPrice)}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <span className="font-mono font-bold text-gray-900 shrink-0 text-xs">
+                                      {formatRupiah(it.total)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bottom Row: Amount Highlight & Actions */}
+                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Nominal Transaksi:</span>
+                          <span className={`text-base sm:text-lg font-mono font-black ${
+                            k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-600'
+                          }`}>
+                            {k.tipe === 'pemasukan' ? '+' : '-'} {formatRupiah(k.jumlah)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          {k.bukti_foto && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedProofPhoto(k.bukti_foto)}
+                              className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-bold px-2.5 py-1.5 rounded-xl transition-all cursor-pointer"
+                              title="Lihat Bukti Foto"
+                            >
+                              <Camera size={13} />
+                              <span className="hidden sm:inline">Foto</span>
+                            </button>
+                          )}
+
+                          {isPengurus && (
+                            <>
+                              {onEditKasClick && (
+                                <button
+                                  type="button"
+                                  onClick={() => onEditKasClick(k)}
+                                  className="p-2 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-all cursor-pointer active:scale-95"
+                                  title="Edit Transaksi"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                              )}
+                              {onDeleteKas && (
+                                <button
+                                  type="button"
+                                  onClick={() => onDeleteKas(k.id)}
+                                  className="p-2 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-xl transition-all cursor-pointer active:scale-95"
+                                  title="Hapus Transaksi"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* ================= 2. FULL ACCOUNTING TABLE VIEW ================= */
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[760px]">
+                  <thead>
+                    <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] uppercase font-bold text-gray-500 tracking-wider">
+                      <th className="p-3.5 w-36">Tanggal &amp; Waktu</th>
+                      <th className="p-3.5 w-40">Kategori</th>
+                      <th className="p-3.5">Keterangan Transaksi &amp; Entitas</th>
+                      <th className="p-3.5 text-right text-emerald-700 w-40">Debit (Kas Masuk)</th>
+                      <th className="p-3.5 text-right text-red-600 w-40">Kredit (Kas Keluar)</th>
+                      <th className="p-3.5 text-center w-24">Aksi</th>
                     </tr>
-                  ) : (
-                    filteredKas.map((k) => {
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-xs">
+                    {filteredKas.map((k) => {
                       const isCompany = k.kategori.toLowerCase().includes('perusahaan') ||
                                         k.kategori.toLowerCase().includes('pabrik') ||
                                         k.kategori.toLowerCase().includes('csr') ||
                                         !!k.donatur_info?.nama_perusahaan;
+                      const parsed = parseKeterangan(k.keterangan);
+                      const isExpanded = !!expandedTransactions[k.id];
+
                       return (
                         <tr key={k.id} className="hover:bg-gray-50/60 transition-all">
                           <td className="p-3.5 font-mono text-gray-600 whitespace-nowrap align-top">
@@ -425,7 +632,7 @@ export default function KeuanganDetail({
                             )}
                           </td>
                           <td className="p-3.5 align-top">
-                            <div className="font-bold text-gray-800 leading-snug">{k.keterangan}</div>
+                            <div className="font-bold text-gray-800 leading-snug">{parsed.title}</div>
 
                             {/* Structured Company / Factory Donor Details */}
                             {k.donatur_info && (
@@ -442,11 +649,37 @@ export default function KeuanganDetail({
                               </div>
                             )}
 
+                            {/* Structured Breakdown in Table */}
+                            {parsed.hasRincian && (
+                              <div className="mt-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(k.id)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer"
+                                >
+                                  <Package size={11} className="text-slate-500" />
+                                  {parsed.items.length} Rincian Item Belanja
+                                  {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                </button>
+
+                                {isExpanded && (
+                                  <div className="mt-1.5 bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-1 text-[11px]">
+                                    {parsed.items.map((it, idx) => (
+                                      <div key={idx} className="flex justify-between items-center text-gray-800 border-b border-gray-100 last:border-none pb-0.5">
+                                        <span className="font-medium">• {it.name} {it.qty > 1 ? `(${it.qty}x)` : ''}</span>
+                                        <span className="font-mono font-semibold text-gray-700">{formatRupiah(it.total)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {k.bukti_foto && (
                               <button
                                 type="button"
                                 onClick={() => setSelectedProofPhoto(k.bukti_foto)}
-                                className="mt-1.5 inline-flex items-center gap-1 text-[9px] bg-red-50 text-red-600 border border-red-100 font-bold px-2 py-0.5 rounded-md hover:bg-red-100 transition-all cursor-pointer"
+                                className="mt-1.5 inline-flex items-center gap-1 text-[9px] bg-blue-50 text-blue-600 border border-blue-100 font-bold px-2 py-0.5 rounded-md hover:bg-blue-100 transition-all cursor-pointer"
                               >
                                 <Camera size={10} />
                                 Lihat Bukti Foto
@@ -456,7 +689,7 @@ export default function KeuanganDetail({
                           <td className="p-3.5 text-right font-mono font-bold text-emerald-600 whitespace-nowrap align-top">
                             {k.tipe === 'pemasukan' ? (
                               <div className="flex flex-col items-end">
-                                <span className="text-xs sm:text-sm text-emerald-600">+&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
+                                <span className="text-xs sm:text-sm text-emerald-600">+ {formatRupiah(k.jumlah)}</span>
                                 <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
                                   DEBIT (MASUK)
                                 </span>
@@ -468,7 +701,7 @@ export default function KeuanganDetail({
                           <td className="p-3.5 text-right font-mono font-bold text-red-500 whitespace-nowrap align-top">
                             {k.tipe === 'pengeluaran' ? (
                               <div className="flex flex-col items-end">
-                                <span className="text-xs sm:text-sm text-red-500">-&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
+                                <span className="text-xs sm:text-sm text-red-500">- {formatRupiah(k.jumlah)}</span>
                                 <span className="text-[8px] bg-red-50 text-red-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
                                   KREDIT (KELUAR)
                                 </span>
@@ -501,28 +734,16 @@ export default function KeuanganDetail({
                                 )}
                               </div>
                             ) : (
-                              <div className="flex items-center justify-center gap-1.5">
-                                {k.bukti_foto ? (
-                                  <button
-                                    onClick={() => setSelectedProofPhoto(k.bukti_foto)}
-                                    className="p-1.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all cursor-pointer shrink-0"
-                                    title="Lihat Bukti Foto"
-                                  >
-                                    <Camera size={13} />
-                                  </button>
-                                ) : (
-                                  <span className="text-gray-300 text-[10px]">-</span>
-                                )}
-                              </div>
+                              <span className="text-gray-300 text-[10px]">-</span>
                             )}
                           </td>
                         </tr>
                       );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -1084,46 +1305,70 @@ export default function KeuanganDetail({
                     <span>III. HISTORI BUKU JURNAL KAS MASUK DAN KELUAR</span>
                     <span className="text-[9px] font-mono text-gray-500 font-bold uppercase">(Kolom Rinci Waktu, Debit Kas Masuk &amp; Kredit Kas Keluar)</span>
                   </h4>
-                  <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px]">
-                    <thead>
-                      <tr className="bg-gray-100 text-gray-800">
-                        <th className="border border-gray-300 p-1.5 whitespace-nowrap">Tanggal &amp; Jam</th>
-                        <th className="border border-gray-300 p-1.5 w-12 text-center">Tipe</th>
-                        <th className="border border-gray-300 p-1.5 w-24">Kategori</th>
-                        <th className="border border-gray-300 p-1.5">Keterangan Transaksi / Entitas Donatur</th>
-                        <th className="border border-gray-300 p-1.5 text-right w-28 text-emerald-700">Debit (Kas Masuk)</th>
-                        <th className="border border-gray-300 p-1.5 text-right w-28 text-red-600">Kredit (Kas Keluar)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {lpjLedgerKasList.map(k => (
-                        <tr key={k.id}>
-                          <td className="border border-gray-300 p-1.5 font-mono whitespace-nowrap">
-                            {k.tanggal}
-                            {k.jam && <span className="block text-[9px] text-gray-600 font-semibold">{k.jam} WIB</span>}
-                          </td>
-                          <td className={`border border-gray-300 p-1.5 text-center font-bold ${k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {k.tipe === 'pemasukan' ? 'MASUK' : 'KELUAR'}
-                          </td>
-                          <td className="border border-gray-300 p-1.5 font-medium">{k.kategori}</td>
-                          <td className="border border-gray-300 p-1.5">
-                            <span className="font-medium text-gray-900">{k.keterangan}</span>
-                            {k.donatur_info?.nama_perusahaan && (
-                              <span className="block text-[9px] text-amber-900 italic mt-0.5 font-medium">
-                                [Donatur Perusahaan/Pabrik: {k.donatur_info.nama_perusahaan} {k.donatur_info.sifat_donasi ? `| Sifat: ${k.donatur_info.sifat_donasi}` : ''}]
-                              </span>
-                            )}
-                          </td>
-                          <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700">
-                            {k.tipe === 'pemasukan' ? formatRupiah(k.jumlah) : '-'}
-                          </td>
-                          <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-red-600">
-                            {k.tipe === 'pengeluaran' ? formatRupiah(k.jumlah) : '-'}
-                          </td>
+                  <div className="overflow-x-auto print:overflow-visible">
+                    <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px] min-w-[700px] print:min-w-0" style={{ tableLayout: 'fixed' }}>
+                      <thead>
+                        <tr className="bg-gray-100 text-gray-800">
+                          <th className="border border-gray-300 p-1.5 whitespace-nowrap" style={{ width: '15%' }}>Tanggal &amp; Jam</th>
+                          <th className="border border-gray-300 p-1.5 text-center" style={{ width: '8%' }}>Tipe</th>
+                          <th className="border border-gray-300 p-1.5" style={{ width: '15%' }}>Kategori</th>
+                          <th className="border border-gray-300 p-1.5" style={{ width: '38%' }}>Keterangan Transaksi &amp; Rincian</th>
+                          <th className="border border-gray-300 p-1.5 text-right text-emerald-700" style={{ width: '12%' }}>Debit (Masuk)</th>
+                          <th className="border border-gray-300 p-1.5 text-right text-red-600" style={{ width: '12%' }}>Kredit (Keluar)</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {lpjLedgerKasList.map(k => {
+                          const parsed = parseKeterangan(k.keterangan);
+                          return (
+                            <tr key={k.id}>
+                              <td className="border border-gray-300 p-1.5 font-mono whitespace-nowrap align-top">
+                                <span className="font-bold text-gray-900">{k.tanggal}</span>
+                                {k.jam && <span className="block text-[9px] text-gray-600 font-semibold">{k.jam} WIB</span>}
+                              </td>
+                              <td className={`border border-gray-300 p-1.5 text-center font-bold align-top ${k.tipe === 'pemasukan' ? 'text-emerald-700' : 'text-red-600'}`}>
+                                {k.tipe === 'pemasukan' ? 'MASUK' : 'KELUAR'}
+                              </td>
+                              <td className="border border-gray-300 p-1.5 font-medium align-top">{k.kategori}</td>
+                              <td className="border border-gray-300 p-1.5 align-top">
+                                <span className="font-bold text-gray-950 block">{parsed.title}</span>
+
+                                {/* Donor Details if applicable */}
+                                {k.donatur_info?.nama_perusahaan && (
+                                  <span className="block text-[8.5px] text-amber-900 italic mt-0.5 font-medium">
+                                    [Donatur: {k.donatur_info.nama_perusahaan} {k.donatur_info.sifat_donasi ? `| Sifat: ${k.donatur_info.sifat_donasi}` : ''}]
+                                  </span>
+                                )}
+
+                                {/* Neat, compact breakdown box for LPJ print & preview */}
+                                {parsed.hasRincian && (
+                                  <div className="mt-1 bg-gray-50/90 border border-gray-200/90 p-1.5 rounded text-[8px] font-sans">
+                                    <span className="font-bold text-gray-700 block uppercase tracking-wider text-[7px] mb-0.5">
+                                      Rincian Item Pembelanjaan ({parsed.items.length} Item):
+                                    </span>
+                                    <div className="space-y-0.5">
+                                      {parsed.items.map((it, idx) => (
+                                        <div key={idx} className="flex justify-between items-center text-gray-800 border-b border-gray-100 last:border-none pb-0.5">
+                                          <span className="truncate pr-1 font-medium">• {it.name} {it.qty > 1 ? `(${it.qty} item)` : ''}</span>
+                                          <span className="font-mono font-bold text-gray-700 shrink-0">{formatRupiah(it.total)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700 align-top whitespace-nowrap">
+                                {k.tipe === 'pemasukan' ? formatRupiah(k.jumlah) : '-'}
+                              </td>
+                              <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-red-600 align-top whitespace-nowrap">
+                                {k.tipe === 'pengeluaran' ? formatRupiah(k.jumlah) : '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* 6. Section IV: Detail Status & Update Terakhir Iuran Warga per KK */}
@@ -1153,57 +1398,59 @@ export default function KeuanganDetail({
                     </div>
                   </div>
 
-                  <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px]">
-                    <thead>
-                      <tr className="bg-gray-100 text-gray-800">
-                        <th className="border border-gray-300 p-1.5 w-7 text-center">No</th>
-                        <th className="border border-gray-300 p-1.5">Nama Kepala Keluarga (KK)</th>
-                        <th className="border border-gray-300 p-1.5 w-12 text-center">RT</th>
-                        <th className="border border-gray-300 p-1.5 w-20 text-center">Status</th>
-                        <th className="border border-gray-300 p-1.5 text-right w-20">Target</th>
-                        <th className="border border-gray-300 p-1.5 text-right w-20">Terbayar</th>
-                        <th className="border border-gray-300 p-1.5 text-right w-20">Sisa</th>
-                        <th className="border border-gray-300 p-1.5 w-28">Update / Angsuran Terakhir</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {iuranKKList.map((kk, idx) => {
-                        const sisa = Math.max(0, kk.target - kk.terbayar);
-                        const lastPayment = kk.riwayat && kk.riwayat.length > 0 ? kk.riwayat[kk.riwayat.length - 1] : null;
-                        return (
-                          <tr key={kk.id}>
-                            <td className="border border-gray-300 p-1.5 text-center font-mono text-gray-500">{idx + 1}</td>
-                            <td className="border border-gray-300 p-1.5 font-bold text-gray-900">{kk.nama_kk}</td>
-                            <td className="border border-gray-300 p-1.5 text-center font-medium">{kk.rt}</td>
-                            <td className="border border-gray-300 p-1.5 text-center">
-                              <span className={`px-1.5 py-0.5 rounded-xs font-bold text-[8px] uppercase tracking-wider ${
-                                kk.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' :
-                                kk.status === 'Mencicil' ? 'bg-amber-100 text-amber-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {kk.status}
-                              </span>
-                            </td>
-                            <td className="border border-gray-300 p-1.5 text-right font-mono">{formatRupiah(kk.target)}</td>
-                            <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700">{formatRupiah(kk.terbayar)}</td>
-                            <td className={`border border-gray-300 p-1.5 text-right font-mono ${sisa > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
-                              {sisa > 0 ? formatRupiah(sisa) : 'Rp 0'}
-                            </td>
-                            <td className="border border-gray-300 p-1.5 font-mono text-[9px] text-gray-700">
-                              {lastPayment ? (
-                                <div className="leading-tight">
-                                  <span className="font-semibold text-gray-900 whitespace-nowrap">{lastPayment.tanggal}</span>
-                                  <span className="text-emerald-700 ml-1 font-bold whitespace-nowrap">(+{formatRupiah(lastPayment.jumlah)})</span>
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 italic">Belum bayar</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <div className="overflow-x-auto print:overflow-visible">
+                    <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px] min-w-[650px] print:min-w-0">
+                      <thead>
+                        <tr className="bg-gray-100 text-gray-800">
+                          <th className="border border-gray-300 p-1.5 w-7 text-center">No</th>
+                          <th className="border border-gray-300 p-1.5">Nama Kepala Keluarga (KK)</th>
+                          <th className="border border-gray-300 p-1.5 w-12 text-center">RT</th>
+                          <th className="border border-gray-300 p-1.5 w-20 text-center">Status</th>
+                          <th className="border border-gray-300 p-1.5 text-right w-20">Target</th>
+                          <th className="border border-gray-300 p-1.5 text-right w-20">Terbayar</th>
+                          <th className="border border-gray-300 p-1.5 text-right w-20">Sisa</th>
+                          <th className="border border-gray-300 p-1.5 w-28">Update / Angsuran Terakhir</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {iuranKKList.map((kk, idx) => {
+                          const sisa = Math.max(0, kk.target - kk.terbayar);
+                          const lastPayment = kk.riwayat && kk.riwayat.length > 0 ? kk.riwayat[kk.riwayat.length - 1] : null;
+                          return (
+                            <tr key={kk.id}>
+                              <td className="border border-gray-300 p-1.5 text-center font-mono text-gray-500">{idx + 1}</td>
+                              <td className="border border-gray-300 p-1.5 font-bold text-gray-900">{kk.nama_kk}</td>
+                              <td className="border border-gray-300 p-1.5 text-center font-medium">{kk.rt}</td>
+                              <td className="border border-gray-300 p-1.5 text-center">
+                                <span className={`px-1.5 py-0.5 rounded-xs font-bold text-[8px] uppercase tracking-wider ${
+                                  kk.status === 'Lunas' ? 'bg-emerald-100 text-emerald-800' :
+                                  kk.status === 'Mencicil' ? 'bg-amber-100 text-amber-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {kk.status}
+                                </span>
+                              </td>
+                              <td className="border border-gray-300 p-1.5 text-right font-mono">{formatRupiah(kk.target)}</td>
+                              <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700">{formatRupiah(kk.terbayar)}</td>
+                              <td className={`border border-gray-300 p-1.5 text-right font-mono ${sisa > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
+                                {sisa > 0 ? formatRupiah(sisa) : 'Rp 0'}
+                              </td>
+                              <td className="border border-gray-300 p-1.5 font-mono text-[9px] text-gray-700">
+                                {lastPayment ? (
+                                  <div className="leading-tight">
+                                    <span className="font-semibold text-gray-900 whitespace-nowrap">{lastPayment.tanggal}</span>
+                                    <span className="text-emerald-700 ml-1 font-bold whitespace-nowrap">(+{formatRupiah(lastPayment.jumlah)})</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-400 italic">Belum bayar</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* 6. Signatures Section / Pengesahan */}

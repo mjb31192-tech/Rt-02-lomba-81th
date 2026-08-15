@@ -82,18 +82,68 @@ function ensureUniqueIds<T extends { id: number | string }>(items: T[]): T[] {
   });
 }
 
+const MOCK_PESERTA_NAMES = [
+  "Ahmad Fauzi",
+  "Bambang Pamungkas",
+  "Cici Paramida",
+  "Dedi Kusnandar",
+  "Eka Prasetya",
+  "Fatimah Azzahra",
+  "Guntur Bumi"
+];
+
+const MOCK_LOMBA_NAMES = [
+  "Panjat Pinang Dewasa",
+  "Tarik Tambang Antar RT",
+  "Balap Karung Helm",
+  "Makan Kerupuk Kolosal",
+  "Lomba Menghias Gapura RT",
+  "Jalan Sehat HUT RI",
+  "Mewarnai Kemerdekaan",
+  "Estafet Kelereng Ibu-ibu"
+];
+
+const MOCK_REQ_NAMES = [
+  "Catur Cepat Bapak-bapak",
+  "Lomba Mewarnai Balita",
+  "Estafet Air Ibu-ibu",
+  "E-Sport Mobile Legends Remaja"
+];
+
 export default function App() {
   // 1. States with LocalStorage Hydration
   const [lombas, setLombas] = useState<Lomba[]>(() => {
     const saved = localStorage.getItem('hut81_lombas');
-    const parsed = saved ? JSON.parse(saved) : INITIAL_LOMBA;
-    return ensureUniqueIds(parsed);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(l => l && l.nama_lomba && !MOCK_LOMBA_NAMES.includes(l.nama_lomba));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem('hut81_lombas', JSON.stringify(filtered));
+          }
+          return ensureUniqueIds(filtered);
+        }
+      } catch (e) {}
+    }
+    return INITIAL_LOMBA;
   });
 
   const [pesertas, setPesertas] = useState<Peserta[]>(() => {
     const saved = localStorage.getItem('hut81_pesertas');
-    const parsed = saved ? JSON.parse(saved) : INITIAL_PESERTA;
-    return ensureUniqueIds(parsed);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(p => p && p.nama_peserta && !MOCK_PESERTA_NAMES.includes(p.nama_peserta));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem('hut81_pesertas', JSON.stringify(filtered));
+          }
+          return ensureUniqueIds(filtered);
+        }
+      } catch (e) {}
+    }
+    return INITIAL_PESERTA;
   });
 
   const [kas, setKas] = useState<Kas[]>(() => {
@@ -106,8 +156,19 @@ export default function App() {
 
   const [aktivitas, setAktivitas] = useState<Aktivitas[]>(() => {
     const saved = localStorage.getItem('hut81_aktivitas');
-    const parsed = saved ? JSON.parse(saved) : INITIAL_AKTIVITAS;
-    return ensureUniqueIds(parsed);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((a: any) => a && a.keterangan && !a.keterangan.includes('Panjat Pinang') && !a.keterangan.includes('Makan Kerupuk'));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem('hut81_aktivitas', JSON.stringify(filtered));
+          }
+          return ensureUniqueIds(filtered);
+        }
+      } catch (e) {}
+    }
+    return INITIAL_AKTIVITAS;
   });
 
   const [iuranKK, setIuranKK] = useState<IuranKK[]>(() => {
@@ -118,8 +179,19 @@ export default function App() {
 
   const [permintaanLomba, setPermintaanLomba] = useState<PermintaanLomba[]>(() => {
     const saved = localStorage.getItem('hut81_permintaan_lomba');
-    const parsed = saved ? JSON.parse(saved) : INITIAL_PERMINTAAN_LOMBA;
-    return ensureUniqueIds(parsed);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const filtered = parsed.filter((pl: any) => pl && pl.nama_lomba && !MOCK_REQ_NAMES.includes(pl.nama_lomba));
+          if (filtered.length !== parsed.length) {
+            localStorage.setItem('hut81_permintaan_lomba', JSON.stringify(filtered));
+          }
+          return ensureUniqueIds(filtered);
+        }
+      } catch (e) {}
+    }
+    return INITIAL_PERMINTAAN_LOMBA;
   });
 
   const [laporanIuranMingguan, setLaporanIuranMingguan] = useState<LaporanIuranMingguan[]>(() => {
@@ -235,24 +307,28 @@ export default function App() {
           const data = await response.json();
           if (data) {
             isIncomingUpdate.current = true;
-            if (data.lombas && Array.isArray(data.lombas) && data.lombas.length > 0) {
-              setLombas(ensureUniqueIds(data.lombas));
+            if (data.lombas && Array.isArray(data.lombas)) {
+              const filtered = data.lombas.filter((l: any) => l && l.nama_lomba && !MOCK_LOMBA_NAMES.includes(l.nama_lomba));
+              setLombas(ensureUniqueIds(filtered));
             }
-            if (data.pesertas && Array.isArray(data.pesertas) && data.pesertas.length > 0) {
-              setPesertas(ensureUniqueIds(data.pesertas));
+            if (data.pesertas && Array.isArray(data.pesertas)) {
+              const filtered = data.pesertas.filter((p: any) => p && p.nama_peserta && !MOCK_PESERTA_NAMES.includes(p.nama_peserta));
+              setPesertas(ensureUniqueIds(filtered));
             }
-            if (data.kas && Array.isArray(data.kas) && data.kas.length > 0) {
-              const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
+            if (data.kas && Array.isArray(data.kas)) {
+              const cleaned = data.kas.filter((item: Kas) => !item.keterangan?.includes('Rekap Iuran Mingguan'));
               setKas(ensureUniqueIds(cleaned));
             }
-            if (data.aktivitas && Array.isArray(data.aktivitas) && data.aktivitas.length > 0) {
-              setAktivitas(ensureUniqueIds(data.aktivitas));
+            if (data.aktivitas && Array.isArray(data.aktivitas)) {
+              const filtered = data.aktivitas.filter((a: any) => a && a.keterangan && !a.keterangan.includes('Panjat Pinang') && !a.keterangan.includes('Makan Kerupuk'));
+              setAktivitas(ensureUniqueIds(filtered));
             }
-            if (data.iuranKK && Array.isArray(data.iuranKK) && data.iuranKK.length > 0) {
+            if (data.iuranKK && Array.isArray(data.iuranKK)) {
               setIuranKK(ensureUniqueIds(data.iuranKK));
             }
             if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) {
-              setPermintaanLomba(ensureUniqueIds(data.permintaanLomba));
+              const filtered = data.permintaanLomba.filter((pl: any) => pl && pl.nama_lomba && !MOCK_REQ_NAMES.includes(pl.nama_lomba));
+              setPermintaanLomba(ensureUniqueIds(filtered));
             }
             if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) {
               setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
@@ -291,24 +367,28 @@ export default function App() {
 
           const data = payload.data;
           isIncomingUpdate.current = true;
-          if (data.lombas && Array.isArray(data.lombas) && data.lombas.length > 0) {
-            setLombas(ensureUniqueIds(data.lombas));
+          if (data.lombas && Array.isArray(data.lombas)) {
+            const filtered = data.lombas.filter((l: any) => l && l.nama_lomba && !MOCK_LOMBA_NAMES.includes(l.nama_lomba));
+            setLombas(ensureUniqueIds(filtered));
           }
-          if (data.pesertas && Array.isArray(data.pesertas) && data.pesertas.length > 0) {
-            setPesertas(ensureUniqueIds(data.pesertas));
+          if (data.pesertas && Array.isArray(data.pesertas)) {
+            const filtered = data.pesertas.filter((p: any) => p && p.nama_peserta && !MOCK_PESERTA_NAMES.includes(p.nama_peserta));
+            setPesertas(ensureUniqueIds(filtered));
           }
-          if (data.kas && Array.isArray(data.kas) && data.kas.length > 0) {
-            const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
+          if (data.kas && Array.isArray(data.kas)) {
+            const cleaned = data.kas.filter((item: Kas) => !item.keterangan?.includes('Rekap Iuran Mingguan'));
             setKas(ensureUniqueIds(cleaned));
           }
-          if (data.aktivitas && Array.isArray(data.aktivitas) && data.aktivitas.length > 0) {
-            setAktivitas(ensureUniqueIds(data.aktivitas));
+          if (data.aktivitas && Array.isArray(data.aktivitas)) {
+            const filtered = data.aktivitas.filter((a: any) => a && a.keterangan && !a.keterangan.includes('Panjat Pinang') && !a.keterangan.includes('Makan Kerupuk'));
+            setAktivitas(ensureUniqueIds(filtered));
           }
-          if (data.iuranKK && Array.isArray(data.iuranKK) && data.iuranKK.length > 0) {
+          if (data.iuranKK && Array.isArray(data.iuranKK)) {
             setIuranKK(ensureUniqueIds(data.iuranKK));
           }
           if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) {
-            setPermintaanLomba(ensureUniqueIds(data.permintaanLomba));
+            const filtered = data.permintaanLomba.filter((pl: any) => pl && pl.nama_lomba && !MOCK_REQ_NAMES.includes(pl.nama_lomba));
+            setPermintaanLomba(ensureUniqueIds(filtered));
           }
           if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) {
             setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
