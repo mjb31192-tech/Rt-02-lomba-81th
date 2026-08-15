@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba, LaporanIuranMingguan } from '../types';
 import ModalCetakKwitansiIuran from './ModalCetakKwitansiIuran';
-import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Clock, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale, Building2, Factory, HandHeart } from 'lucide-react';
 
 interface KeuanganDetailProps {
   kasList: Kas[];
   onOpenCatatKas: () => void;
+  onOpenDonasiPerusahaan?: () => void;
   iuranKKList: IuranKK[];
   onOpenBayarIuran: () => void;
   onSelectKKAndPay: (kkId: number) => void;
@@ -24,6 +25,7 @@ interface KeuanganDetailProps {
 export default function KeuanganDetail({
   kasList,
   onOpenCatatKas,
+  onOpenDonasiPerusahaan,
   iuranKKList,
   onOpenBayarIuran,
   onSelectKKAndPay,
@@ -64,10 +66,34 @@ export default function KeuanganDetail({
   const totalKeluar = kasList.filter(k => k.tipe === 'pengeluaran').reduce((acc, curr) => acc + curr.jumlah, 0);
   const sisaKas = totalMasuk - totalKeluar;
 
+  const totalDonasiPerusahaan = kasList
+    .filter(k => k.tipe === 'pemasukan' && (
+      k.kategori.toLowerCase().includes('perusahaan') ||
+      k.kategori.toLowerCase().includes('pabrik') ||
+      k.kategori.toLowerCase().includes('csr') ||
+      k.kategori.toLowerCase().includes('sponsorship') ||
+      !!k.donatur_info?.nama_perusahaan
+    ))
+    .reduce((sum, curr) => sum + curr.jumlah, 0);
+
+  const totalPemasukanLainnya = Math.max(0, totalMasuk - totalIuranTerkumpul - totalDonasiPerusahaan);
+
   const filteredKas = kasList.filter(k => {
     const matchSearch = k.keterangan.toLowerCase().includes(search.toLowerCase()) || 
-                        k.kategori.toLowerCase().includes(search.toLowerCase());
-    const matchTipe = tipeFilter === 'all' || k.tipe === tipeFilter;
+                        k.kategori.toLowerCase().includes(search.toLowerCase()) ||
+                        (k.donatur_info?.nama_perusahaan || '').toLowerCase().includes(search.toLowerCase()) ||
+                        (k.jam || '').includes(search);
+    let matchTipe = true;
+    if (tipeFilter === 'pemasukan') matchTipe = k.tipe === 'pemasukan';
+    else if (tipeFilter === 'pengeluaran') matchTipe = k.tipe === 'pengeluaran';
+    else if (tipeFilter === 'donasi_perusahaan') {
+      matchTipe = k.kategori.toLowerCase().includes('perusahaan') ||
+                  k.kategori.toLowerCase().includes('pabrik') ||
+                  k.kategori.toLowerCase().includes('csr') ||
+                  !!k.donatur_info?.nama_perusahaan;
+    } else if (tipeFilter === 'iuran_warga') {
+      matchTipe = k.kategori.toLowerCase().includes('iuran') || k.keterangan.toLowerCase().includes('iuran kk:');
+    }
     return matchSearch && matchTipe;
   });
 
@@ -77,8 +103,8 @@ export default function KeuanganDetail({
     !(k.kategori.toLowerCase() === 'iuran warga' || k.keterangan.toLowerCase().includes('iuran kk:'))
   );
 
-  const rekapMingguanKas = (laporanMingguanList || []).map(rep => ({
-    id: `rekap-mingguan-${rep.id}`,
+  const rekapMingguanKas: Kas[] = (laporanMingguanList || []).map((rep, idx) => ({
+    id: 99000 + (typeof rep.id === 'number' ? rep.id : idx + 1),
     tanggal: rep.tanggal_lapor || rep.tanggal_selesai,
     tipe: 'pemasukan' as const,
     kategori: 'Iuran Warga (Rekap)',
@@ -90,8 +116,8 @@ export default function KeuanganDetail({
     .filter(k => k.kategori.toLowerCase() === 'iuran warga' || k.keterangan.toLowerCase().includes('iuran kk:'))
     .reduce((sum, curr) => sum + curr.jumlah, 0);
 
-  const fallbackRekapKas = (rekapMingguanKas.length === 0 && totalIuranFromKas > 0) ? [{
-    id: 'rekap-total-iuran-fallback',
+  const fallbackRekapKas: Kas[] = (rekapMingguanKas.length === 0 && totalIuranFromKas > 0) ? [{
+    id: 99999,
     tanggal: kasList.find(k => k.kategori.toLowerCase() === 'iuran warga' || k.keterangan.toLowerCase().includes('iuran kk:'))?.tanggal || new Date().toISOString().split('T')[0],
     tipe: 'pemasukan' as const,
     kategori: 'Iuran Warga (Rekap)',
@@ -270,15 +296,27 @@ export default function KeuanganDetail({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {subTab === 'jurnal' && isPengurus && (
-              <button
-                onClick={onOpenCatatKas}
-                className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
-              >
-                <Plus size={14} />
-                Catat Keuangan
-              </button>
+              <>
+                {onOpenDonasiPerusahaan && (
+                  <button
+                    onClick={onOpenDonasiPerusahaan}
+                    className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                    title="Catat Donasi dari Pabrik, Perusahaan, CSR, atau Pihak Tidak Terikat"
+                  >
+                    <Building2 size={14} />
+                    + Donasi Pabrik / PT
+                  </button>
+                )}
+                <button
+                  onClick={onOpenCatatKas}
+                  className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                >
+                  <Plus size={14} />
+                  Catat Keuangan
+                </button>
+              </>
             )}
             {subTab === 'iuran' && isPengurus && (
               <button
@@ -305,34 +343,36 @@ export default function KeuanganDetail({
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Cari keterangan belanja atau kategori kas..."
+                  placeholder="Cari keterangan belanja, PT / Pabrik, PIC, atau jam..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   className="w-full pl-9 pr-4 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-hidden focus:ring-1 focus:ring-red-500"
                 />
               </div>
 
-              <div className="w-full md:w-48">
+              <div className="w-full md:w-56">
                 <select
                   value={tipeFilter}
                   onChange={e => setTipeFilter(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-hidden bg-white text-gray-700"
+                  className="w-full px-3 py-2 text-xs bg-white border border-gray-200 rounded-xl focus:outline-hidden bg-white text-gray-700 font-medium"
                 >
                   <option value="all">Semua Transaksi</option>
-                  <option value="pemasukan">Uang Masuk (+)</option>
-                  <option value="pengeluaran">Pengeluaran (-)</option>
+                  <option value="pemasukan">Uang Masuk / Debit (+)</option>
+                  <option value="pengeluaran">Pengeluaran / Kredit (-)</option>
+                  <option value="donasi_perusahaan">🏢 Donasi PT / Pabrik</option>
+                  <option value="iuran_warga">👥 Iuran Warga</option>
                 </select>
               </div>
             </div>
 
             {/* Jurnal Table with Explicit Debit (Kas Masuk) & Kredit (Kas Keluar) Columns */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[650px]">
+              <table className="w-full text-left border-collapse min-w-[720px]">
                 <thead>
                   <tr className="bg-gray-50/80 border-b border-gray-100 text-[11px] uppercase font-bold text-gray-500 tracking-wider">
-                    <th className="p-3.5 w-32">Tanggal</th>
-                    <th className="p-3.5 w-36">Kategori</th>
-                    <th className="p-3.5">Keterangan Transaksi</th>
+                    <th className="p-3.5 w-36">Tanggal &amp; Waktu</th>
+                    <th className="p-3.5 w-40">Kategori</th>
+                    <th className="p-3.5">Keterangan Transaksi &amp; Entitas</th>
                     <th className="p-3.5 text-right text-emerald-700 w-44">Debit (Kas Masuk)</th>
                     <th className="p-3.5 text-right text-red-600 w-44">Kredit (Kas Keluar)</th>
                     <th className="p-3.5 text-center w-24">Aksi</th>
@@ -346,105 +386,139 @@ export default function KeuanganDetail({
                       </td>
                     </tr>
                   ) : (
-                    filteredKas.map((k) => (
-                      <tr key={k.id} className="hover:bg-gray-50/60 transition-all">
-                        <td className="p-3.5 font-mono text-gray-600 whitespace-nowrap align-top">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            <Calendar size={12} className="text-gray-400 shrink-0" />
-                            {k.tanggal}
-                          </span>
-                        </td>
-                        <td className="p-3.5 align-top">
-                          <span className="text-[10px] text-gray-600 font-bold px-2 py-0.5 bg-gray-100 rounded-md whitespace-nowrap inline-block">
-                            {k.kategori}
-                          </span>
-                        </td>
-                        <td className="p-3.5 align-top">
-                          <div className="font-bold text-gray-800 leading-snug">{k.keterangan}</div>
-                          {k.bukti_foto && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedProofPhoto(k.bukti_foto)}
-                              className="mt-1.5 inline-flex items-center gap-1 text-[9px] bg-red-50 text-red-600 border border-red-100 font-bold px-2 py-0.5 rounded-md hover:bg-red-100 transition-all cursor-pointer"
-                            >
-                              <Camera size={10} />
-                              Lihat Bukti Foto
-                            </button>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-right font-mono font-bold text-emerald-600 whitespace-nowrap align-top">
-                          {k.tipe === 'pemasukan' ? (
-                            <div className="flex flex-col items-end">
-                              <span className="text-xs sm:text-sm text-emerald-600">+&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
-                              <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
-                                DEBIT (MASUK)
+                    filteredKas.map((k) => {
+                      const isCompany = k.kategori.toLowerCase().includes('perusahaan') ||
+                                        k.kategori.toLowerCase().includes('pabrik') ||
+                                        k.kategori.toLowerCase().includes('csr') ||
+                                        !!k.donatur_info?.nama_perusahaan;
+                      return (
+                        <tr key={k.id} className="hover:bg-gray-50/60 transition-all">
+                          <td className="p-3.5 font-mono text-gray-600 whitespace-nowrap align-top">
+                            <div className="flex flex-col gap-1">
+                              <span className="flex items-center gap-1.5 font-bold text-gray-800 text-[11px]">
+                                <Calendar size={12} className="text-gray-400 shrink-0" />
+                                {k.tanggal}
                               </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-300 font-normal">-</span>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-right font-mono font-bold text-red-500 whitespace-nowrap align-top">
-                          {k.tipe === 'pengeluaran' ? (
-                            <div className="flex flex-col items-end">
-                              <span className="text-xs sm:text-sm text-red-500">-&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
-                              <span className="text-[8px] bg-red-50 text-red-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
-                                KREDIT (KELUAR)
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-300 font-normal">-</span>
-                          )}
-                        </td>
-                        <td className="p-3.5 text-center align-top">
-                          {isPengurus ? (
-                            <div className="flex items-center justify-center gap-1.5">
-                              {onEditKasClick && (
-                                <button
-                                  onClick={() => onEditKasClick(k)}
-                                  className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
-                                  title="Revisi / Edit Transaksi"
-                                >
-                                  <Edit size={13} />
-                                </button>
-                              )}
-
-                              {onDeleteKas && (
-                                <button
-                                  onClick={() => onDeleteKas(k.id)}
-                                  className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
-                                  title="Hapus Transaksi"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
+                              {k.jam && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-blue-600 font-semibold bg-blue-50/80 px-1.5 py-0.5 rounded border border-blue-100 w-fit">
+                                  <Clock size={10} className="text-blue-500 shrink-0" />
+                                  {k.jam} WIB
+                                </span>
                               )}
                             </div>
-                          ) : (
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() => {
-                                  alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk mengedit transaksi keuangan.");
-                                }}
-                                className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
-                                title="Login untuk Edit"
-                              >
-                                <Edit size={13} />
-                              </button>
+                          </td>
+                          <td className="p-3.5 align-top">
+                            {isCompany ? (
+                              <span className="text-[10px] text-amber-800 font-bold px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-md whitespace-nowrap inline-flex items-center gap-1">
+                                <Building2 size={11} className="text-amber-600 shrink-0" />
+                                {k.kategori}
+                              </span>
+                            ) : k.tipe === 'pemasukan' ? (
+                              <span className="text-[10px] text-emerald-800 font-bold px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-md whitespace-nowrap inline-flex items-center gap-1">
+                                <Landmark size={11} className="text-emerald-600 shrink-0" />
+                                {k.kategori}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-700 font-bold px-2 py-0.5 bg-gray-100 border border-gray-200 rounded-md whitespace-nowrap inline-block">
+                                {k.kategori}
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 align-top">
+                            <div className="font-bold text-gray-800 leading-snug">{k.keterangan}</div>
 
+                            {/* Structured Company / Factory Donor Details */}
+                            {k.donatur_info && (
+                              <div className="mt-1.5 bg-amber-50/60 border border-amber-100/80 rounded-lg p-2 text-[11px] text-amber-900 space-y-0.5">
+                                {k.donatur_info.nama_perusahaan && (
+                                  <div className="flex items-center gap-1.5 font-bold">
+                                    <Factory size={12} className="text-amber-700 shrink-0" />
+                                    <span>Instansi / Pabrik: {k.donatur_info.nama_perusahaan}</span>
+                                  </div>
+                                )}
+                                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-amber-800">
+                                  {k.donatur_info.sifat_donasi && <span>Sifat: <em>{k.donatur_info.sifat_donasi}</em></span>}
+                                </div>
+                              </div>
+                            )}
+
+                            {k.bukti_foto && (
                               <button
-                                onClick={() => {
-                                  alert("Akses Terbatas: Silakan login sebagai pengurus panitia terlebih dahulu (Gunakan tombol 'Login Pengurus' di kanan atas layar) untuk menghapus transaksi keuangan.");
-                                }}
-                                className="p-1.5 text-gray-300 bg-gray-50 border border-gray-100 rounded-lg transition-all cursor-pointer shrink-0"
-                                title="Login untuk Hapus"
+                                type="button"
+                                onClick={() => setSelectedProofPhoto(k.bukti_foto)}
+                                className="mt-1.5 inline-flex items-center gap-1 text-[9px] bg-red-50 text-red-600 border border-red-100 font-bold px-2 py-0.5 rounded-md hover:bg-red-100 transition-all cursor-pointer"
                               >
-                                <Trash2 size={13} />
+                                <Camera size={10} />
+                                Lihat Bukti Foto
                               </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                            )}
+                          </td>
+                          <td className="p-3.5 text-right font-mono font-bold text-emerald-600 whitespace-nowrap align-top">
+                            {k.tipe === 'pemasukan' ? (
+                              <div className="flex flex-col items-end">
+                                <span className="text-xs sm:text-sm text-emerald-600">+&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
+                                <span className="text-[8px] bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
+                                  DEBIT (MASUK)
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-300 font-normal">-</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-right font-mono font-bold text-red-500 whitespace-nowrap align-top">
+                            {k.tipe === 'pengeluaran' ? (
+                              <div className="flex flex-col items-end">
+                                <span className="text-xs sm:text-sm text-red-500">-&nbsp;Rp&nbsp;{k.jumlah.toLocaleString('id-ID')}</span>
+                                <span className="text-[8px] bg-red-50 text-red-700 px-1.5 py-0.2 rounded font-sans uppercase tracking-wider font-extrabold mt-0.5">
+                                  KREDIT (KELUAR)
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-300 font-normal">-</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-center align-top">
+                            {isPengurus ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                {onEditKasClick && (
+                                  <button
+                                    onClick={() => onEditKasClick(k)}
+                                    className="p-1.5 text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                                    title="Revisi / Edit Transaksi"
+                                  >
+                                    <Edit size={13} />
+                                  </button>
+                                )}
+
+                                {onDeleteKas && (
+                                  <button
+                                    onClick={() => onDeleteKas(k.id)}
+                                    className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all cursor-pointer active:scale-95 shrink-0"
+                                    title="Hapus Transaksi"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center gap-1.5">
+                                {k.bukti_foto ? (
+                                  <button
+                                    onClick={() => setSelectedProofPhoto(k.bukti_foto)}
+                                    className="p-1.5 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all cursor-pointer shrink-0"
+                                    title="Lihat Bukti Foto"
+                                  >
+                                    <Camera size={13} />
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-300 text-[10px]">-</span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -754,7 +828,7 @@ export default function KeuanganDetail({
               @media print {
                 @page {
                   size: A4 portrait;
-                  margin: 5mm 5mm;
+                  margin: 8mm 8mm;
                 }
 
                 html, body {
@@ -768,25 +842,6 @@ export default function KeuanganDetail({
                   overflow: visible !important;
                 }
 
-                /* Hide main page layout elements from DOM flow so they take 0px height */
-                header, nav, footer, .no-print, [role="banner"], [role="navigation"] {
-                  display: none !important;
-                  height: 0 !important;
-                  width: 0 !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  overflow: hidden !important;
-                }
-
-                .print-hidden-element, .print\\:hidden, button, .pointer-events-none {
-                  display: none !important;
-                  height: 0 !important;
-                  width: 0 !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  overflow: hidden !important;
-                }
-
                 #printable-a4-area, #printable-kwitansi-area, #print-area {
                   display: none !important;
                   height: 0 !important;
@@ -794,22 +849,6 @@ export default function KeuanganDetail({
                   margin: 0 !important;
                   padding: 0 !important;
                   overflow: hidden !important;
-                }
-
-                .fixed, .absolute, #root, body > div, [role="dialog"], div[class*="fixed"] {
-                  position: static !important;
-                  inset: auto !important;
-                  transform: none !important;
-                  overflow: visible !important;
-                  height: auto !important;
-                  min-height: 0 !important;
-                  max-height: none !important;
-                  width: 100% !important;
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  background: transparent !important;
-                  box-shadow: none !important;
-                  backdrop-filter: none !important;
                 }
 
                 #printable-lpj {
@@ -821,12 +860,14 @@ export default function KeuanganDetail({
                   max-width: 100% !important;
                   height: auto !important;
                   min-height: 0 !important;
-                  margin: 0 !important;
+                  margin: 0 auto !important;
                   padding: 0 !important;
                   background: white !important;
                   color: black !important;
                   font-family: 'Times New Roman', Times, serif !important;
                   overflow: visible !important;
+                  box-shadow: none !important;
+                  border: none !important;
                 }
 
                 #printable-lpj * {
@@ -945,22 +986,36 @@ export default function KeuanganDetail({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      <tr>
-                        <td className="border border-gray-300 p-2 font-medium">1. Total Penerimaan / Uang Masuk</td>
-                        <td className="border border-gray-300 p-2 text-right font-mono font-semibold text-emerald-600">{formatRupiah(totalMasuk)}</td>
+                      <tr className="bg-emerald-50/50 font-semibold">
+                        <td className="border border-gray-300 p-2 text-emerald-950">1. Total Penerimaan / Uang Masuk</td>
+                        <td className="border border-gray-300 p-2 text-right font-mono font-bold text-emerald-700">{formatRupiah(totalMasuk)}</td>
                       </tr>
-                      <tr>
-                        <td className="border border-gray-300 p-2 font-medium">2. Total Realisasi Pengeluaran / Uang Keluar</td>
-                        <td className="border border-gray-300 p-2 text-right font-mono font-semibold text-red-600">{formatRupiah(totalKeluar)}</td>
+                      <tr className="text-[10px] text-gray-700 bg-white">
+                        <td className="border border-gray-300 p-1.5 pl-6 font-normal">a. Akumulasi Iuran Warga (RT 01 s.d RT 05)</td>
+                        <td className="border border-gray-300 p-1.5 text-right font-mono text-gray-800">{formatRupiah(totalIuranTerkumpul)}</td>
                       </tr>
-                      <tr className="bg-gray-50 font-bold text-gray-900">
-                        <td className="border border-gray-300 p-2">SISA SALDO KAS PANITIA (AKTIF)</td>
-                        <td className="border border-gray-300 p-2 text-right font-mono">{formatRupiah(sisaKas)}</td>
+                      <tr className="text-[10px] text-gray-700 bg-white">
+                        <td className="border border-gray-300 p-1.5 pl-6 font-normal">b. Donasi Perusahaan / Pabrik / CSR (Pihak Tidak Terikat)</td>
+                        <td className="border border-gray-300 p-1.5 text-right font-mono text-gray-800">{formatRupiah(totalDonasiPerusahaan)}</td>
+                      </tr>
+                      {totalPemasukanLainnya > 0 && (
+                        <tr className="text-[10px] text-gray-700 bg-white">
+                          <td className="border border-gray-300 p-1.5 pl-6 font-normal">c. Donatur Sukarela &amp; Pemasukan Kas Lainnya</td>
+                          <td className="border border-gray-300 p-1.5 text-right font-mono text-gray-800">{formatRupiah(totalPemasukanLainnya)}</td>
+                        </tr>
+                      )}
+                      <tr className="bg-red-50/40 font-semibold">
+                        <td className="border border-gray-300 p-2 text-red-950">2. Total Realisasi Pengeluaran / Uang Keluar</td>
+                        <td className="border border-gray-300 p-2 text-right font-mono font-bold text-red-600">{formatRupiah(totalKeluar)}</td>
+                      </tr>
+                      <tr className="bg-gray-100 font-bold text-gray-950">
+                        <td className="border border-gray-300 p-2 text-sm">SISA SALDO KAS PANITIA (AKTIF)</td>
+                        <td className="border border-gray-300 p-2 text-right font-mono text-sm">{formatRupiah(sisaKas)}</td>
                       </tr>
                     </tbody>
                   </table>
                   <p className="text-[9px] text-gray-500 mt-1.5 italic font-sans">
-                    * Catatan: Dana pemasukan diperoleh dari akumulasi iuran wajib warga {formatRupiah(totalIuranTerkumpul)}, donatur, serta sponsorship yang sah.
+                    * Catatan: Seluruh dana pemasukan bersumber dari iuran wajib warga {formatRupiah(totalIuranTerkumpul)}, donasi perusahaan/pabrik (pihak tidak terikat), program CSR, serta sumbangan sukarela yang sah dan transparan.
                   </p>
                 </div>
 
@@ -1027,15 +1082,15 @@ export default function KeuanganDetail({
                 <div className="mb-8">
                   <h4 className="font-bold text-gray-950 uppercase border-b border-gray-300 pb-1 mb-2 font-sans text-xs flex items-center justify-between">
                     <span>III. HISTORI BUKU JURNAL KAS MASUK DAN KELUAR</span>
-                    <span className="text-[9px] font-mono text-gray-500 font-bold uppercase">(Kolom Debit Kas Masuk &amp; Kredit Kas Keluar)</span>
+                    <span className="text-[9px] font-mono text-gray-500 font-bold uppercase">(Kolom Rinci Waktu, Debit Kas Masuk &amp; Kredit Kas Keluar)</span>
                   </h4>
                   <table className="w-full border-collapse border border-gray-300 text-left font-sans text-[10px]">
                     <thead>
                       <tr className="bg-gray-100 text-gray-800">
-                        <th className="border border-gray-300 p-1.5 whitespace-nowrap">Tanggal</th>
+                        <th className="border border-gray-300 p-1.5 whitespace-nowrap">Tanggal &amp; Jam</th>
                         <th className="border border-gray-300 p-1.5 w-12 text-center">Tipe</th>
                         <th className="border border-gray-300 p-1.5 w-24">Kategori</th>
-                        <th className="border border-gray-300 p-1.5">Keterangan / Deskripsi Transaksi</th>
+                        <th className="border border-gray-300 p-1.5">Keterangan Transaksi / Entitas Donatur</th>
                         <th className="border border-gray-300 p-1.5 text-right w-28 text-emerald-700">Debit (Kas Masuk)</th>
                         <th className="border border-gray-300 p-1.5 text-right w-28 text-red-600">Kredit (Kas Keluar)</th>
                       </tr>
@@ -1043,12 +1098,22 @@ export default function KeuanganDetail({
                     <tbody className="divide-y divide-gray-100">
                       {lpjLedgerKasList.map(k => (
                         <tr key={k.id}>
-                          <td className="border border-gray-300 p-1.5 font-mono whitespace-nowrap">{k.tanggal}</td>
+                          <td className="border border-gray-300 p-1.5 font-mono whitespace-nowrap">
+                            {k.tanggal}
+                            {k.jam && <span className="block text-[9px] text-gray-600 font-semibold">{k.jam} WIB</span>}
+                          </td>
                           <td className={`border border-gray-300 p-1.5 text-center font-bold ${k.tipe === 'pemasukan' ? 'text-emerald-600' : 'text-red-500'}`}>
                             {k.tipe === 'pemasukan' ? 'MASUK' : 'KELUAR'}
                           </td>
-                          <td className="border border-gray-300 p-1.5">{k.kategori}</td>
-                          <td className="border border-gray-300 p-1.5 font-medium">{k.keterangan}</td>
+                          <td className="border border-gray-300 p-1.5 font-medium">{k.kategori}</td>
+                          <td className="border border-gray-300 p-1.5">
+                            <span className="font-medium text-gray-900">{k.keterangan}</span>
+                            {k.donatur_info?.nama_perusahaan && (
+                              <span className="block text-[9px] text-amber-900 italic mt-0.5 font-medium">
+                                [Donatur Perusahaan/Pabrik: {k.donatur_info.nama_perusahaan} {k.donatur_info.sifat_donasi ? `| Sifat: ${k.donatur_info.sifat_donasi}` : ''}]
+                              </span>
+                            )}
+                          </td>
                           <td className="border border-gray-300 p-1.5 text-right font-mono font-bold text-emerald-700">
                             {k.tipe === 'pemasukan' ? formatRupiah(k.jumlah) : '-'}
                           </td>

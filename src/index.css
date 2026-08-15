@@ -8,10 +8,9 @@
 }
 
 @media print {
-  /* Hide scrollbars & page headers/footers in browsers */
   @page {
     size: A4 portrait;
-    margin: 5mm;
+    margin: 8mm 8mm;
   }
   
   html, body {
@@ -27,8 +26,11 @@
     print-color-adjust: exact !important;
   }
 
-  /* Hide non-printable layout elements during print so they occupy 0px height */
-  header, nav, footer, .no-print, .print-hidden-element, [role="banner"], [role="navigation"] {
+  /* 1. Hide all application chrome, navigation, headers, footers, and non-printable elements */
+  header, nav, footer, aside, .no-print, [role="banner"], [role="navigation"],
+  #hero-section, #countdown-timer, #quick-actions, #quick-stats, #activities-timeline,
+  #jajaran-panitia, #patriotic-soundtrack, #tab-buttons-container,
+  .print-hidden-element, .print\\:hidden, button:not(#keep-print-btn), input, select, textarea {
     display: none !important;
     height: 0 !important;
     width: 0 !important;
@@ -37,8 +39,8 @@
     overflow: hidden !important;
   }
 
-  /* Keep root and main container as visible transparent blocks during print */
-  #root, main {
+  /* 2. Reset containers to flow cleanly into printer stream */
+  #root, main, #app-container, div[class*="min-h-screen"] {
     display: block !important;
     position: static !important;
     margin: 0 !important;
@@ -46,24 +48,48 @@
     border: none !important;
     background: transparent !important;
     box-shadow: none !important;
-    max-width: none !important;
+    max-width: 100% !important;
     width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 3. Printable areas formatting */
+  #printable-lpj, #printable-a4-area {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
     overflow: visible !important;
   }
 
   table {
+    width: 100% !important;
+    border-collapse: collapse !important;
     page-break-inside: auto;
   }
+  
   tr {
     page-break-inside: avoid;
     break-inside: avoid;
   }
+  
   thead {
     display: table-header-group;
   }
+  
   tfoot {
     display: table-footer-group;
   }
 }
+
 

@@ -188,6 +188,8 @@ export default function App() {
   const [isPendaftaranOpen, setIsPendaftaranOpen] = useState(false);
   const [isInputSkorOpen, setIsInputSkorOpen] = useState(false);
   const [isCatatKasOpen, setIsCatatKasOpen] = useState(false);
+  const [catatKasInitialTipe, setCatatKasInitialTipe] = useState<'pemasukan' | 'pengeluaran'>('pemasukan');
+  const [catatKasInitialKategori, setCatatKasInitialKategori] = useState<string>('');
   const [kasToEdit, setKasToEdit] = useState<Kas | null>(null);
   const [isAddLombaOpen, setIsAddLombaOpen] = useState(false);
   const [isBayarIuranOpen, setIsBayarIuranOpen] = useState(false);
@@ -228,25 +230,25 @@ export default function App() {
           }
           const contentType = response.headers.get("content-type") || "";
           if (!contentType.includes("application/json")) {
-            throw new Error(`Respons server bukan JSON (Content-Type: ${contentType}). Sesi Anda mungkin kedaluwarsa atau server sedang mulai ulang. Silakan refresh halaman.`);
+            throw new Error(`Respons server bukan JSON (Content-Type: ${contentType}).`);
           }
           const data = await response.json();
           if (data) {
             isIncomingUpdate.current = true;
-            if (data.lombas && Array.isArray(data.lombas)) {
+            if (data.lombas && Array.isArray(data.lombas) && data.lombas.length > 0) {
               setLombas(ensureUniqueIds(data.lombas));
             }
-            if (data.pesertas && Array.isArray(data.pesertas)) {
+            if (data.pesertas && Array.isArray(data.pesertas) && data.pesertas.length > 0) {
               setPesertas(ensureUniqueIds(data.pesertas));
             }
-            if (data.kas && Array.isArray(data.kas)) {
+            if (data.kas && Array.isArray(data.kas) && data.kas.length > 0) {
               const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
               setKas(ensureUniqueIds(cleaned));
             }
-            if (data.aktivitas && Array.isArray(data.aktivitas)) {
+            if (data.aktivitas && Array.isArray(data.aktivitas) && data.aktivitas.length > 0) {
               setAktivitas(ensureUniqueIds(data.aktivitas));
             }
-            if (data.iuranKK && Array.isArray(data.iuranKK)) {
+            if (data.iuranKK && Array.isArray(data.iuranKK) && data.iuranKK.length > 0) {
               setIuranKK(ensureUniqueIds(data.iuranKK));
             }
             if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) {
@@ -255,7 +257,7 @@ export default function App() {
             if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) {
               setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
             }
-            if (data.accounts && Array.isArray(data.accounts)) {
+            if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
               setAccounts(data.accounts);
             }
             setTimeout(() => {
@@ -264,7 +266,7 @@ export default function App() {
           }
         }
       } catch (err) {
-        console.warn("Sinkronisasi data dari server tertunda (sedang memuat ulang):", err);
+        console.warn("Sinkronisasi data dari server tertunda:", err);
       } finally {
         setIsDataLoaded(true);
       }
@@ -289,20 +291,20 @@ export default function App() {
 
           const data = payload.data;
           isIncomingUpdate.current = true;
-          if (data.lombas && Array.isArray(data.lombas)) {
+          if (data.lombas && Array.isArray(data.lombas) && data.lombas.length > 0) {
             setLombas(ensureUniqueIds(data.lombas));
           }
-          if (data.pesertas && Array.isArray(data.pesertas)) {
+          if (data.pesertas && Array.isArray(data.pesertas) && data.pesertas.length > 0) {
             setPesertas(ensureUniqueIds(data.pesertas));
           }
-          if (data.kas && Array.isArray(data.kas)) {
+          if (data.kas && Array.isArray(data.kas) && data.kas.length > 0) {
             const cleaned = data.kas.filter((item: Kas) => !item.keterangan.includes('Rekap Iuran Mingguan'));
             setKas(ensureUniqueIds(cleaned));
           }
-          if (data.aktivitas && Array.isArray(data.aktivitas)) {
+          if (data.aktivitas && Array.isArray(data.aktivitas) && data.aktivitas.length > 0) {
             setAktivitas(ensureUniqueIds(data.aktivitas));
           }
-          if (data.iuranKK && Array.isArray(data.iuranKK)) {
+          if (data.iuranKK && Array.isArray(data.iuranKK) && data.iuranKK.length > 0) {
             setIuranKK(ensureUniqueIds(data.iuranKK));
           }
           if (data.permintaanLomba && Array.isArray(data.permintaanLomba)) {
@@ -311,7 +313,7 @@ export default function App() {
           if (data.laporanIuranMingguan && Array.isArray(data.laporanIuranMingguan)) {
             setLaporanIuranMingguan(ensureUniqueIds(data.laporanIuranMingguan));
           }
-          if (data.accounts && Array.isArray(data.accounts)) {
+          if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
             setAccounts(data.accounts);
           }
           setTimeout(() => {
@@ -359,7 +361,7 @@ export default function App() {
       accounts
     };
 
-    // Save locally
+    // Save locally immediately
     localStorage.setItem('hut81_lombas', JSON.stringify(lombas));
     localStorage.setItem('hut81_pesertas', JSON.stringify(pesertas));
     localStorage.setItem('hut81_kas', JSON.stringify(kas));
@@ -372,7 +374,7 @@ export default function App() {
     // Mark that we have pending local changes to save
     hasUnsavedChanges.current = true;
 
-    // Async write-back sync to Server file database
+    // Fast sync to Server database (debounced to 100ms for rapid response)
     const syncWithServer = async () => {
       setIsSyncing(true);
       try {
@@ -387,7 +389,7 @@ export default function App() {
           body: JSON.stringify(payload)
         });
         if (response.ok) {
-          hasUnsavedChanges.current = false; // Successfully saved, safe to resume server-sent updates
+          hasUnsavedChanges.current = false; // Successfully saved
         }
       } catch (err) {
         console.error("Gagal menyimpan sinkronisasi data ke server public:", err);
@@ -396,7 +398,7 @@ export default function App() {
       }
     };
 
-    const handler = setTimeout(syncWithServer, 500);
+    const handler = setTimeout(syncWithServer, 100);
     return () => clearTimeout(handler);
   }, [isDataLoaded, lombas, pesertas, kas, aktivitas, iuranKK, permintaanLomba, laporanIuranMingguan, accounts, currentUser]);
 
@@ -485,8 +487,18 @@ export default function App() {
     logAktivitas('skor', `Hasil Juara lomba "${lomba?.nama_lomba}" telah diinput. Juara 1: ${j1}.`);
   };
 
-  const handleAddKas = (tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => {
-    // If called via UI direct action or internally
+  const handleAddKas = (
+    tipe: 'pemasukan' | 'pengeluaran',
+    kategori: string,
+    jumlah: number,
+    keterangan: string,
+    lombaId?: number,
+    tanggal?: string,
+    buktiFoto?: string,
+    jam?: string,
+    donaturInfo?: any
+  ) => {
+    const currentTimeStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
     const newKas: Kas = {
       id: getUniqueId(),
       tipe,
@@ -494,15 +506,28 @@ export default function App() {
       jumlah,
       keterangan,
       tanggal: tanggal || new Date().toISOString().split('T')[0],
+      jam: jam || currentTimeStr,
       lomba_id: lombaId,
-      bukti_foto: buktiFoto
+      bukti_foto: buktiFoto,
+      donatur_info: donaturInfo
     };
 
     setKas(prev => [newKas, ...prev]);
     logAktivitas('kas', `Buku Kas: Catat ${tipe} (${kategori}) sebesar Rp ${jumlah.toLocaleString('id-ID')} untuk "${keterangan}".`);
   };
 
-  const handleEditKas = (id: number, tipe: 'pemasukan' | 'pengeluaran', kategori: string, jumlah: number, keterangan: string, lombaId?: number, tanggal?: string, buktiFoto?: string) => {
+  const handleEditKas = (
+    id: number,
+    tipe: 'pemasukan' | 'pengeluaran',
+    kategori: string,
+    jumlah: number,
+    keterangan: string,
+    lombaId?: number,
+    tanggal?: string,
+    buktiFoto?: string,
+    jam?: string,
+    donaturInfo?: any
+  ) => {
     if (!checkAuth()) return;
     setKas(prev => prev.map(item => {
       if (item.id === id) {
@@ -514,7 +539,9 @@ export default function App() {
           keterangan,
           lomba_id: lombaId,
           tanggal: tanggal || item.tanggal,
-          bukti_foto: buktiFoto || item.bukti_foto
+          jam: jam || item.jam,
+          bukti_foto: buktiFoto || item.bukti_foto,
+          donatur_info: donaturInfo || item.donatur_info
         };
       }
       return item;
@@ -1268,6 +1295,14 @@ export default function App() {
                 kasList={kas}
                 onOpenCatatKas={() => {
                   setKasToEdit(null);
+                  setCatatKasInitialTipe('pengeluaran');
+                  setCatatKasInitialKategori('Peralatan Lomba');
+                  setIsCatatKasOpen(true);
+                }}
+                onOpenDonasiPerusahaan={() => {
+                  setKasToEdit(null);
+                  setCatatKasInitialTipe('pemasukan');
+                  setCatatKasInitialKategori('Donasi Perusahaan / Pabrik (Pihak Tidak Terikat)');
                   setIsCatatKasOpen(true);
                 }}
                 iuranKKList={iuranKK}
@@ -1280,6 +1315,8 @@ export default function App() {
                 onDeleteKas={handleDeleteKas}
                 onEditKasClick={(item) => {
                   setKasToEdit(item);
+                  setCatatKasInitialTipe(item.tipe);
+                  setCatatKasInitialKategori(item.kategori);
                   setIsCatatKasOpen(true);
                 }}
                 onDeleteKK={handleDeleteKK}
@@ -1389,6 +1426,8 @@ export default function App() {
         kasToEdit={kasToEdit}
         lombas={lombas}
         kasList={kas}
+        initialTipe={catatKasInitialTipe}
+        initialKategori={catatKasInitialKategori}
       />
 
       <ModalAddLomba

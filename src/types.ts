@@ -27,8 +27,15 @@ export interface Kas {
   jumlah: number;
   keterangan: string;
   tanggal: string;
+  jam?: string; // Detailed time (HH:mm)
   lomba_id?: number; // Optional link to a specific Lomba budget
   bukti_foto?: string; // Base64 or image path for photo proof
+  donatur_info?: {
+    nama_perusahaan?: string;
+    sifat_donasi?: string;
+    pic?: string;
+    no_surat?: string;
+  };
 }
 
 export interface Aktivitas {

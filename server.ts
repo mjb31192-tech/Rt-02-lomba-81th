@@ -105,74 +105,172 @@ try {
 
 let memoryDB: typeof INITIAL_DB = INITIAL_DB;
 
+// Helper to sanitize database and ensure documents stay well within Firestore's 1MB limit
+function sanitizeDatabase(data: typeof INITIAL_DB): typeof INITIAL_DB {
+  const sanitizedKas = (data.kas || []).map((k: any) => {
+    // If bukti_foto is abnormally large (> 150KB), strip it to prevent Firestore payload rejection
+    if (k.bukti_foto && typeof k.bukti_foto === 'string' && k.bukti_foto.length > 200000) {
+      console.warn(`[Sanitize] Bukti foto kas #${k.id} terlalu besar (${k.bukti_foto.length} karakter), dioptimasi.`);
+      return { ...k, bukti_foto: undefined };
+    }
+    return k;
+  });
+
+  return {
+    accounts: (data.accounts && data.accounts.length > 0) ? data.accounts : INITIAL_DB.accounts,
+    lombas: (data.lombas && data.lombas.length > 0) ? data.lombas : INITIAL_DB.lombas,
+    pesertas: (data.pesertas && data.pesertas.length > 0) ? data.pesertas : INITIAL_DB.pesertas,
+    kas: sanitizedKas,
+    aktivitas: data.aktivitas || INITIAL_DB.aktivitas,
+    iuranKK: (data.iuranKK && data.iuranKK.length > 0) ? data.iuranKK : INITIAL_DB.iuranKK,
+    permintaanLomba: data.permintaanLomba || INITIAL_DB.permintaanLomba,
+    laporanIuranMingguan: data.laporanIuranMingguan || []
+  };
+}
+
+// Helper to save partitioned documents to Firestore (bypasses 1MB single-document limit)
+async function saveDatabaseToFirestore(rawD: typeof INITIAL_DB) {
+  if (!firestoreDb) return;
+  const data = sanitizeDatabase(rawD);
+  try {
+    const collKeys = [
+      { key: "accounts", items: data.accounts || [] },
+      { key: "lombas", items: data.lombas || [] },
+      { key: "pesertas", items: data.pesertas || [] },
+      { key: "kas", items: data.kas || [] },
+      { key: "aktivitas", items: data.aktivitas || [] },
+      { key: "iuranKK", items: data.iuranKK || [] },
+      { key: "permintaanLomba", items: data.permintaanLomba || [] },
+      { key: "laporanIuranMingguan", items: data.laporanIuranMingguan || [] }
+    ];
+
+    const results = await Promise.allSettled(
+      collKeys.map(c => 
+        setDoc(doc(firestoreDb, "global_state", c.key), { 
+          items: c.items,
+          updatedAt: new Date().toISOString() 
+        })
+      )
+    );
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length > 0) {
+      console.warn(`[Firestore] ${failed.length} partisi gagal disimpan ke Firestore:`, failed);
+    } else {
+      console.log("[Firestore] Semua partisi data berhasil disimpan secara permanen ke Firestore!");
+    }
+  } catch (error) {
+    console.error("[Firestore] Gagal menyimpan partisi ke Firestore:", error);
+  }
+}
+
 // Load database state from Firestore or JSON fallback on startup
 async function initializeDatabase() {
+  // 1. Initial base from data_db.json or default
+  if (fs.existsSync(DB_PATH)) {
+    try {
+      const data = fs.readFileSync(DB_PATH, "utf8");
+      memoryDB = sanitizeDatabase({ ...INITIAL_DB, ...JSON.parse(data) });
+      console.log("Data lokal berhasil dimuat dari data_db.json dan disanitasi.");
+    } catch (e) {
+      memoryDB = INITIAL_DB;
+    }
+  } else {
+    memoryDB = INITIAL_DB;
+  }
+
+  // 2. If Firestore is configured, load partitioned collections
   if (firestoreDb) {
     try {
-      console.log("Mencoba memuat data dari Firestore via Client SDK...");
-      const docRef = doc(firestoreDb, "global_state", "current_db");
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        memoryDB = docSnap.data() as typeof INITIAL_DB;
-        console.log("Data berhasil dimuat dari Firestore.");
-        // Sync to local json file as local backup
+      console.log("Mencoba memuat data partisi dari Firestore via Client SDK...");
+      const collKeys = [
+        "accounts",
+        "lombas",
+        "pesertas",
+        "kas",
+        "aktivitas",
+        "iuranKK",
+        "permintaanLomba",
+        "laporanIuranMingguan"
+      ] as const;
+
+      const results = await Promise.allSettled(
+        collKeys.map(key => getDoc(doc(firestoreDb, "global_state", key)))
+      );
+
+      let foundAnyPartition = false;
+      const loadedData: Partial<typeof INITIAL_DB> = {};
+
+      results.forEach((res, idx) => {
+        const key = collKeys[idx];
+        if (res.status === "fulfilled" && res.value.exists()) {
+          const docData = res.value.data();
+          if (docData && Array.isArray(docData.items) && docData.items.length > 0) {
+            (loadedData as any)[key] = docData.items;
+            foundAnyPartition = true;
+          }
+        }
+      });
+
+      if (foundAnyPartition) {
+        memoryDB = sanitizeDatabase({
+          accounts: loadedData.accounts || memoryDB.accounts || INITIAL_DB.accounts,
+          lombas: loadedData.lombas || memoryDB.lombas || INITIAL_DB.lombas,
+          pesertas: loadedData.pesertas || memoryDB.pesertas || INITIAL_DB.pesertas,
+          kas: loadedData.kas || memoryDB.kas || INITIAL_DB.kas,
+          aktivitas: loadedData.aktivitas || memoryDB.aktivitas || INITIAL_DB.aktivitas,
+          iuranKK: loadedData.iuranKK || memoryDB.iuranKK || INITIAL_DB.iuranKK,
+          permintaanLomba: loadedData.permintaanLomba || memoryDB.permintaanLomba || INITIAL_DB.permintaanLomba,
+          laporanIuranMingguan: loadedData.laporanIuranMingguan || memoryDB.laporanIuranMingguan || INITIAL_DB.laporanIuranMingguan
+        });
+        console.log("Data partisi berhasil dimuat dan disinkronkan dari Firestore.");
         fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
         return;
-      } else {
-        console.log("Dokumen Firestore belum ada. Melakukan inisialisasi awal...");
-        if (fs.existsSync(DB_PATH)) {
-          try {
-            memoryDB = JSON.parse(fs.readFileSync(DB_PATH, "utf8"));
-          } catch (e) {
-            memoryDB = INITIAL_DB;
-          }
-        } else {
-          memoryDB = INITIAL_DB;
-        }
-        await setDoc(docRef, memoryDB);
-        console.log("Inisialisasi awal Firestore berhasil.");
-        return;
       }
+
+      // If no partition found, check legacy single document
+      console.log("Partisi belum ditemukan, mencoba dokumen legasi 'current_db'...");
+      const legacyRef = doc(firestoreDb, "global_state", "current_db");
+      const legacySnap = await getDoc(legacyRef);
+      if (legacySnap.exists()) {
+        const legacyData = legacySnap.data() as typeof INITIAL_DB;
+        memoryDB = sanitizeDatabase({ ...INITIAL_DB, ...legacyData });
+        console.log("Data legasi berhasil dimuat dari Firestore.");
+      } else {
+        console.log("Belum ada data di Firestore. Melakukan inisialisasi awal ke partisi Firestore...");
+      }
+
+      // Sync the current state to the partitioned Firestore documents
+      await saveDatabaseToFirestore(memoryDB);
+      fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
+      return;
     } catch (error) {
       console.error("Gagal sinkronisasi dengan Firestore, menggunakan database lokal JSON:", error);
     }
   }
 
-  // Fallback to reading standard JSON database file
+  // Backup to file
   try {
-    if (fs.existsSync(DB_PATH)) {
-      const data = fs.readFileSync(DB_PATH, "utf8");
-      memoryDB = JSON.parse(data);
-    } else {
-      memoryDB = INITIAL_DB;
-      fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
-    }
-  } catch (error) {
-    console.error("Gagal membaca database JSON, menggunakan nilai default:", error);
-    memoryDB = INITIAL_DB;
+    fs.writeFileSync(DB_PATH, JSON.stringify(memoryDB, null, 2), "utf8");
+  } catch (e) {
+    console.error("Gagal menulis cadangan lokal:", e);
   }
 }
 
 // Save database changes
 async function saveDatabase(data: typeof INITIAL_DB) {
-  memoryDB = data;
+  const sanitized = sanitizeDatabase(data);
+  memoryDB = sanitized;
 
   // Save to local JSON as fallback/backup
   try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), "utf8");
+    fs.writeFileSync(DB_PATH, JSON.stringify(sanitized, null, 2), "utf8");
   } catch (error) {
     console.error("Gagal menulis cadangan lokal database JSON:", error);
   }
 
   // Save to Firestore for durable persistence
   if (firestoreDb) {
-    try {
-      const docRef = doc(firestoreDb, "global_state", "current_db");
-      await setDoc(docRef, data);
-      console.log("Data berhasil disimpan secara permanen ke Firestore via Client SDK!");
-    } catch (error) {
-      console.error("Gagal menyimpan ke Firestore:", error);
-    }
+    await saveDatabaseToFirestore(sanitized);
   }
 }
 
@@ -471,7 +569,7 @@ Kedaung Baru`,
   });
 
   // POST save complete database state
-  app.post("/api/data", (req, res) => {
+  app.post("/api/data", async (req, res) => {
     try {
       const incomingData = req.body;
       const currentData = readDB();
@@ -489,9 +587,9 @@ Kedaung Baru`,
         laporanIuranMingguan: incomingData.laporanIuranMingguan || currentData.laporanIuranMingguan || []
       };
 
-      writeDB(updatedData);
+      await saveDatabase(updatedData);
       broadcastUpdate(updatedData, clientId);
-      res.json({ status: "success", message: "Database tersinkronisasi dengan sukses ke server public!" });
+      res.json({ status: "success", message: "Database tersinkronisasi dengan sukses ke server dan Firestore!" });
     } catch (err: any) {
       console.error("Gagal menyimpan data:", err);
       res.status(500).json({ error: "Gagal menyimpan data ke database server: " + err.message });
