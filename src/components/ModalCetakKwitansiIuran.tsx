@@ -257,21 +257,8 @@ export default function ModalCetakKwitansiIuran({
                 )}
               </div>
 
-              {/* KUPON DOORPRIZE */}
-              <div className="my-2.5 p-2 border-2 border-dashed border-black rounded text-center bg-gray-50/50 relative">
-                <p className="text-[8px] font-extrabold uppercase tracking-widest text-gray-500 leading-none">
-                  KUPON UNDIAN DOORPRIZE PHBN
-                </p>
-                <p className="text-[14px] font-black tracking-widest text-black mt-1 leading-none">
-                  {getDoorprizeCode(kk.id, kk.rt)}
-                </p>
-                <p className="text-[7px] text-gray-400 uppercase tracking-wider mt-1 leading-none font-sans font-bold">
-                  * Simpan struk ini untuk diundi pada puncak acara *
-                </p>
-              </div>
-
               {/* TERBILANG */}
-              <p className="text-[8px] text-gray-600 italic text-center mb-4 px-1">
+              <p className="text-[8px] text-gray-600 italic text-center my-3 px-1">
                 "{formatTerbilang(kk.terbayar)}"
               </p>
 

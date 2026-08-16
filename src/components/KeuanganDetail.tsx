@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Kas, IuranKK, Lomba, LaporanIuranMingguan } from '../types';
 import ModalCetakKwitansiIuran from './ModalCetakKwitansiIuran';
+import ModalGenerateKwitansiMassal from './ModalGenerateKwitansiMassal';
 import { parseKeterangan, formatRupiah } from '../utils/formatters';
 import { ArrowUpRight, ArrowDownRight, Search, Plus, Calendar, Clock, Landmark, Info, Users, CheckCircle2, AlertCircle, History, FileText, Printer, Download, Trash2, Edit, Eye, Camera, X, Scale, Building2, Factory, HandHeart, ChevronDown, ChevronUp, Layers, Table as TableIcon, Package } from 'lucide-react';
 
@@ -48,6 +49,7 @@ export default function KeuanganDetail({
   const [selectedProofPhoto, setSelectedProofPhoto] = useState<string | null>(null);
   const [selectedReceiptKK, setSelectedReceiptKK] = useState<IuranKK | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isMassalReceiptOpen, setIsMassalReceiptOpen] = useState(false);
   const [expandedTransactions, setExpandedTransactions] = useState<Record<number, boolean>>({});
   const [jurnalViewMode, setJurnalViewMode] = useState<'cards' | 'table'>('cards');
 
@@ -325,14 +327,27 @@ export default function KeuanganDetail({
                 </button>
               </>
             )}
-            {subTab === 'iuran' && isPengurus && (
-              <button
-                onClick={onOpenBayarIuran}
-                className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
-              >
-                <Plus size={14} />
-                Bayar Iuran KK
-              </button>
+            {subTab === 'iuran' && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMassalReceiptOpen(true)}
+                  className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                  title="Cetak massal kwitansi lunas dalam lembaran A4 hemat kertas"
+                >
+                  <Printer size={14} className="text-red-400" />
+                  Cetak Massal Kwitansi (A4)
+                </button>
+                {isPengurus && (
+                  <button
+                    onClick={onOpenBayarIuran}
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs cursor-pointer transition-all active:scale-95"
+                  >
+                    <Plus size={14} />
+                    Bayar Iuran KK
+                  </button>
+                )}
+              </div>
             )}
             {subTab === 'laporan' && (
               <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 font-bold px-2.5 py-1.5 rounded-lg uppercase tracking-wide">
@@ -503,7 +518,7 @@ export default function KeuanganDetail({
                                 {parsed.items.map((it, idx) => (
                                   <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100 text-slate-800">
                                     <div className="min-w-0 pr-2">
-                                      <p className="font-semibold text-gray-900 truncate">• {it.name}</p>
+                                      <p className="font-semibold text-gray-900 break-words leading-snug">• {it.name}</p>
                                       {it.qty > 1 && (
                                         <p className="text-[10px] text-gray-500 font-mono">
                                           {it.qty} item @ {formatRupiah(it.unitPrice)}
@@ -776,7 +791,7 @@ export default function KeuanganDetail({
             </div>
 
             {/* Filter & Search for KK */}
-            <div className="px-4 pb-2 flex flex-col md:flex-row gap-3">
+            <div className="px-4 pb-2 flex flex-col md:flex-row gap-3 items-stretch md:items-center">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
@@ -788,16 +803,27 @@ export default function KeuanganDetail({
                 />
               </div>
 
-              <div className="flex gap-1.5">
-                {['all', 'RT 01', 'RT 02', 'RT 03', 'RT 04'].map(rt => (
-                  <button
-                    key={rt}
-                    onClick={() => setRtFilter(rt)}
-                    className={`px-3 py-2 text-[10px] font-bold rounded-lg border uppercase tracking-wider transition-all cursor-pointer ${rtFilter === rt ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-                  >
-                    {rt === 'all' ? 'Semua RT' : rt}
-                  </button>
-                ))}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex gap-1">
+                  {['all', 'RT 01', 'RT 02', 'RT 03', 'RT 04'].map(rt => (
+                    <button
+                      key={rt}
+                      onClick={() => setRtFilter(rt)}
+                      className={`px-3 py-2 text-[10px] font-bold rounded-lg border uppercase tracking-wider transition-all cursor-pointer ${rtFilter === rt ? 'bg-red-50 border-red-500 text-red-600' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+                    >
+                      {rt === 'all' ? 'Semua RT' : rt}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMassalReceiptOpen(true)}
+                  className="inline-flex md:hidden items-center justify-center gap-1.5 bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-xs cursor-pointer w-full mt-1"
+                >
+                  <Printer size={14} className="text-red-400" />
+                  Cetak Massal Kwitansi (A4)
+                </button>
               </div>
             </div>
 
@@ -1518,6 +1544,12 @@ export default function KeuanganDetail({
             setSelectedReceiptKK(null);
           }}
           kk={selectedReceiptKK}
+        />
+
+        <ModalGenerateKwitansiMassal
+          isOpen={isMassalReceiptOpen}
+          onClose={() => setIsMassalReceiptOpen(false)}
+          iuranKKList={iuranKKList}
         />
 
       </div>
